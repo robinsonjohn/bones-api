@@ -29,9 +29,10 @@ All requests are logged.
 
 Endpoints require authentication and are rate limited to the limit set in the JWT.
 
-**Webhooks**
+**PublicController**
 
-Endpoints do not require authentication and are rate limited to the `api.webhook_rate_limit` configuration setting.
+Endpoints do not require authentication and are rate limited to the `api.public_rate_limit` configuration setting.
+Public endpoints are useful for cases such as webhooks and API status checks.
 
 ## Exceptions
 

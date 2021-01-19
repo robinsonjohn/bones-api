@@ -17,6 +17,10 @@ $router->setHost(get_config('router.host'))
 
     // -------------------- API --------------------
 
+    // Public
+
+    ->any('/v1', 'v1\\PublicController:status')
+
     // Auth
 
     ->any('/v1/auth/login', 'v1\\Auth:login')

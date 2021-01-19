@@ -97,7 +97,7 @@ class Auth extends Controller
                 'rate_limit' => $rate_limit
             ]);
 
-        // Respond
+        // Build schema
 
         $schema = AuthResource::create([
             'access_token' => $token,
@@ -105,7 +105,9 @@ class Auth extends Controller
             'expires_in' => get_config('api.access_token_lifetime')
         ]);
 
-        $this->response->setStatusCode(201)->setHeaders([
+        // Respond
+
+        $this->response->setStatusCode(200)->setHeaders([
             'Cache-Control' => 'no-cache, no-store, max-age=0, must-revalidate'
         ])->sendJson($schema);
 
