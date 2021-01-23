@@ -34,7 +34,7 @@ class EntityObject implements SchemaInterface
             throw new InvalidSchemaException('Unable to create EntityObject schema: missing required keys');
         }
 
-        return [ // TODO: Not using attributes key
+        return [
             'type' => 'entity',
             'id' => $array['id'],
             'attributes' => [
