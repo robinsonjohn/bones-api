@@ -179,7 +179,17 @@ class Auth extends Controller
 
         }
 
-        // TODO: check if no permissions, 403?
+        if (!$user['active']) {
+
+            log_notice('Unsuccessful login: user inactive', [
+                'user_id' => $user['id']
+            ]);
+
+            abort(403, 'User inactive');
+
+            die;
+
+        }
 
         // Successful login
 
@@ -310,9 +320,33 @@ class Auth extends Controller
 
             if ($refresh_token['created_at'] > time() - get_config('api.refresh_token_lifetime')) {
 
-                $user = $this->model->getUser($token['payload']['user_id']); // User must exist because meta already fetched
+                try {
 
-                // TODO: check if no permissions, 403?
+                    $user = $this->model->getUser($token['payload']['user_id']); // User must exist because meta already fetched
+
+                } catch (DoesNotExistException $e) {
+
+                    log_notice('Unsuccessful login: user does not exist', [
+                        'user_id' => $token['payload']['user_id']
+                    ]);
+
+                    abort(401, 'Invalid credentials');
+
+                    die;
+
+                }
+
+                if (!$user['active']) {
+
+                    log_notice('Unsuccessful login refresh: user inactive', [
+                        'user_id' => $user['id']
+                    ]);
+
+                    abort(403, 'User inactive');
+
+                    die;
+
+                }
 
                 // Successful login
 
