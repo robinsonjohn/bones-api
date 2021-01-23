@@ -15,6 +15,7 @@ use Bayfront\Bones\Exceptions\HttpException;
 use Bayfront\Bones\Exceptions\ServiceException;
 use Bayfront\Bones\Services\BonesApi;
 use Bayfront\Container\NotFoundException;
+use Bayfront\PDO\Exceptions\TransactionException;
 use Bayfront\Validator\ValidationException;
 use Bayfront\HttpRequest\Request;
 use Bayfront\HttpResponse\InvalidStatusCodeException;
@@ -84,10 +85,37 @@ class Entities extends Controller
 
     }
 
-    protected function _deleteEntity(string $id)
+    /**
+     * Delete entity.
+     *
+     * @param string $id
+     *
+     * @return void
+     *
+     * @throws HttpException
+     * @throws InvalidStatusCodeException
+     * @throws NotFoundException
+     * @throws QueryException
+     */
+
+    protected function _deleteEntity(string $id): void
     {
 
-        // Return 204
+        // Delete entity
+
+        $deleted = $this->model->deleteEntity($id);
+
+        if ($deleted) {
+
+            $this->response->setStatusCode(204)->send();
+
+        } else {
+
+            abort(404, 'Unable to delete entity: entity ID not found');
+
+            die;
+
+        }
 
     }
 
@@ -173,13 +201,13 @@ class Entities extends Controller
      *
      * @return void
      *
-     * @throws ChannelNotFoundException
      * @throws DoesNotExistException
      * @throws HttpException
      * @throws InvalidSchemaException
      * @throws InvalidStatusCodeException
      * @throws NotFoundException
      * @throws QueryException
+     * @throws TransactionException
      */
 
     protected function _updateEntity(string $id): void
@@ -234,14 +262,6 @@ class Entities extends Controller
         } catch (AlreadyExistsException $e) {
 
             abort(400, 'Unable to update entity: entity name already exists');
-
-            die;
-
-        } catch (Exception $e) {
-
-            log_critical($e->getMessage());
-
-            abort(500, 'Internal server error');
 
             die;
 
