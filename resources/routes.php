@@ -24,4 +24,8 @@ $router->setHost(get_config('router.host'))
     // Auth
 
     ->any('/v1/auth/login', 'v1\\Auth:login')
-    ->any('/v1/auth/refresh', 'v1\\Auth:refresh');
+    ->any('/v1/auth/refresh', 'v1\\Auth:refresh')
+
+    // User Auth library
+
+    ->any('v1/entities/{?:id}', 'v1\\Entities:index');

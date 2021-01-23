@@ -20,12 +20,14 @@
   "require": {
     "php": ">=7.2.0",
     "ext-json": "*",
+    "ext-pdo": "*",
     "bayfrontmedia/bones": "^1.1.1",
     "bayfrontmedia/array-schema": "^1.0.1",
     "bayfrontmedia/leaky-bucket": "^1.2.0",
     "bayfrontmedia/php-array-helpers": "^1.1.0",
     "bayfrontmedia/php-jwt": "^1.1.0",
     "bayfrontmedia/php-validator": "^1.1.0",
+    "bayfrontmedia/user-auth": "^1.0.0",
     "league/flysystem-cached-adapter": "^1.1.0"
   },
   "scripts": {

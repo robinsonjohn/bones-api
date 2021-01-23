@@ -3,9 +3,12 @@
 namespace App\Controllers\v1;
 
 use App\Schemas\AuthResource;
+use Bayfront\Auth\Exceptions\AuthenticationException;
+use Bayfront\Auth\Exceptions\DoesNotExistException;
 use Bayfront\Bones\Services\BonesApi;
 use Bayfront\ArrayHelpers\Arr;
 use Bayfront\ArraySchema\InvalidSchemaException;
+use Bayfront\Auth\Auth as UserAuth;
 use Bayfront\Bones\Controller;
 use Bayfront\Bones\Exceptions\ControllerException;
 use Bayfront\Bones\Exceptions\HttpException;
@@ -29,6 +32,10 @@ class Auth extends Controller
     /** @var BonesApi $api */
 
     protected $api;
+
+    /** @var UserAuth $model */
+
+    protected $model;
 
     /**
      * Auth constructor.
@@ -59,6 +66,10 @@ class Auth extends Controller
 
         $this->api->enforceRateLimit('auth-' . Request::getIp(), get_config('api.auth_rate_limit', 5));
 
+        // Define default model
+
+        $this->model = get_from_container('auth');
+
     }
 
     /**
@@ -88,12 +99,13 @@ class Auth extends Controller
 
         $token = $jwt
             ->iss(Request::getRequest('protocol') . Request::getRequest('host')) // Issuer
-            ->sub($data['username'])
+            ->sub($data['login'])
             ->iat($time)
             ->nbf($time)
             ->exp($time + get_config('api.access_token_lifetime'))
             ->encode([
-                'user_id' => $data['id'],
+                'user_id' => $data['user_id'],
+                'entities' => $data['entities'],
                 'rate_limit' => $rate_limit
             ]);
 
@@ -134,12 +146,12 @@ class Auth extends Controller
         $this->api->allowedMethods('POST');
 
         $body = $this->api->getBody([ // Required keys
-            'username',
+            'login',
             'password'
         ]);
 
         if (!empty(Arr::except($body, [ // If invalid keys have been sent
-            'username',
+            'login',
             'password'
         ]))) {
 
@@ -149,46 +161,48 @@ class Auth extends Controller
 
         }
 
-        /*
-         * ############################################################
-         * Start User model
-         * ############################################################
-         */
+        // Attempt login
 
-        /*
-         * Here is where you would interact with the Users model.
-         * This should abort with an HTTP status 401 for an authentication error (bad login),
-         * or with an HTTP status 403 for an authorization error (not allowed).
-         */
+        try {
 
-        $user = [
-            'id' => 1,
-            'rate_limit' => get_config('api.rate_limit', 50),
-            'username' => $body['username'],
-            'password' => $body['password']
-        ];
+            $user = $this->model->login($body['login'], $body['password']);
 
-        /*
-         * ############################################################
-         * End User model
-         * ############################################################
-         */
+        } catch (AuthenticationException $e) {
 
-        // Successful login. Create and save refresh token
+            log_notice('Unsuccessful login: invalid credentials', [
+                'login' => $body['login']
+            ]);
+
+            abort(401, 'Invalid credentials');
+
+            die;
+
+        }
+
+        // TODO: check if no permissions, 403?
+
+        // Successful login
+
+        // Create and store refresh token
 
         $refresh_token = create_key();
 
-        /*
-         * ############################################################
-         * Save the refresh token and issued at time here
-         * ############################################################
-         */
+        $this->model->setUserMeta($user['id'], '_refresh_token', json_encode([
+            'token' => $refresh_token,
+            'created_at' => time()
+        ]));
+
+        $data = [
+            'user_id' => $user['id'],
+            'login' => $user['login'],
+            'entities' => $this->model->getEntities($user['id'])
+        ];
 
         log_info('Successful login', [
             'user_id' => $user['id']
         ]);
 
-        $this->_returnJwt($user, $refresh_token, get_config('api.rate_limit', 50));
+        $this->_returnJwt($data, $refresh_token, get_config('api.rate_limit', 50));
 
     }
 
@@ -241,68 +255,105 @@ class Auth extends Controller
 
         } catch (TokenException $e) { // Invalid JWT
 
-            log_notice('Unsuccessful login refresh: invalid token', [
+            log_notice('Unsuccessful login refresh: invalid access token', [
                 'access_token' => $body['access_token']
             ]);
 
-            abort(401, 'Unable to authenticate: invalid access/refresh token');
+            abort(401, 'Invalid access token');
 
             die;
 
         }
 
-        /*
-         * ############################################################
-         * Start User model
-         * ############################################################
-         */
+        // Fetch refresh token
 
-        /*
-         * Here is where you would interact with the Users model.
-         *
-         * For example:
-         *
-         * 1. Authenticate user using user ID and refresh token.
-         *
-         * This should abort with an HTTP status 401 for an authentication error
-         * (user ID/refresh token mismatch or refresh token is expired),
-         * or with an HTTP status 403 for an authorization error (not allowed).
-         *
-         *      $token['payload']['user_id']
-         *      $body['refresh_token']
-         *      get_config('api.refresh_token_lifetime')
-         *
-         *      if ($ISSUED_AT_TIME < time() - $TOKEN_LIFETIME) { // Expired token
-         */
+        try {
 
-        $user = [
-            'id' => $token['payload']['user_id'],
-            'rate_limit' => get_config('api.rate_limit', 50),
-            'username' => 'IN_DATABASE',
-            'password' => 'IN_DATABASE',
-        ];
+            $refresh_token = $this->model->getUserMeta($token['payload']['user_id'], '_refresh_token');
 
-        /*
-         * ############################################################
-         * End User model
-         * ############################################################
-         */
+        } catch (DoesNotExistException $e) {
 
-        // Successful login. Create and save refresh token
+            log_notice('Unsuccessful login refresh: refresh token does not exist for user', [
+                'user_id' => $token['payload']['user_id'],
+                'refresh_token' => $body['refresh_token']
+            ]);
 
-        $refresh_token = create_key();
+            abort(401, 'Invalid refresh token');
 
-        /*
-         * ############################################################
-         * Save the refresh token and issued at time here
-         * ############################################################
-         */
+            die;
 
-        log_info('Successful login refresh', [
-            'user_id' => $user['id']
-        ]);
+        }
 
-        $this->_returnJwt($user, $refresh_token, get_config('api.rate_limit', 50));
+        $refresh_token = json_decode($refresh_token, true);
+
+        if (Arr::isMissing($refresh_token, [
+            'token',
+            'created_at'
+        ])) {
+
+            // Delete invalid token
+
+            $this->model->deleteUserMeta($token['payload']['user_id'], '_refresh_token');
+
+            log_notice('Unsuccessful login refresh: invalid refresh token format', [
+                'user_id' => $token['payload']['user_id'],
+                'refresh_token' => $body['refresh_token']
+            ]);
+
+            abort(401, 'Invalid refresh token format');
+
+            die;
+
+        }
+
+        if ($refresh_token['token'] == $body['refresh_token']) {
+
+            if ($refresh_token['created_at'] > time() - get_config('api.refresh_token_lifetime')) {
+
+                $user = $this->model->getUser($token['payload']['user_id']); // User must exist because meta already fetched
+
+                // TODO: check if no permissions, 403?
+
+                // Successful login
+
+                // Create and store refresh token
+
+                $refresh_token = create_key();
+
+                $this->model->setUserMeta($user['id'], '_refresh_token', json_encode([
+                    'token' => $refresh_token,
+                    'created_at' => time()
+                ]));
+
+                $data = [
+                    'user_id' => $user['id'],
+                    'login' => $user['login'],
+                    'entities' => $this->model->getEntities($user['id'])
+                ];
+
+                log_info('Successful login via refresh token', [
+                    'user_id' => $user['id']
+                ]);
+
+                $this->_returnJwt($data, $refresh_token, get_config('api.rate_limit', 50));
+
+                return;
+
+            }
+
+            // Delete invalid token
+
+            $this->model->deleteUserMeta($token['payload']['user_id'], '_refresh_token');
+
+            abort(401, 'Expired refresh token');
+
+            die;
+
+        }
+
+        abort(401, 'Invalid credentials');
+
+        die;
 
     }
 
