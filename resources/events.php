@@ -46,3 +46,4 @@ function log_context()
 }
 
 add_event('app.bootstrap', 'log_context');
+

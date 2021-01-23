@@ -13,7 +13,7 @@ use Bayfront\Auth\Exceptions\InvalidEntityException;
 use Bayfront\Auth\Exceptions\InvalidOwnerException;
 use Bayfront\Auth\Exceptions\InvalidUserException;
 use Bayfront\Auth\Exceptions\NameExistsException;
-use Bayfront\Bones\Controller as parentAlias;
+use Bayfront\Bones\Controller;
 use Bayfront\Bones\Exceptions\ControllerException;
 use Bayfront\Bones\Exceptions\HttpException;
 use Bayfront\Bones\Exceptions\ModelException;
@@ -32,7 +32,7 @@ use Bayfront\Validator\Validate;
 /**
  * Entities controller.
  */
-class Entities extends parentAlias
+class Entities extends Controller
 {
 
     /** @var BonesApi $api */
@@ -108,7 +108,7 @@ class Entities extends parentAlias
     protected function _createEntity(): void
     {
 
-        // Get and validate body
+        // Get body
 
         $body = $this->api->getBody([
             'owner_id',
@@ -127,6 +127,8 @@ class Entities extends parentAlias
             die;
 
         }
+
+        // Validate body
 
         try {
 
@@ -153,7 +155,7 @@ class Entities extends parentAlias
 
         } catch (InvalidOwnerException $e) {
 
-            abort(400, 'Unable to create entity: invalid owner ID');
+            abort(400, 'Unable to create entity: owner ID does not exist');
 
             die;
 
@@ -175,9 +177,7 @@ class Entities extends parentAlias
             'link_prefix' => '/entities'
         ]);
 
-        $this->response->setHeaders([
-            'Cache-Control' => 'max-age=86400' // 24 hours
-        ])->sendJson($schema);
+        $this->response->sendJson($schema);
 
     }
 
@@ -201,7 +201,7 @@ class Entities extends parentAlias
     protected function _updateEntity(string $id): void
     {
 
-        // Get and validate body
+        // Get body
 
         $body = $this->api->getBody();
 
@@ -217,6 +217,8 @@ class Entities extends parentAlias
             die;
 
         }
+
+        // Validate body
 
         try {
 
@@ -243,7 +245,7 @@ class Entities extends parentAlias
 
         } catch (InvalidEntityException $e) {
 
-            abort(400, 'Unable to update entity: invalid entity');
+            abort(400, 'Unable to update entity: entity ID does not exist');
 
             die;
 
@@ -271,9 +273,7 @@ class Entities extends parentAlias
             'link_prefix' => '/entities'
         ]);
 
-        $this->response->setHeaders([
-            'Cache-Control' => 'max-age=86400' // 24 hours
-        ])->sendJson($schema);
+        $this->response->sendJson($schema);
 
     }
 
@@ -302,7 +302,7 @@ class Entities extends parentAlias
 
         } catch (InvalidEntityException $e) {
 
-            abort(404);
+            abort(404, 'Unable to get entity: entity ID does not exist');
 
             die;
 
@@ -315,7 +315,7 @@ class Entities extends parentAlias
         ]);
 
         $this->response->setHeaders([
-            'Cache-Control' => 'max-age=86400' // 24 hours
+            'Cache-Control' => 'max-age=3600' // 1 hour
         ])->sendJson($schema);
 
     }
@@ -335,7 +335,9 @@ class Entities extends parentAlias
     protected function _getEntities(): void
     {
 
-        $page_size = (int)get_config('api.default_collection_count', 10);
+        // Get entities
+
+        $page_size = (int)get_config('api.default_page_size', 10);
 
         $request = $this->api->parseQuery(Request::getQuery(), $page_size);
 
@@ -370,7 +372,9 @@ class Entities extends parentAlias
             'link_prefix' => '/entities'
         ]);
 
-        $this->response->sendJson($schema);
+        $this->response->setHeaders([
+            'Cache-Control' => 'max-age=3600' // 1 hour
+        ])->sendJson($schema);
 
     }
 
@@ -404,7 +408,7 @@ class Entities extends parentAlias
 
         } else {
 
-            abort(404, 'Unable to delete entity: entity ID not found');
+            abort(404, 'Unable to delete entity: entity ID does not exist');
 
             die;
 
@@ -441,20 +445,20 @@ class Entities extends parentAlias
     {
 
         $this->api->allowedMethods([
-            'DELETE',
+            'POST',
             'GET',
             'PATCH',
-            'POST'
+            'DELETE'
         ]);
 
-        if (Request::isDelete()) {
+        if (Request::isPost()) {
 
-            if (!isset($params['id'])) {
+            if (isset($params['id'])) {
                 abort(400);
                 die;
             }
 
-            $this->_deleteEntity($params['id']);
+            $this->_createEntity();
 
         } else if (Request::isGet()) {
 
@@ -477,14 +481,14 @@ class Entities extends parentAlias
 
             $this->_updateEntity($params['id']);
 
-        } else { // POST
+        } else { // Delete
 
-            if (isset($params['id'])) {
+            if (!isset($params['id'])) {
                 abort(400);
                 die;
             }
 
-            $this->_createEntity();
+            $this->_deleteEntity($params['id']);
 
         }
 
