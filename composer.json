@@ -21,7 +21,7 @@
     "php": ">=7.2.0",
     "ext-json": "*",
     "ext-pdo": "*",
-    "bayfrontmedia/bones": "^1.1.1",
+    "bayfrontmedia/bones": "^1.1.2",
     "bayfrontmedia/array-schema": "^1.0.1",
     "bayfrontmedia/leaky-bucket": "^1.2.0",
     "bayfrontmedia/php-array-helpers": "^1.1.0",

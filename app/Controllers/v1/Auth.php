@@ -87,6 +87,18 @@ class Auth extends Controller
     protected function _returnJwt(array $data, string $refresh_token, int $rate_limit = 50)
     {
 
+        // Define and filter JWT payload
+
+        $payload = do_filter('jwt.payload', [
+            'user_id' => $data['user_id'],
+            'entities' => $data['entities'],
+            'rate_limit' => $rate_limit
+        ]);
+
+        // auth.success event
+
+        do_event('auth.success', $data['user_id']);
+
         // Reset rate limit
 
         $this->api->resetRateLimit('auth-' . Request::getIp(), get_config('api.auth_rate_limit', 5));
@@ -103,11 +115,7 @@ class Auth extends Controller
             ->iat($time)
             ->nbf($time)
             ->exp($time + get_config('api.access_token_lifetime'))
-            ->encode([
-                'user_id' => $data['user_id'],
-                'entities' => $data['entities'],
-                'rate_limit' => $rate_limit
-            ]);
+            ->encode($payload);
 
         // Build schema
 
