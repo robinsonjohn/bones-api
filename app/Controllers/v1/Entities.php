@@ -2,7 +2,12 @@
 
 namespace App\Controllers\v1;
 
+use App\Schemas\EntityCollection;
+use App\Schemas\EntityResource;
+use Bayfront\ArrayHelpers\Arr;
+use Bayfront\ArraySchema\InvalidSchemaException;
 use Bayfront\Auth\Auth;
+use Bayfront\Auth\Exceptions\AlreadyExistsException;
 use Bayfront\Auth\Exceptions\DoesNotExistException;
 use Bayfront\Bones\Controller;
 use Bayfront\Bones\Exceptions\ControllerException;
@@ -10,10 +15,15 @@ use Bayfront\Bones\Exceptions\HttpException;
 use Bayfront\Bones\Exceptions\ServiceException;
 use Bayfront\Bones\Services\BonesApi;
 use Bayfront\Container\NotFoundException;
+use Bayfront\Validator\ValidationException;
 use Bayfront\HttpRequest\Request;
 use Bayfront\HttpResponse\InvalidStatusCodeException;
 use Bayfront\LeakyBucket\AdapterException;
 use Bayfront\LeakyBucket\BucketException;
+use Bayfront\MonologFactory\Exceptions\ChannelNotFoundException;
+use Bayfront\PDO\Exceptions\QueryException;
+use Bayfront\Validator\Validate;
+use Exception;
 
 /**
  * Entities controller.
@@ -77,10 +87,28 @@ class Entities extends Controller
     protected function _deleteEntity(string $id)
     {
 
+        // Return 204
+
     }
 
-    protected function _getEntity(string $id)
+    /**
+     * Get single entity.
+     *
+     * @param string $id
+     *
+     * @return void
+     *
+     * @throws HttpException
+     * @throws InvalidSchemaException
+     * @throws InvalidStatusCodeException
+     * @throws NotFoundException
+     * @throws QueryException
+     */
+
+    protected function _getEntity(string $id): void
     {
+
+        // Get entity
 
         try {
 
@@ -94,32 +122,234 @@ class Entities extends Controller
 
         }
 
-        print_r($entity);
+        // Send response
+
+        $schema = EntityResource::create($entity, [
+            'link_prefix' => '/entities'
+        ]);
+
+        $this->response->setHeaders([
+            'Cache-Control' => 'max-age=86400' // 24 hours
+        ])->sendJson($schema);
 
     }
 
-    protected function _getEntities(array $params)
+    protected function _getEntities(array $params): void
     {
 
-        $request = $this->api->parseQuery(Request::getQuery(), get_config('api.default_collection_count', 10));
+        // TODO: Add sort & filters based on query
 
-        print_r($request);
+        //$request = $this->api->parseQuery(Request::getQuery(), get_config('api.default_collection_count', 10));
 
-        print_r($params);
+        //print_r($request);
 
-        die;
+        //print_r($params);
 
-        print_r($this->model->getEntities());
+        $entities = $this->model->getEntities();
+
+        $total_entities = 999; // TODO
+
+        $schema = EntityCollection::create([
+            'entities' => $entities,
+            'page' => [
+                'count' => count($entities),
+                'total' => $total_entities,
+                'pages' => ceil($total_entities / 10), // TODO
+                'page_size' => 10,
+                'page_number' => 1
+            ]
+        ], [
+            'link_prefix' => '/entities'
+        ]);
+
+        $this->response->sendJson($schema);
 
     }
 
-    protected function _updateEntity(string $id)
+    /**
+     * Update entity.
+     *
+     * @param string $id
+     *
+     * @return void
+     *
+     * @throws ChannelNotFoundException
+     * @throws DoesNotExistException
+     * @throws HttpException
+     * @throws InvalidSchemaException
+     * @throws InvalidStatusCodeException
+     * @throws NotFoundException
+     * @throws QueryException
+     */
+
+    protected function _updateEntity(string $id): void
     {
+
+        // Get and validate body
+
+        $body = $this->api->getBody();
+
+        if (!empty(Arr::except($body, [ // If invalid keys have been sent
+            'owner_id',
+            'name',
+            'attributes',
+            'active'
+        ]))) {
+
+            abort(400, 'Unable to update entity: request body contains invalid parameters');
+
+            die;
+
+        }
+
+        try {
+
+            Validate::as($body, [
+                'owner_id' => 'string',
+                'name' => 'string',
+                'attributes' => 'json',
+                'active' => 'boolean'
+            ]);
+
+        } catch (ValidationException $e) {
+
+            abort(400, $e->getMessage());
+
+            die;
+
+        }
+
+        // Update entity
+
+        try {
+
+            $this->model->updateEntity($id, $body);
+
+        } catch (DoesNotExistException $e) {
+
+            abort(400, 'Unable to update entity: invalid entity and/or owner ID'); // TODO: Update User Auth exceptions
+
+            die;
+
+        } catch (AlreadyExistsException $e) {
+
+            abort(400, 'Unable to update entity: entity name already exists');
+
+            die;
+
+        } catch (Exception $e) {
+
+            log_critical($e->getMessage());
+
+            abort(500, 'Internal server error');
+
+            die;
+
+        }
+
+        // Send response
+
+        $schema = EntityResource::create($this->model->getEntity($id), [
+            'link_prefix' => '/entities'
+        ]);
+
+        $this->response->setHeaders([
+            'Cache-Control' => 'max-age=86400' // 24 hours
+        ])->sendJson($schema);
 
     }
 
-    protected function _createEntity()
+    /**
+     * Create new entity.
+     *
+     * @return void
+     *
+     * @throws DoesNotExistException
+     * @throws HttpException
+     * @throws InvalidStatusCodeException
+     * @throws NotFoundException
+     * @throws InvalidSchemaException
+     * @throws ChannelNotFoundException
+     * @throws QueryException
+     */
+
+    protected function _createEntity(): void
     {
+
+        // Get and validate body
+
+        $body = $this->api->getBody([
+            'owner_id',
+            'name'
+        ]); // Required keys
+
+        if (!empty(Arr::except($body, [ // If invalid keys have been sent
+            'owner_id',
+            'name',
+            'attributes',
+            'active'
+        ]))) {
+
+            abort(400, 'Unable to create entity: request body contains invalid parameters');
+
+            die;
+
+        }
+
+        try {
+
+            Validate::as($body, [
+                'owner_id' => 'string',
+                'name' => 'string',
+                'attributes' => 'json',
+                'active' => 'boolean'
+            ]);
+
+        } catch (ValidationException $e) {
+
+            abort(400, $e->getMessage());
+
+            die;
+
+        }
+
+        // Create entity
+
+        try {
+
+            $id = $this->model->createEntity($body);
+
+        } catch (DoesNotExistException $e) {
+
+            abort(400, 'Unable to create entity: invalid owner ID');
+
+            die;
+
+        } catch (AlreadyExistsException $e) {
+
+            abort(400, 'Unable to create entity: entity name already exists');
+
+            die;
+
+        } catch (Exception $e) {
+
+            log_critical($e->getMessage());
+
+            abort(500, 'Internal server error');
+
+            die;
+
+        }
+
+        // Send response
+
+        $schema = EntityResource::create($this->model->getEntity($id), [
+            'link_prefix' => '/entities'
+        ]);
+
+        $this->response->setHeaders([
+            'Cache-Control' => 'max-age=86400' // 24 hours
+        ])->sendJson($schema);
 
     }
 
@@ -130,11 +360,19 @@ class Entities extends Controller
      */
 
     /**
+     * Router destination.
+     *
      * @param array $params
      *
+     * @return void
+     *
+     * @throws ChannelNotFoundException
+     * @throws DoesNotExistException
      * @throws HttpException
+     * @throws InvalidSchemaException
      * @throws InvalidStatusCodeException
      * @throws NotFoundException
+     * @throws QueryException
      */
 
     public function index(array $params)
@@ -160,13 +398,13 @@ class Entities extends Controller
 
             if (isset($params['id'])) { // Single entity
 
-                return $this->_getEntity($params['id']);
+                $this->_getEntity($params['id']);
+
+            } else { // Get all entities
+
+                $this->_getEntities($params);
 
             }
-
-            // Get all entities
-
-            return $this->_getEntities($params);
 
         } else if (Request::isPatch()) {
 
@@ -175,7 +413,7 @@ class Entities extends Controller
                 die;
             }
 
-            return $this->_updateEntity($params['id']);
+            $this->_updateEntity($params['id']);
 
         } else { // POST
 
@@ -184,7 +422,7 @@ class Entities extends Controller
                 die;
             }
 
-            return $this->_createEntity();
+            $this->_createEntity();
 
         }
 
