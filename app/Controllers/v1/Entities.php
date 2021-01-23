@@ -2,6 +2,7 @@
 
 namespace App\Controllers\v1;
 
+use App\Models\UserAuthModel;
 use App\Schemas\EntityCollection;
 use App\Schemas\EntityResource;
 use Bayfront\ArrayHelpers\Arr;
@@ -12,6 +13,7 @@ use Bayfront\Auth\Exceptions\DoesNotExistException;
 use Bayfront\Bones\Controller;
 use Bayfront\Bones\Exceptions\ControllerException;
 use Bayfront\Bones\Exceptions\HttpException;
+use Bayfront\Bones\Exceptions\ModelException;
 use Bayfront\Bones\Exceptions\ServiceException;
 use Bayfront\Bones\Services\BonesApi;
 use Bayfront\Container\NotFoundException;
@@ -162,29 +164,51 @@ class Entities extends Controller
 
     }
 
-    protected function _getEntities(array $params): void
+    /**
+     * Get entities.
+     *
+     * @return void
+     *
+     * @throws HttpException
+     * @throws InvalidSchemaException
+     * @throws InvalidStatusCodeException
+     * @throws NotFoundException
+     * @throws ModelException
+     */
+
+    protected function _getEntities(): void
     {
 
-        // TODO: Add sort & filters based on query
+        $page_size = (int)get_config('api.default_collection_count', 10);
 
-        //$request = $this->api->parseQuery(Request::getQuery(), get_config('api.default_collection_count', 10));
+        $request = $this->api->parseQuery(Request::getQuery(), $page_size);
 
-        //print_r($request);
+        /** @var UserAuthModel $model */
 
-        //print_r($params);
+        $model = get_model('UserAuthModel');
 
-        $entities = $this->model->getEntities();
+        try {
 
-        $total_entities = 999; // TODO
+            $entities = $model->getEntities($request);
+
+        } catch (QueryException $e) {
+
+            abort(400, 'Unable to get entities: invalid request');
+
+            die;
+
+        }
+
+        // Send response
 
         $schema = EntityCollection::create([
-            'entities' => $entities,
+            'entities' => $entities['results'],
             'page' => [
-                'count' => count($entities),
-                'total' => $total_entities,
-                'pages' => ceil($total_entities / 10), // TODO
-                'page_size' => 10,
-                'page_number' => 1
+                'count' => count($entities['results']),
+                'total' => $entities['total'],
+                'pages' => ceil($entities['total'] / $page_size),
+                'page_size' => $page_size,
+                'page_number' => ($request['offset'] / $request['limit']) + 1
             ]
         ], [
             'link_prefix' => '/entities'
@@ -393,6 +417,8 @@ class Entities extends Controller
      * @throws InvalidStatusCodeException
      * @throws NotFoundException
      * @throws QueryException
+     * @throws TransactionException
+     * @throws ModelException
      */
 
     public function index(array $params)
@@ -412,7 +438,7 @@ class Entities extends Controller
                 die;
             }
 
-            return $this->_deleteEntity($params['id']);
+            $this->_deleteEntity($params['id']);
 
         } else if (Request::isGet()) {
 
@@ -422,7 +448,7 @@ class Entities extends Controller
 
             } else { // Get all entities
 
-                $this->_getEntities($params);
+                $this->_getEntities();
 
             }
 
