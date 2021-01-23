@@ -2,8 +2,6 @@
 
 namespace App\Controllers\v1;
 
-use Bayfront\Bones\Services\BonesApi;
-use Bayfront\Bones\Controller;
 use Bayfront\Bones\Exceptions\ControllerException;
 use Bayfront\Bones\Exceptions\HttpException;
 use Bayfront\Bones\Exceptions\ServiceException;
@@ -15,14 +13,8 @@ use Bayfront\LeakyBucket\BucketException;
 /**
  * This controller allows rate limited authenticated access to endpoints.
  */
-class ExampleApiController extends Controller
+class ExampleApiController extends ApiController
 {
-
-    /** @var BonesApi $api */
-
-    protected $api;
-
-    protected $token; // JWT
 
     /**
      * ExampleApiController constructor.
@@ -40,26 +32,6 @@ class ExampleApiController extends Controller
     {
 
         parent::__construct();
-
-        // Get the Bones API service from the container
-
-        $this->api = get_service('BonesApi');
-
-        // Start the API environment
-
-        $this->api->start();
-
-        // All endpoints require authentication
-
-        $this->token = $this->api->authenticateJwt();
-
-        // Check rate limit
-
-        if (isset($this->token['payload']['user_id']) && isset($this->token['payload']['rate_limit'])) {
-
-            $this->api->enforceRateLimit($this->token['payload']['user_id'], $this->token['payload']['rate_limit']);
-
-        }
 
     }
 

@@ -4,7 +4,8 @@ namespace App\Controllers\v1;
 
 use App\Schemas\AuthResource;
 use Bayfront\Auth\Exceptions\AuthenticationException;
-use Bayfront\Auth\Exceptions\DoesNotExistException;
+use Bayfront\Auth\Exceptions\InvalidMetaException;
+use Bayfront\Auth\Exceptions\InvalidUserException;
 use Bayfront\Bones\Services\BonesApi;
 use Bayfront\ArrayHelpers\Arr;
 use Bayfront\ArraySchema\InvalidSchemaException;
@@ -68,7 +69,7 @@ class Auth extends Controller
 
         // Define default model
 
-        $this->model = get_from_container('auth');
+        $this->model = $this->container->get('auth');
 
     }
 
@@ -79,12 +80,14 @@ class Auth extends Controller
      * @param string $refresh_token
      * @param int $rate_limit (Rate limit per minute)
      *
+     * @return void
+     *
      * @throws InvalidSchemaException
      * @throws InvalidStatusCodeException
      * @throws Exception
      */
 
-    protected function _returnJwt(array $data, string $refresh_token, int $rate_limit = 50)
+    protected function _returnJwt(array $data, string $refresh_token, int $rate_limit = 50): void
     {
 
         // Define and filter JWT payload
@@ -138,6 +141,8 @@ class Auth extends Controller
      *
      * Creates token and returns AuthResource schema.
      *
+     * @return void
+     *
      * @throws ChannelNotFoundException
      * @throws HttpException
      * @throws InvalidSchemaException
@@ -146,7 +151,7 @@ class Auth extends Controller
      * @throws Exception
      */
 
-    public function login()
+    public function login(): void
     {
 
         // Endpoint requirements
@@ -231,6 +236,8 @@ class Auth extends Controller
      *
      * Creates token and returns AuthResource schema.
      *
+     * @return void
+     *
      * @throws ChannelNotFoundException
      * @throws HttpException
      * @throws InvalidSchemaException
@@ -239,7 +246,7 @@ class Auth extends Controller
      * @throws Exception
      */
 
-    public function refresh()
+    public function refresh(): void
     {
 
         // Endpoint requirements
@@ -295,7 +302,7 @@ class Auth extends Controller
 
             $refresh_token = $this->model->getUserMeta($token['payload']['user_id'], '_refresh_token');
 
-        } catch (DoesNotExistException $e) {
+        } catch (InvalidMetaException $e) {
 
             log_notice('Unsuccessful login refresh: invalid refresh token', [
                 'user_id' => $token['payload']['user_id']
@@ -341,7 +348,7 @@ class Auth extends Controller
 
                     $user = $this->model->getUser($token['payload']['user_id']); // User must exist because meta already fetched
 
-                } catch (DoesNotExistException $e) {
+                } catch (InvalidUserException $e) {
 
                     log_notice('Unsuccessful login: user does not exist', [
                         'user_id' => $token['payload']['user_id']

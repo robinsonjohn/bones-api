@@ -13,33 +13,27 @@ use Bayfront\Auth\Exceptions\InvalidEntityException;
 use Bayfront\Auth\Exceptions\InvalidOwnerException;
 use Bayfront\Auth\Exceptions\InvalidUserException;
 use Bayfront\Auth\Exceptions\NameExistsException;
-use Bayfront\Bones\Controller;
 use Bayfront\Bones\Exceptions\ControllerException;
 use Bayfront\Bones\Exceptions\HttpException;
 use Bayfront\Bones\Exceptions\ModelException;
 use Bayfront\Bones\Exceptions\ServiceException;
-use Bayfront\Bones\Services\BonesApi;
 use Bayfront\Container\NotFoundException;
+use Bayfront\LeakyBucket\AdapterException;
+use Bayfront\LeakyBucket\BucketException;
 use Bayfront\PDO\Exceptions\TransactionException;
 use Bayfront\Validator\ValidationException;
 use Bayfront\HttpRequest\Request;
 use Bayfront\HttpResponse\InvalidStatusCodeException;
-use Bayfront\LeakyBucket\AdapterException;
-use Bayfront\LeakyBucket\BucketException;
 use Bayfront\PDO\Exceptions\QueryException;
 use Bayfront\Validator\Validate;
 
 /**
  * Entities controller.
+ *
+ * This controller allows rate limited authenticated access to endpoints.
  */
-class Entities extends Controller
+class Entities extends ApiController
 {
-
-    /** @var BonesApi $api */
-
-    protected $api;
-
-    protected $token; // JWT
 
     /** @var Auth $model */
 
@@ -49,14 +43,12 @@ class Entities extends Controller
      * Entities constructor.
      *
      * @throws ControllerException
-     * @throws ServiceException
      * @throws HttpException
-     * @throws NotFoundException
      * @throws InvalidStatusCodeException
+     * @throws NotFoundException
+     * @throws ServiceException
      * @throws AdapterException
      * @throws BucketException
-     *
-     * @noinspection DuplicatedCode
      */
 
     public function __construct()
@@ -64,29 +56,9 @@ class Entities extends Controller
 
         parent::__construct();
 
-        // Get the Bones API service from the container
-
-        $this->api = get_service('BonesApi');
-
-        // Start the API environment
-
-        $this->api->start();
-
-        // All endpoints require authentication
-
-        $this->token = $this->api->authenticateJwt();
-
-        // Check rate limit
-
-        if (isset($this->token['payload']['user_id']) && isset($this->token['payload']['rate_limit'])) {
-
-            $this->api->enforceRateLimit($this->token['payload']['user_id'], $this->token['payload']['rate_limit']);
-
-        }
-
         // Define default model
 
-        $this->model = get_from_container('auth');
+        $this->model = $this->container->get('auth');
 
     }
 
