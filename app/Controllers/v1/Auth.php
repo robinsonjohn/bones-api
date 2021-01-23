@@ -157,7 +157,9 @@ class Auth extends Controller
 
             log_notice('Unsuccessful login: invalid parameters');
 
-            abort(400, 'Request body contains invalid parameters');
+            abort(400, 'Invalid parameters');
+
+            die;
 
         }
 
@@ -248,9 +250,13 @@ class Auth extends Controller
 
             log_notice('Unsuccessful login refresh: invalid parameters');
 
-            abort(400, 'Request body contains invalid parameters');
+            abort(400, 'Invalid parameters');
+
+            die;
 
         }
+
+        // Validate access token
 
         $jwt = new Jwt(get_config('app.key'));
 
@@ -275,7 +281,7 @@ class Auth extends Controller
 
         }
 
-        // Fetch refresh token
+        // Attempt to fetch refresh token
 
         try {
 
@@ -283,9 +289,8 @@ class Auth extends Controller
 
         } catch (DoesNotExistException $e) {
 
-            log_notice('Unsuccessful login refresh: refresh token does not exist for user', [
-                'user_id' => $token['payload']['user_id'],
-                'refresh_token' => $body['refresh_token']
+            log_notice('Unsuccessful login refresh: invalid refresh token', [
+                'user_id' => $token['payload']['user_id']
             ]);
 
             abort(401, 'Invalid refresh token');
@@ -293,6 +298,8 @@ class Auth extends Controller
             die;
 
         }
+
+        // Validate refresh token format
 
         $refresh_token = json_decode($refresh_token, true);
 
@@ -316,6 +323,8 @@ class Auth extends Controller
 
         }
 
+        // Validate refresh token value and time
+
         if ($refresh_token['token'] == $body['refresh_token']) {
 
             if ($refresh_token['created_at'] > time() - get_config('api.refresh_token_lifetime')) {
@@ -330,7 +339,7 @@ class Auth extends Controller
                         'user_id' => $token['payload']['user_id']
                     ]);
 
-                    abort(401, 'Invalid credentials');
+                    abort(401, 'User does not exist');
 
                     die;
 
@@ -350,7 +359,7 @@ class Auth extends Controller
 
                 // Successful login
 
-                // Create and store refresh token
+                // Create and store a new refresh token
 
                 $refresh_token = create_key();
 
@@ -379,11 +388,19 @@ class Auth extends Controller
 
             $this->model->deleteUserMeta($token['payload']['user_id'], '_refresh_token');
 
+            log_notice('Unsuccessful login refresh: expired refresh token', [
+                'user_id' => $token['payload']['user_id']
+            ]);
+
             abort(401, 'Expired refresh token');
 
             die;
 
         }
+
+        log_notice('Unsuccessful login refresh: invalid credentials', [
+            'user_id' => $token['payload']['user_id']
+        ]);
 
         abort(401, 'Invalid credentials');
 
