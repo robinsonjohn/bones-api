@@ -220,7 +220,7 @@ class Auth extends Controller
         $data = [
             'user_id' => $user['id'],
             'login' => $user['login'],
-            'entities' => $this->model->getEntities($user['id'])
+            'entities' => Arr::pluck($this->model->getUserEntities($user['id']), 'id')
         ];
 
         log_info('Successful login', [
@@ -386,7 +386,7 @@ class Auth extends Controller
                 $data = [
                     'user_id' => $user['id'],
                     'login' => $user['login'],
-                    'entities' => $this->model->getEntities($user['id'])
+                    'entities' => Arr::pluck($this->model->getUserEntities($user['id']), 'id')
                 ];
 
                 log_info('Successful login via refresh token', [
