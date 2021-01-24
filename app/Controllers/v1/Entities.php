@@ -2,6 +2,7 @@
 
 namespace App\Controllers\v1;
 
+use App\Exceptions\InvalidRequestException;
 use App\Models\UserAuthModel;
 use App\Schemas\EntityCollection;
 use App\Schemas\EntityResource;
@@ -95,7 +96,6 @@ class Entities extends ApiController
         ]))) {
 
             abort(400, 'Unable to create entity: request body contains invalid parameters');
-
             die;
 
         }
@@ -114,7 +114,6 @@ class Entities extends ApiController
         } catch (ValidationException $e) {
 
             abort(400, $e->getMessage());
-
             die;
 
         }
@@ -128,13 +127,11 @@ class Entities extends ApiController
         } catch (InvalidOwnerException $e) {
 
             abort(400, 'Unable to create entity: owner ID does not exist');
-
             die;
 
         } catch (NameExistsException $e) {
 
             abort(400, 'Unable to create entity: entity name already exists');
-
             die;
 
         }
@@ -185,7 +182,6 @@ class Entities extends ApiController
         ]))) {
 
             abort(400, 'Unable to update entity: request body contains invalid parameters');
-
             die;
 
         }
@@ -204,7 +200,6 @@ class Entities extends ApiController
         } catch (ValidationException $e) {
 
             abort(400, $e->getMessage());
-
             die;
 
         }
@@ -218,19 +213,16 @@ class Entities extends ApiController
         } catch (InvalidEntityException $e) {
 
             abort(400, 'Unable to update entity: entity ID does not exist');
-
             die;
 
         } catch (InvalidOwnerException $e) {
 
             abort(400, 'Unable to update entity: owner ID does not exist');
-
             die;
 
         } catch (NameExistsException $e) {
 
             abort(400, 'Unable to update entity: entity name already exists');
-
             die;
 
         }
@@ -275,7 +267,6 @@ class Entities extends ApiController
         } catch (InvalidEntityException $e) {
 
             abort(404, 'Unable to get entity: entity ID does not exist');
-
             die;
 
         }
@@ -309,7 +300,7 @@ class Entities extends ApiController
 
         // Get entities
 
-        $page_size = (int)get_config('api.default_page_size', 10);
+        $page_size = (int)Arr::get(Request::getQuery(), 'page.size', get_config('api.default_page_size', 10));
 
         $request = $this->api->parseQuery(Request::getQuery(), $page_size);
 
@@ -321,10 +312,9 @@ class Entities extends ApiController
 
             $entities = $model->getEntities($request);
 
-        } catch (QueryException $e) {
+        } catch (QueryException|InvalidRequestException $e) {
 
             abort(400, 'Unable to get entities: invalid request');
-
             die;
 
         }
@@ -381,7 +371,6 @@ class Entities extends ApiController
         } else {
 
             abort(404, 'Unable to delete entity: entity ID does not exist');
-
             die;
 
         }

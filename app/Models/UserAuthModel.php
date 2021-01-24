@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Exceptions\InvalidRequestException;
 use Bayfront\ArrayHelpers\Arr;
 use Bayfront\Bones\Model;
 use Bayfront\PDO\Exceptions\QueryException;
@@ -21,12 +22,33 @@ class UserAuthModel extends Model
      * @return array
      *
      * @throws QueryException
+     * @throws InvalidRequestException
      */
 
     public function getEntities(array $request)
     {
 
         $query = new Query($this->db);
+
+        if (!empty(Arr::except($request['fields'], [ // Allowed field keys
+            'entities'
+        ]))) {
+
+            throw new InvalidRequestException('Unable to get entities: invalid request');
+
+        }
+
+        /*
+         * The "id" column is required for the schema, so ensure it will be returned.
+         */
+
+        if (isset($request['fields']['entities']) && !in_array('id', $request['fields']['entities'])) {
+
+            $request['fields']['entities'] = array_filter($request['fields']['entities']); // Remove blank values
+
+            $request['fields']['entities'][] = 'id';
+
+        }
 
         $query->table('user_entities')
             ->select(Arr::get($request, 'fields.entities', ['*']))

@@ -12,6 +12,7 @@ namespace App\Schemas;
 use Bayfront\ArrayHelpers\Arr;
 use Bayfront\ArraySchema\InvalidSchemaException;
 use Bayfront\ArraySchema\SchemaInterface;
+use Bayfront\HttpRequest\Request;
 
 class ResourceCollectionPagination implements SchemaInterface
 {
@@ -33,35 +34,40 @@ class ResourceCollectionPagination implements SchemaInterface
 
         /*
          * All $array keys should already be integers
+         *
+         * By defining $query_string, existing parameters are retained in the links
          */
 
-        /*
-         * TODO:
-         * Links need to preserve any other preexisting query parameters
-         */
+        $query_string = Request::getQuery();
 
-        $links['self'] = Arr::get($config, 'link_prefix' , '') . '?' . Arr::query([
+        // Self
+
+        $links['self'] = Arr::get($config, 'link_prefix', '') . '?' . Arr::query(array_replace($query_string, [
                 'page' => [
-                    'size' => $array['page_size'],
+                    'size' => Arr::get($query_string, 'page.size', $array['page_size']),
                     'number' => $array['page_number']
                 ]
-            ]);
+            ]));
 
-        $links['first'] = Arr::get($config, 'link_prefix' , '') . '?' . Arr::query([
+        // First
+
+        $links['first'] = Arr::get($config, 'link_prefix', '') . '?' . Arr::query(array_replace($query_string, [
                 'page' => [
-                    'size' => $array['page_size'],
+                    'size' => Arr::get($query_string, 'page.size', $array['page_size']),
                     'number' => 1
                 ]
-            ]);
+            ]));
+
+        // Prev
 
         if ($array['page_number'] > 1) {
 
-            $links['prev'] = Arr::get($config, 'link_prefix' , '') . '?' . Arr::query([
+            $links['prev'] = Arr::get($config, 'link_prefix', '') . '?' . Arr::query(array_replace($query_string, [
                     'page' => [
-                        'size' => $array['page_size'],
+                        'size' => Arr::get($query_string, 'page.size', $array['page_size']),
                         'number' => $array['page_number'] - 1
                     ]
-                ]);
+                ]));
 
         } else {
 
@@ -69,14 +75,16 @@ class ResourceCollectionPagination implements SchemaInterface
 
         }
 
-        if ($array['pages'] > 1 && $array['pages'] - $array['page_number'] > 1) {
+        // Next
 
-            $links['next'] = Arr::get($config, 'link_prefix' , '') . '?' . Arr::query([
+        if ($array['pages'] > 1 && $array['pages'] > $array['page_number']) {
+
+            $links['next'] = Arr::get($config, 'link_prefix', '') . '?' . Arr::query(array_replace($query_string, [
                     'page' => [
-                        'size' => $array['page_size'],
+                        'size' => Arr::get($query_string, 'page.size', $array['page_size']),
                         'number' => $array['page_number'] + 1
                     ]
-                ]);
+                ]));
 
         } else {
 
@@ -84,12 +92,14 @@ class ResourceCollectionPagination implements SchemaInterface
 
         }
 
-        $links['last'] = Arr::get($config, 'link_prefix' , '') . '?' . Arr::query([
+        // Last
+
+        $links['last'] = Arr::get($config, 'link_prefix', '') . '?' . Arr::query(array_replace($query_string, [
                 'page' => [
-                    'size' => $array['page_size'],
+                    'size' => Arr::get($query_string, 'page.size', $array['page_size']),
                     'number' => $array['pages']
                 ]
-            ]);
+            ]));
 
         return $links;
 
