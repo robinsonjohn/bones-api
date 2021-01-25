@@ -389,10 +389,10 @@ class Users extends ApiController
      * @throws InvalidSchemaException
      * @throws InvalidStatusCodeException
      * @throws InvalidUserException
-     * @throws LoginExistsException
      * @throws ModelException
      * @throws NotFoundException
      * @throws QueryException
+     * @throws IdExistsException
      */
 
     public function index(array $params)
