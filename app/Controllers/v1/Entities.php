@@ -6,6 +6,7 @@ use App\Exceptions\InvalidRequestException;
 use App\Models\UserAuthModel;
 use App\Schemas\EntityCollection;
 use App\Schemas\EntityResource;
+use App\Schemas\PermissionCollection;
 use Bayfront\ArrayHelpers\Arr;
 use Bayfront\ArraySchema\InvalidSchemaException;
 use Bayfront\Auth\Auth;
@@ -453,6 +454,73 @@ class Entities extends ApiController
             }
 
             $this->_deleteEntity($params['id']);
+
+        }
+
+    }
+
+    public function permissions(array $params)
+    {
+
+        $this->api->allowedMethods([
+            'POST',
+            'GET',
+            'DELETE'
+        ]);
+
+        if (Request::isPost()) {
+
+            die('post');
+
+        } else if (Request::isGet()) {
+
+            if (!$this->model->entityIdExists($params['id'])) {
+                abort(404, 'Unable to get entity permissions: entity ID does not exist');
+                die;
+            }
+
+            $permissions = $this->auth->getEntityPermissions($params['id']);
+
+            print_r($permissions);
+            die;
+
+            /** @var UserAuthModel $model */
+
+            $model = get_model('UserAuthModel');
+
+            try {
+
+                $permissions = $model->getPermissions($request);
+
+            } catch (QueryException|InvalidRequestException $e) {
+
+                abort(400, 'Unable to get permissions: invalid request');
+                die;
+
+            }
+
+            // Send response
+
+            $schema = PermissionCollection::create([
+                'permissions' => $permissions['results'],
+                'page' => [
+                    'count' => count($permissions['results']),
+                    'total' => $permissions['total'],
+                    'pages' => ceil($permissions['total'] / $page_size),
+                    'page_size' => $page_size,
+                    'page_number' => ($request['offset'] / $request['limit']) + 1
+                ]
+            ], [
+                'link_prefix' => '/permissions'
+            ]);
+
+            $this->response->setHeaders([
+                'Cache-Control' => 'max-age=3600' // 1 hour
+            ])->sendJson($schema);
+
+        } else { // Delete
+
+            die('delete');
 
         }
 
