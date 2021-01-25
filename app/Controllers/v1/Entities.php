@@ -13,6 +13,7 @@ use Bayfront\Auth\Auth;
 use Bayfront\Auth\Exceptions\InvalidConfigurationException;
 use Bayfront\Auth\Exceptions\InvalidEntityException;
 use Bayfront\Auth\Exceptions\InvalidOwnerException;
+use Bayfront\Auth\Exceptions\InvalidPermissionException;
 use Bayfront\Auth\Exceptions\InvalidUserException;
 use Bayfront\Auth\Exceptions\NameExistsException;
 use Bayfront\Bones\Exceptions\ControllerException;
@@ -22,6 +23,7 @@ use Bayfront\Bones\Exceptions\ServiceException;
 use Bayfront\Container\NotFoundException;
 use Bayfront\LeakyBucket\AdapterException;
 use Bayfront\LeakyBucket\BucketException;
+use Bayfront\PDO\Exceptions\InvalidDatabaseException;
 use Bayfront\PDO\Exceptions\TransactionException;
 use Bayfront\Validator\ValidationException;
 use Bayfront\HttpRequest\Request;
@@ -64,6 +66,21 @@ class Entities extends ApiController
         // Define default model
 
         $this->model = $this->container->get('auth');
+
+        /*
+         * TODO: Work with permissions
+        $permissions = [];
+
+        foreach ($this->token['payload']['entities'] as $entity) {
+
+            $permissions[$entity] = $this->model->getUserPermissions($this->token['payload']['user_id'], $entity);
+
+        }
+
+        print_r($permissions);
+
+        die;
+        */
 
     }
 
@@ -381,6 +398,199 @@ class Entities extends ApiController
 
     }
 
+    // -------------------- Permissions --------------------
+
+
+    /**
+     * Get entity permissions.
+     *
+     * @param string $entity_id
+     *
+     * @return void
+     *
+     * @throws HttpException
+     * @throws InvalidSchemaException
+     * @throws InvalidStatusCodeException
+     * @throws ModelException
+     * @throws NotFoundException
+     * @throws QueryException
+     */
+
+    protected function _getEntityPermissions(string $entity_id): void
+    {
+
+        if (!$this->model->entityIdExists($entity_id)) {
+            abort(404, 'Unable to get entity permissions: entity ID does not exist');
+            die;
+        }
+
+        // Get permissions
+
+        $page_size = (int)Arr::get(Request::getQuery(), 'page.size', get_config('api.default_page_size', 10));
+
+        $request = $this->api->parseQuery(Request::getQuery(), $page_size);
+
+        /** @var UserAuthModel $model */
+
+        $model = get_model('UserAuthModel');
+
+        try {
+
+            $permissions = $model->getEntityPermissions($entity_id, $request);
+
+        } catch (QueryException|InvalidRequestException $e) {
+
+            abort(400, 'Unable to get entity permissions: invalid request');
+            die;
+
+        }
+
+        // Send response
+
+        $schema = PermissionCollection::create([
+            'permissions' => $permissions['results'],
+            'page' => [
+                'count' => count($permissions['results']),
+                'total' => $permissions['total'],
+                'pages' => ceil($permissions['total'] / $page_size),
+                'page_size' => $page_size,
+                'page_number' => ($request['offset'] / $request['limit']) + 1
+            ]
+        ], [
+            'link_prefix' => '/permissions'
+        ]);
+
+        $this->response->setHeaders([
+            'Cache-Control' => 'max-age=3600' // 1 hour
+        ])->sendJson($schema);
+
+    }
+
+    /**
+     * Grant entity permissions.
+     *
+     * @param string $entity_id
+     *
+     * @return void
+     *
+     * @throws HttpException
+     * @throws InvalidStatusCodeException
+     * @throws NotFoundException
+     * @throws QueryException
+     * @throws InvalidDatabaseException
+     */
+
+    protected function _grantEntityPermissions(string $entity_id): void
+    {
+
+        // Get body
+
+        $body = $this->api->getBody([
+            'permissions'
+        ]); // Required keys
+
+        if (!empty(Arr::except($body, [ // If invalid keys have been sent
+            'permissions'
+        ]))) {
+
+            abort(400, 'Unable to grant entity permissions: request body contains invalid parameters');
+            die;
+
+        }
+
+        // Validate body
+
+        if (!is_array($body['permissions'])) {
+            abort(400, 'Unable to validate: key (permissions) with rule (array)');
+            die;
+        }
+
+        // Grant permissions
+
+        try {
+
+            $this->model->grantEntityPermission($entity_id, $body['permissions']);
+
+        } catch (InvalidEntityException $e) {
+
+            abort(404, 'Unable to grant entity permissions: entity ID does not exist');
+            die;
+
+        } catch (InvalidPermissionException $e) {
+
+            abort(400, 'Unable to grant entity permissions: permission ID does not exist');
+            die;
+
+        }
+
+        // entity.permissions.grant event
+
+        do_event('entity.permissions.grant', $entity_id, $body['permissions']);
+
+        // Send response
+
+        $this->response->setStatusCode(204)->send();
+
+    }
+
+    /**
+     * Revoke entity permissions.
+     *
+     * @param string $entity_id
+     *
+     * @return void
+     *
+     * @throws HttpException
+     * @throws InvalidDatabaseException
+     * @throws InvalidStatusCodeException
+     * @throws NotFoundException
+     * @throws QueryException
+     */
+
+    protected function _revokeEntityPermissions(string $entity_id): void
+    {
+
+        // Get body
+
+        $body = $this->api->getBody([
+            'permissions'
+        ]); // Required keys
+
+        if (!empty(Arr::except($body, [ // If invalid keys have been sent
+            'permissions'
+        ]))) {
+
+            abort(400, 'Unable to revoke entity permissions: request body contains invalid parameters');
+            die;
+
+        }
+
+        // Validate body
+
+        if (!is_array($body['permissions'])) {
+            abort(400, 'Unable to validate: key (permissions) with rule (array)');
+            die;
+        }
+
+        // Revoke permissions
+
+        if (!$this->model->entityIdExists($entity_id)) {
+            abort(404, 'Unable to revoke entity permissions: entity ID does not exist');
+            die;
+        }
+
+        $this->model->revokeEntityPermission($entity_id, $body['permissions']);
+
+        // entity.permissions.revoke event
+
+        do_event('entity.permissions.revoke', $entity_id, $body['permissions']);
+
+        // Send response
+
+        $this->response->setStatusCode(204)->send();
+
+    }
+
     /*
      * ############################################################
      * Public methods
@@ -459,6 +669,20 @@ class Entities extends ApiController
 
     }
 
+    /**
+     * Router destination for sub-resource: permissions
+     *
+     * @param array $params
+     *
+     * @throws HttpException
+     * @throws InvalidDatabaseException
+     * @throws InvalidSchemaException
+     * @throws InvalidStatusCodeException
+     * @throws ModelException
+     * @throws NotFoundException
+     * @throws QueryException
+     */
+
     public function permissions(array $params)
     {
 
@@ -470,57 +694,15 @@ class Entities extends ApiController
 
         if (Request::isPost()) {
 
-            die('post');
+            $this->_grantEntityPermissions($params['id']);
 
         } else if (Request::isGet()) {
 
-            if (!$this->model->entityIdExists($params['id'])) {
-                abort(404, 'Unable to get entity permissions: entity ID does not exist');
-                die;
-            }
-
-            $permissions = $this->auth->getEntityPermissions($params['id']);
-
-            print_r($permissions);
-            die;
-
-            /** @var UserAuthModel $model */
-
-            $model = get_model('UserAuthModel');
-
-            try {
-
-                $permissions = $model->getPermissions($request);
-
-            } catch (QueryException|InvalidRequestException $e) {
-
-                abort(400, 'Unable to get permissions: invalid request');
-                die;
-
-            }
-
-            // Send response
-
-            $schema = PermissionCollection::create([
-                'permissions' => $permissions['results'],
-                'page' => [
-                    'count' => count($permissions['results']),
-                    'total' => $permissions['total'],
-                    'pages' => ceil($permissions['total'] / $page_size),
-                    'page_size' => $page_size,
-                    'page_number' => ($request['offset'] / $request['limit']) + 1
-                ]
-            ], [
-                'link_prefix' => '/permissions'
-            ]);
-
-            $this->response->setHeaders([
-                'Cache-Control' => 'max-age=3600' // 1 hour
-            ])->sendJson($schema);
+            $this->_getEntityPermissions($params['id']);
 
         } else { // Delete
 
-            die('delete');
+            $this->_revokeEntityPermissions($params['id']);
 
         }
 

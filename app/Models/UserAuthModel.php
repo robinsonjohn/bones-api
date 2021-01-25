@@ -70,6 +70,82 @@ class UserAuthModel extends Model
     }
 
     /**
+     * Get entity permissions.
+     *
+     * @param string $entity_id
+     * @param array $request
+     *
+     * @return array
+     *
+     * @throws InvalidRequestException
+     * @throws QueryException
+     */
+
+    public function getEntityPermissions(string $entity_id, array $request): array
+    {
+
+        $query = new Query($this->db);
+
+        if (!empty(Arr::except($request['fields'], [ // Allowed field keys
+            'permissions'
+        ]))) {
+
+            throw new InvalidRequestException('Unable to get entity permissions: invalid request');
+
+        }
+
+        if (isset($request['fields']['permissions'])) {
+
+            $request['fields']['permissions'][] = 'id'; // "id" column is required
+
+            $request['fields']['permissions'] = array_unique(array_filter($request['fields']['permissions'])); // Remove blank and duplicate values
+
+        }
+
+        // Prefix the table name to the fields and columns for the LEFT JOIN clause
+
+        $fields = Arr::get($request, 'fields.permissions', ['*']);
+
+        foreach ($fields as $k => $field) {
+
+            $fields[$k] = 'user_permissions.' . $field;
+
+        }
+
+        foreach ($request['order_by'] as $k => $col) {
+
+            $request['order_by'][$k] = 'user_permissions.' . $col;
+
+        }
+
+        $query->table('user_permissions')
+            ->leftJoin('user_entity_permissions', 'user_permissions.id', 'user_entity_permissions.permission_id')
+            ->select($fields)
+            ->where('user_entity_permissions.entity_id', 'eq', $entity_id)
+            ->limit($request['limit'])
+            ->offset($request['offset'])
+            ->orderBy($request['order_by']);
+
+        foreach ($request['filters'] as $column => $filter) {
+
+            foreach ($filter as $operator => $value) {
+
+                // Prefix the table name to the column for the LEFT JOIN clause
+
+                $query->where('user_permissions.' . $column, $operator, $value);
+
+            }
+
+        }
+
+        return [
+            'results' => $query->get(),
+            'total' => $query->getTotalRows()
+        ];
+
+    }
+
+    /**
      * Get groups.
      *
      * @param array $request
