@@ -2,6 +2,9 @@
 
 namespace App\Controllers\v1;
 
+use Bayfront\Auth\Auth;
+use Bayfront\Auth\Exceptions\InvalidEntityException;
+use Bayfront\Auth\Exceptions\InvalidUserException;
 use Bayfront\Bones\Controller;
 use Bayfront\Bones\Exceptions\ControllerException;
 use Bayfront\Bones\Exceptions\HttpException;
@@ -11,6 +14,7 @@ use Bayfront\Container\NotFoundException;
 use Bayfront\HttpResponse\InvalidStatusCodeException;
 use Bayfront\LeakyBucket\AdapterException;
 use Bayfront\LeakyBucket\BucketException;
+use Bayfront\PDO\Exceptions\QueryException;
 
 /**
  * ApiController controller.
@@ -22,7 +26,13 @@ abstract class ApiController extends Controller
 
     protected $api;
 
+    /** @var Auth $auth */
+
+    protected $auth;
+
     protected $token; // JWT
+
+    protected $permissions = [];
 
     /**
      * ApiController constructor.
@@ -32,13 +42,16 @@ abstract class ApiController extends Controller
      *
      * @param bool $requires_authentication
      *
-     * @throws ControllerException
-     * @throws HttpException
-     * @throws ServiceException
-     * @throws NotFoundException
-     * @throws InvalidStatusCodeException
      * @throws AdapterException
      * @throws BucketException
+     * @throws ControllerException
+     * @throws HttpException
+     * @throws InvalidStatusCodeException
+     * @throws NotFoundException
+     * @throws ServiceException
+     * @throws InvalidEntityException
+     * @throws InvalidUserException
+     * @throws QueryException
      */
 
     public function __construct(bool $requires_authentication = true)
@@ -54,6 +67,10 @@ abstract class ApiController extends Controller
 
         $this->api->start();
 
+        // Get the Auth class from the container
+
+        $this->auth = $this->container->get('auth');
+
         if (true === $requires_authentication) {
 
             // All endpoints require authentication
@@ -65,6 +82,12 @@ abstract class ApiController extends Controller
             if (isset($this->token['payload']['user_id']) && isset($this->token['payload']['rate_limit'])) {
 
                 $this->api->enforceRateLimit($this->token['payload']['user_id'], $this->token['payload']['rate_limit']);
+
+            }
+
+            foreach ($this->token['payload']['entities'] as $entity) { // TODO: Work with permissions
+
+                $this->permissions[$entity] = $this->auth->getUserPermissions($this->token['payload']['user_id'], $entity);
 
             }
 

@@ -4,14 +4,14 @@ namespace App\Controllers\v1;
 
 use App\Exceptions\InvalidRequestException;
 use App\Models\UserAuthModel;
-use App\Schemas\EntityCollection;
-use App\Schemas\EntityResource;
+use App\Schemas\PermissionCollection;
+use App\Schemas\PermissionResource;
 use Bayfront\ArrayHelpers\Arr;
 use Bayfront\ArraySchema\InvalidSchemaException;
 use Bayfront\Auth\Auth;
 use Bayfront\Auth\Exceptions\InvalidConfigurationException;
 use Bayfront\Auth\Exceptions\InvalidEntityException;
-use Bayfront\Auth\Exceptions\InvalidOwnerException;
+use Bayfront\Auth\Exceptions\InvalidPermissionException;
 use Bayfront\Auth\Exceptions\InvalidUserException;
 use Bayfront\Auth\Exceptions\NameExistsException;
 use Bayfront\Bones\Exceptions\ControllerException;
@@ -21,7 +21,6 @@ use Bayfront\Bones\Exceptions\ServiceException;
 use Bayfront\Container\NotFoundException;
 use Bayfront\LeakyBucket\AdapterException;
 use Bayfront\LeakyBucket\BucketException;
-use Bayfront\PDO\Exceptions\TransactionException;
 use Bayfront\Validator\ValidationException;
 use Bayfront\HttpRequest\Request;
 use Bayfront\HttpResponse\InvalidStatusCodeException;
@@ -29,11 +28,11 @@ use Bayfront\PDO\Exceptions\QueryException;
 use Bayfront\Validator\Validate;
 
 /**
- * Entities controller.
+ * Permissions controller.
  *
  * This controller allows rate limited authenticated access to endpoints.
  */
-class Entities extends ApiController
+class Permissions extends ApiController
 {
 
     /** @var Auth $model */
@@ -41,18 +40,18 @@ class Entities extends ApiController
     protected $model;
 
     /**
-     * Entities constructor.
+     * Permissions constructor.
      *
      * @throws AdapterException
      * @throws BucketException
      * @throws ControllerException
      * @throws HttpException
-     * @throws InvalidEntityException
      * @throws InvalidStatusCodeException
-     * @throws InvalidUserException
      * @throws NotFoundException
      * @throws QueryException
      * @throws ServiceException
+     * @throws InvalidEntityException
+     * @throws InvalidUserException
      */
 
     public function __construct()
@@ -67,38 +66,34 @@ class Entities extends ApiController
     }
 
     /**
-     * Create new entity.
+     * Create new permission.
      *
      * @return void
      *
      * @throws HttpException
-     * @throws InvalidEntityException
      * @throws InvalidSchemaException
      * @throws InvalidStatusCodeException
      * @throws NotFoundException
      * @throws QueryException
-     * @throws TransactionException
      * @throws InvalidConfigurationException
+     * @throws InvalidPermissionException
      */
 
-    protected function _createEntity(): void
+    protected function _createPermission(): void
     {
 
         // Get body
 
         $body = $this->api->getBody([
-            'owner_id',
             'name'
         ]); // Required keys
 
         if (!empty(Arr::except($body, [ // If invalid keys have been sent
-            'owner_id',
             'name',
-            'attributes',
-            'active'
+            'description'
         ]))) {
 
-            abort(400, 'Unable to create entity: request body contains invalid parameters');
+            abort(400, 'Unable to create permission: request body contains invalid parameters');
             die;
 
         }
@@ -108,10 +103,8 @@ class Entities extends ApiController
         try {
 
             Validate::as($body, [
-                'owner_id' => 'string',
                 'name' => 'string',
-                'attributes' => 'json',
-                'active' => 'boolean'
+                'permission' => 'string'
             ]);
 
         } catch (ValidationException $e) {
@@ -121,32 +114,27 @@ class Entities extends ApiController
 
         }
 
-        // Create entity
+        // Create permission
 
         try {
 
-            $id = $this->model->createEntity($body);
-
-        } catch (InvalidOwnerException $e) {
-
-            abort(400, 'Unable to create entity: owner ID does not exist');
-            die;
+            $id = $this->model->createPermission($body);
 
         } catch (NameExistsException $e) {
 
-            abort(400, 'Unable to create entity: entity name already exists');
+            abort(400, 'Unable to create permission: permission name already exists');
             die;
 
         }
 
-        // entity.create event
+        // permission.create event
 
-        do_event('entity.create', $id);
+        do_event('permission.create', $id);
 
         // Send response
 
-        $schema = EntityResource::create($this->model->getEntity($id), [
-            'link_prefix' => '/entities'
+        $schema = PermissionResource::create($this->model->getPermission($id), [
+            'link_prefix' => '/permissions'
         ]);
 
         $this->response->sendJson($schema);
@@ -154,7 +142,7 @@ class Entities extends ApiController
     }
 
     /**
-     * Update entity.
+     * Update permission.
      *
      * @param string $id
      *
@@ -165,12 +153,10 @@ class Entities extends ApiController
      * @throws InvalidStatusCodeException
      * @throws NotFoundException
      * @throws QueryException
-     * @throws TransactionException
-     * @throws InvalidUserException
-     * @throws InvalidEntityException
+     * @throws InvalidPermissionException
      */
 
-    protected function _updateEntity(string $id): void
+    protected function _updatePermission(string $id): void
     {
 
         // Get body
@@ -178,13 +164,11 @@ class Entities extends ApiController
         $body = $this->api->getBody();
 
         if (!empty(Arr::except($body, [ // If invalid keys have been sent
-            'owner_id',
             'name',
-            'attributes',
-            'active'
+            'description'
         ]))) {
 
-            abort(400, 'Unable to update entity: request body contains invalid parameters');
+            abort(400, 'Unable to update permission: request body contains invalid parameters');
             die;
 
         }
@@ -194,10 +178,8 @@ class Entities extends ApiController
         try {
 
             Validate::as($body, [
-                'owner_id' => 'string',
                 'name' => 'string',
-                'attributes' => 'json',
-                'active' => 'boolean'
+                'description' => 'string'
             ]);
 
         } catch (ValidationException $e) {
@@ -207,37 +189,32 @@ class Entities extends ApiController
 
         }
 
-        // Update entity
+        // Update permission
 
         try {
 
-            $this->model->updateEntity($id, $body);
+            $this->model->updatePermission($id, $body);
 
-        } catch (InvalidEntityException $e) {
+        } catch (InvalidPermissionException $e) {
 
-            abort(404, 'Unable to update entity: entity ID does not exist');
-            die;
-
-        } catch (InvalidOwnerException $e) {
-
-            abort(400, 'Unable to update entity: owner ID does not exist');
+            abort(404, 'Unable to update permission: permission ID does not exist');
             die;
 
         } catch (NameExistsException $e) {
 
-            abort(400, 'Unable to update entity: entity name already exists');
+            abort(400, 'Unable to update permission: permission name already exists');
             die;
 
         }
 
-        // entity.update event
+        // permission.update event
 
-        do_event('entity.update', $id);
+        do_event('permission.update', $id);
 
         // Send response
 
-        $schema = EntityResource::create($this->model->getEntity($id), [
-            'link_prefix' => '/entities'
+        $schema = PermissionResource::create($this->model->getPermission($id), [
+            'link_prefix' => '/permissions'
         ]);
 
         $this->response->sendJson($schema);
@@ -245,7 +222,7 @@ class Entities extends ApiController
     }
 
     /**
-     * Get single entity.
+     * Get single permission.
      *
      * @param string $id
      *
@@ -258,26 +235,26 @@ class Entities extends ApiController
      * @throws QueryException
      */
 
-    protected function _getEntity(string $id): void
+    protected function _getPermission(string $id): void
     {
 
-        // Get entity
+        // Get permission
 
         try {
 
-            $entity = $this->model->getEntity($id);
+            $permission = $this->model->getPermission($id);
 
-        } catch (InvalidEntityException $e) {
+        } catch (InvalidPermissionException $e) {
 
-            abort(404, 'Unable to get entity: entity ID does not exist');
+            abort(404, 'Unable to get permission: permission ID does not exist');
             die;
 
         }
 
         // Send response
 
-        $schema = EntityResource::create($entity, [
-            'link_prefix' => '/entities'
+        $schema = PermissionResource::create($permission, [
+            'link_prefix' => '/permissions'
         ]);
 
         $this->response->setHeaders([
@@ -287,7 +264,7 @@ class Entities extends ApiController
     }
 
     /**
-     * Get entities.
+     * Get permissions.
      *
      * @return void
      *
@@ -298,10 +275,10 @@ class Entities extends ApiController
      * @throws ModelException
      */
 
-    protected function _getEntities(): void
+    protected function _getPermissions(): void
     {
 
-        // Get entities
+        // Get permissions
 
         $page_size = (int)Arr::get(Request::getQuery(), 'page.size', get_config('api.default_page_size', 10));
 
@@ -313,28 +290,28 @@ class Entities extends ApiController
 
         try {
 
-            $entities = $model->getEntities($request);
+            $permissions = $model->getPermissions($request);
 
         } catch (QueryException|InvalidRequestException $e) {
 
-            abort(400, 'Unable to get entities: invalid request');
+            abort(400, 'Unable to get permissions: invalid request');
             die;
 
         }
 
         // Send response
 
-        $schema = EntityCollection::create([
-            'entities' => $entities['results'],
+        $schema = PermissionCollection::create([
+            'permissions' => $permissions['results'],
             'page' => [
-                'count' => count($entities['results']),
-                'total' => $entities['total'],
-                'pages' => ceil($entities['total'] / $page_size),
+                'count' => count($permissions['results']),
+                'total' => $permissions['total'],
+                'pages' => ceil($permissions['total'] / $page_size),
                 'page_size' => $page_size,
                 'page_number' => ($request['offset'] / $request['limit']) + 1
             ]
         ], [
-            'link_prefix' => '/entities'
+            'link_prefix' => '/permissions'
         ]);
 
         $this->response->setHeaders([
@@ -344,7 +321,7 @@ class Entities extends ApiController
     }
 
     /**
-     * Delete entity.
+     * Delete permission.
      *
      * @param string $id
      *
@@ -356,24 +333,24 @@ class Entities extends ApiController
      * @throws QueryException
      */
 
-    protected function _deleteEntity(string $id): void
+    protected function _deletePermission(string $id): void
     {
 
-        // Delete entity
+        // Delete permission
 
-        $deleted = $this->model->deleteEntity($id);
+        $deleted = $this->model->deletePermission($id);
 
         if ($deleted) {
 
-            // entity.delete event
+            // permission.delete event
 
-            do_event('entity.delete', $id);
+            do_event('permission.delete', $id);
 
             $this->response->setStatusCode(204)->send();
 
         } else {
 
-            abort(404, 'Unable to delete entity: entity ID does not exist');
+            abort(404, 'Unable to delete permission: permission ID does not exist');
             die;
 
         }
@@ -394,15 +371,13 @@ class Entities extends ApiController
      * @return void
      *
      * @throws HttpException
-     * @throws InvalidEntityException
      * @throws InvalidSchemaException
      * @throws InvalidStatusCodeException
-     * @throws InvalidUserException
      * @throws ModelException
      * @throws NotFoundException
      * @throws QueryException
-     * @throws TransactionException
      * @throws InvalidConfigurationException
+     * @throws InvalidPermissionException
      */
 
     public function index(array $params)
@@ -422,17 +397,17 @@ class Entities extends ApiController
                 die;
             }
 
-            $this->_createEntity();
+            $this->_createPermission();
 
         } else if (Request::isGet()) {
 
             if (isset($params['id'])) { // Single entity
 
-                $this->_getEntity($params['id']);
+                $this->_getPermission($params['id']);
 
-            } else { // Get all entities
+            } else { // Get all permissions
 
-                $this->_getEntities();
+                $this->_getPermissions();
 
             }
 
@@ -443,7 +418,7 @@ class Entities extends ApiController
                 die;
             }
 
-            $this->_updateEntity($params['id']);
+            $this->_updatePermission($params['id']);
 
         } else { // Delete
 
@@ -452,7 +427,7 @@ class Entities extends ApiController
                 die;
             }
 
-            $this->_deleteEntity($params['id']);
+            $this->_deletePermission($params['id']);
 
         }
 

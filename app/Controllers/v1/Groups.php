@@ -4,14 +4,15 @@ namespace App\Controllers\v1;
 
 use App\Exceptions\InvalidRequestException;
 use App\Models\UserAuthModel;
-use App\Schemas\EntityCollection;
-use App\Schemas\EntityResource;
+use App\Schemas\GroupCollection;
+use App\Schemas\GroupResource;
 use Bayfront\ArrayHelpers\Arr;
 use Bayfront\ArraySchema\InvalidSchemaException;
 use Bayfront\Auth\Auth;
+use Bayfront\Auth\Exceptions\IdExistsException;
 use Bayfront\Auth\Exceptions\InvalidConfigurationException;
 use Bayfront\Auth\Exceptions\InvalidEntityException;
-use Bayfront\Auth\Exceptions\InvalidOwnerException;
+use Bayfront\Auth\Exceptions\InvalidGroupException;
 use Bayfront\Auth\Exceptions\InvalidUserException;
 use Bayfront\Auth\Exceptions\NameExistsException;
 use Bayfront\Bones\Exceptions\ControllerException;
@@ -21,7 +22,6 @@ use Bayfront\Bones\Exceptions\ServiceException;
 use Bayfront\Container\NotFoundException;
 use Bayfront\LeakyBucket\AdapterException;
 use Bayfront\LeakyBucket\BucketException;
-use Bayfront\PDO\Exceptions\TransactionException;
 use Bayfront\Validator\ValidationException;
 use Bayfront\HttpRequest\Request;
 use Bayfront\HttpResponse\InvalidStatusCodeException;
@@ -29,11 +29,11 @@ use Bayfront\PDO\Exceptions\QueryException;
 use Bayfront\Validator\Validate;
 
 /**
- * Entities controller.
+ * Groups controller.
  *
  * This controller allows rate limited authenticated access to endpoints.
  */
-class Entities extends ApiController
+class Groups extends ApiController
 {
 
     /** @var Auth $model */
@@ -41,7 +41,7 @@ class Entities extends ApiController
     protected $model;
 
     /**
-     * Entities constructor.
+     * Groups constructor.
      *
      * @throws AdapterException
      * @throws BucketException
@@ -67,38 +67,38 @@ class Entities extends ApiController
     }
 
     /**
-     * Create new entity.
+     * Create new group.
      *
      * @return void
      *
      * @throws HttpException
-     * @throws InvalidEntityException
      * @throws InvalidSchemaException
      * @throws InvalidStatusCodeException
      * @throws NotFoundException
      * @throws QueryException
-     * @throws TransactionException
      * @throws InvalidConfigurationException
+     * @throws IdExistsException
+     * @throws InvalidGroupException
      */
 
-    protected function _createEntity(): void
+    protected function _createGroup(): void
     {
 
         // Get body
 
         $body = $this->api->getBody([
-            'owner_id',
+            'entity_id',
             'name'
         ]); // Required keys
 
         if (!empty(Arr::except($body, [ // If invalid keys have been sent
-            'owner_id',
+            'entity_id',
             'name',
             'attributes',
             'active'
         ]))) {
 
-            abort(400, 'Unable to create entity: request body contains invalid parameters');
+            abort(400, 'Unable to create group: request body contains invalid parameters');
             die;
 
         }
@@ -108,7 +108,7 @@ class Entities extends ApiController
         try {
 
             Validate::as($body, [
-                'owner_id' => 'string',
+                'entity_id' => 'string',
                 'name' => 'string',
                 'attributes' => 'json',
                 'active' => 'boolean'
@@ -121,32 +121,32 @@ class Entities extends ApiController
 
         }
 
-        // Create entity
+        // Create group
 
         try {
 
-            $id = $this->model->createEntity($body);
+            $id = $this->model->createGroup($body);
 
-        } catch (InvalidOwnerException $e) {
+        } catch (InvalidEntityException $e) {
 
-            abort(400, 'Unable to create entity: owner ID does not exist');
+            abort(400, 'Unable to create group: entity ID does not exist');
             die;
 
         } catch (NameExistsException $e) {
 
-            abort(400, 'Unable to create entity: entity name already exists');
+            abort(400, 'Unable to create group: group name already exists');
             die;
 
         }
 
-        // entity.create event
+        // group.create event
 
-        do_event('entity.create', $id);
+        do_event('group.create', $id);
 
         // Send response
 
-        $schema = EntityResource::create($this->model->getEntity($id), [
-            'link_prefix' => '/entities'
+        $schema = GroupResource::create($this->model->getGroup($id), [
+            'link_prefix' => '/groups'
         ]);
 
         $this->response->sendJson($schema);
@@ -154,7 +154,7 @@ class Entities extends ApiController
     }
 
     /**
-     * Update entity.
+     * Update group.
      *
      * @param string $id
      *
@@ -165,12 +165,10 @@ class Entities extends ApiController
      * @throws InvalidStatusCodeException
      * @throws NotFoundException
      * @throws QueryException
-     * @throws TransactionException
-     * @throws InvalidUserException
-     * @throws InvalidEntityException
+     * @throws InvalidGroupException
      */
 
-    protected function _updateEntity(string $id): void
+    protected function _updateGroup(string $id): void
     {
 
         // Get body
@@ -178,13 +176,13 @@ class Entities extends ApiController
         $body = $this->api->getBody();
 
         if (!empty(Arr::except($body, [ // If invalid keys have been sent
-            'owner_id',
+            'entity_id',
             'name',
             'attributes',
             'active'
         ]))) {
 
-            abort(400, 'Unable to update entity: request body contains invalid parameters');
+            abort(400, 'Unable to update group: request body contains invalid parameters');
             die;
 
         }
@@ -194,7 +192,7 @@ class Entities extends ApiController
         try {
 
             Validate::as($body, [
-                'owner_id' => 'string',
+                'entity_id' => 'string',
                 'name' => 'string',
                 'attributes' => 'json',
                 'active' => 'boolean'
@@ -207,37 +205,37 @@ class Entities extends ApiController
 
         }
 
-        // Update entity
+        // Update group
 
         try {
 
-            $this->model->updateEntity($id, $body);
+            $this->model->updateGroup($id, $body);
+
+        } catch (InvalidGroupException $e) {
+
+            abort(404, 'Unable to update group: group ID does not exist');
+            die;
 
         } catch (InvalidEntityException $e) {
 
-            abort(404, 'Unable to update entity: entity ID does not exist');
-            die;
-
-        } catch (InvalidOwnerException $e) {
-
-            abort(400, 'Unable to update entity: owner ID does not exist');
+            abort(400, 'Unable to update group: entity ID does not exist');
             die;
 
         } catch (NameExistsException $e) {
 
-            abort(400, 'Unable to update entity: entity name already exists');
+            abort(400, 'Unable to update group: group name already exists');
             die;
 
         }
 
-        // entity.update event
+        // group.update event
 
-        do_event('entity.update', $id);
+        do_event('group.update', $id);
 
         // Send response
 
-        $schema = EntityResource::create($this->model->getEntity($id), [
-            'link_prefix' => '/entities'
+        $schema = GroupResource::create($this->model->getGroup($id), [
+            'link_prefix' => '/groups'
         ]);
 
         $this->response->sendJson($schema);
@@ -245,7 +243,7 @@ class Entities extends ApiController
     }
 
     /**
-     * Get single entity.
+     * Get single group.
      *
      * @param string $id
      *
@@ -258,26 +256,26 @@ class Entities extends ApiController
      * @throws QueryException
      */
 
-    protected function _getEntity(string $id): void
+    protected function _getGroup(string $id): void
     {
 
-        // Get entity
+        // Get group
 
         try {
 
-            $entity = $this->model->getEntity($id);
+            $group = $this->model->getGroup($id);
 
-        } catch (InvalidEntityException $e) {
+        } catch (InvalidGroupException $e) {
 
-            abort(404, 'Unable to get entity: entity ID does not exist');
+            abort(404, 'Unable to get group: group ID does not exist');
             die;
 
         }
 
         // Send response
 
-        $schema = EntityResource::create($entity, [
-            'link_prefix' => '/entities'
+        $schema = GroupResource::create($group, [
+            'link_prefix' => '/groups'
         ]);
 
         $this->response->setHeaders([
@@ -287,7 +285,7 @@ class Entities extends ApiController
     }
 
     /**
-     * Get entities.
+     * Get groups.
      *
      * @return void
      *
@@ -298,10 +296,10 @@ class Entities extends ApiController
      * @throws ModelException
      */
 
-    protected function _getEntities(): void
+    protected function _getGroups(): void
     {
 
-        // Get entities
+        // Get groups
 
         $page_size = (int)Arr::get(Request::getQuery(), 'page.size', get_config('api.default_page_size', 10));
 
@@ -313,28 +311,28 @@ class Entities extends ApiController
 
         try {
 
-            $entities = $model->getEntities($request);
+            $groups = $model->getGroups($request);
 
         } catch (QueryException|InvalidRequestException $e) {
 
-            abort(400, 'Unable to get entities: invalid request');
+            abort(400, 'Unable to get groups: invalid request');
             die;
 
         }
 
         // Send response
 
-        $schema = EntityCollection::create([
-            'entities' => $entities['results'],
+        $schema = GroupCollection::create([
+            'groups' => $groups['results'],
             'page' => [
-                'count' => count($entities['results']),
-                'total' => $entities['total'],
-                'pages' => ceil($entities['total'] / $page_size),
+                'count' => count($groups['results']),
+                'total' => $groups['total'],
+                'pages' => ceil($groups['total'] / $page_size),
                 'page_size' => $page_size,
                 'page_number' => ($request['offset'] / $request['limit']) + 1
             ]
         ], [
-            'link_prefix' => '/entities'
+            'link_prefix' => '/groups'
         ]);
 
         $this->response->setHeaders([
@@ -344,7 +342,7 @@ class Entities extends ApiController
     }
 
     /**
-     * Delete entity.
+     * Delete group.
      *
      * @param string $id
      *
@@ -356,24 +354,24 @@ class Entities extends ApiController
      * @throws QueryException
      */
 
-    protected function _deleteEntity(string $id): void
+    protected function _deleteGroup(string $id): void
     {
 
-        // Delete entity
+        // Delete group
 
-        $deleted = $this->model->deleteEntity($id);
+        $deleted = $this->model->deleteGroup($id);
 
         if ($deleted) {
 
-            // entity.delete event
+            // group.delete event
 
-            do_event('entity.delete', $id);
+            do_event('group.delete', $id);
 
             $this->response->setStatusCode(204)->send();
 
         } else {
 
-            abort(404, 'Unable to delete entity: entity ID does not exist');
+            abort(404, 'Unable to delete group: group ID does not exist');
             die;
 
         }
@@ -394,15 +392,14 @@ class Entities extends ApiController
      * @return void
      *
      * @throws HttpException
-     * @throws InvalidEntityException
      * @throws InvalidSchemaException
      * @throws InvalidStatusCodeException
-     * @throws InvalidUserException
      * @throws ModelException
      * @throws NotFoundException
      * @throws QueryException
-     * @throws TransactionException
      * @throws InvalidConfigurationException
+     * @throws InvalidGroupException
+     * @throws IdExistsException
      */
 
     public function index(array $params)
@@ -422,17 +419,17 @@ class Entities extends ApiController
                 die;
             }
 
-            $this->_createEntity();
+            $this->_createGroup();
 
         } else if (Request::isGet()) {
 
-            if (isset($params['id'])) { // Single entity
+            if (isset($params['id'])) { // Single group
 
-                $this->_getEntity($params['id']);
+                $this->_getGroup($params['id']);
 
-            } else { // Get all entities
+            } else { // Get all groups
 
-                $this->_getEntities();
+                $this->_getGroups();
 
             }
 
@@ -443,7 +440,7 @@ class Entities extends ApiController
                 die;
             }
 
-            $this->_updateEntity($params['id']);
+            $this->_updateGroup($params['id']);
 
         } else { // Delete
 
@@ -452,7 +449,7 @@ class Entities extends ApiController
                 die;
             }
 
-            $this->_deleteEntity($params['id']);
+            $this->_deleteGroup($params['id']);
 
         }
 
