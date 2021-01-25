@@ -38,15 +38,19 @@ class UserAuthModel extends Model
 
         }
 
-        /*
-         * The "id" column is required for the schema, so ensure it will be returned.
-         */
-
-        if (isset($request['fields']['entities']) && !in_array('id', $request['fields']['entities'])) {
+        if (isset($request['fields']['entities'])) {
 
             $request['fields']['entities'] = array_filter($request['fields']['entities']); // Remove blank values
 
-            $request['fields']['entities'][] = 'id';
+            /*
+             * The "id" column is required for the schema, so ensure it will be returned.
+             */
+
+            if (!in_array('id', $request['fields']['entities'])) {
+
+                $request['fields']['entities'][] = 'id';
+
+            }
 
         }
 

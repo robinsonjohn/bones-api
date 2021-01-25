@@ -27,6 +27,11 @@ abstract class ApiController extends Controller
     /**
      * ApiController constructor.
      *
+     * TODO:
+     * Add required permissions to the constructor
+     *
+     * @param bool $requires_authentication
+     *
      * @throws ControllerException
      * @throws HttpException
      * @throws ServiceException
@@ -36,7 +41,7 @@ abstract class ApiController extends Controller
      * @throws BucketException
      */
 
-    public function __construct()
+    public function __construct(bool $requires_authentication = true)
     {
 
         parent::__construct(); // Bones controller
@@ -49,15 +54,19 @@ abstract class ApiController extends Controller
 
         $this->api->start();
 
-        // All endpoints require authentication
+        if (true === $requires_authentication) {
 
-        $this->token = $this->api->authenticateJwt();
+            // All endpoints require authentication
 
-        // Check rate limit
+            $this->token = $this->api->authenticateJwt();
 
-        if (isset($this->token['payload']['user_id']) && isset($this->token['payload']['rate_limit'])) {
+            // Check rate limit
 
-            $this->api->enforceRateLimit($this->token['payload']['user_id'], $this->token['payload']['rate_limit']);
+            if (isset($this->token['payload']['user_id']) && isset($this->token['payload']['rate_limit'])) {
+
+                $this->api->enforceRateLimit($this->token['payload']['user_id'], $this->token['payload']['rate_limit']);
+
+            }
 
         }
 

@@ -6,11 +6,9 @@ use App\Schemas\AuthResource;
 use Bayfront\Auth\Exceptions\AuthenticationException;
 use Bayfront\Auth\Exceptions\InvalidMetaException;
 use Bayfront\Auth\Exceptions\InvalidUserException;
-use Bayfront\Bones\Services\BonesApi;
 use Bayfront\ArrayHelpers\Arr;
 use Bayfront\ArraySchema\InvalidSchemaException;
 use Bayfront\Auth\Auth as UserAuth;
-use Bayfront\Bones\Controller;
 use Bayfront\Bones\Exceptions\ControllerException;
 use Bayfront\Bones\Exceptions\HttpException;
 use Bayfront\Bones\Exceptions\ServiceException;
@@ -27,12 +25,8 @@ use Exception;
 /**
  * This controller allows rate limited public access to the authentication endpoints.
  */
-class Auth extends Controller
+class Auth extends ApiController
 {
-
-    /** @var BonesApi $api */
-
-    protected $api;
 
     /** @var UserAuth $model */
 
@@ -53,15 +47,7 @@ class Auth extends Controller
     public function __construct()
     {
 
-        parent::__construct();
-
-        // Get the Bones API service from the container
-
-        $this->api = get_service('BonesApi');
-
-        // Start the API environment
-
-        $this->api->start();
+        parent::__construct(false);
 
         // Check rate limit
 
