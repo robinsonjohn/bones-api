@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Schemas;
+namespace App\Services\BonesAuth\Schemas;
 
 use Bayfront\ArrayHelpers\Arr;
 use Bayfront\ArraySchema\InvalidSchemaException;

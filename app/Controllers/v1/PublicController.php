@@ -2,7 +2,7 @@
 
 namespace App\Controllers\v1;
 
-use App\Schemas\StatusResource;
+use App\Services\BonesAuth\Schemas\StatusResource;
 use Bayfront\ArraySchema\InvalidSchemaException;
 use Bayfront\Bones\Services\BonesApi;
 use Bayfront\Bones\Controller;
@@ -87,7 +87,7 @@ class PublicController extends Controller
 
         $schema = StatusResource::create([
             'status' => 'OK',
-            'version' => '1.0.0' // Current API version
+            'version' => get_config('api.v1_current_version', '1.0.0')
         ]);
 
         // Respond

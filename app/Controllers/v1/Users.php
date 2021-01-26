@@ -2,13 +2,12 @@
 
 namespace App\Controllers\v1;
 
-use App\Exceptions\InvalidRequestException;
-use App\Models\UserAuthModel;
-use App\Schemas\UserCollection;
-use App\Schemas\UserResource;
+use App\Services\BonesAuth\BonesAuth;
+use App\Services\BonesAuth\Exceptions\BadRequestException;
+use App\Services\BonesAuth\Schemas\UserCollection;
+use App\Services\BonesAuth\Schemas\UserResource;
 use Bayfront\ArrayHelpers\Arr;
 use Bayfront\ArraySchema\InvalidSchemaException;
-use Bayfront\Auth\Auth;
 use Bayfront\Auth\Exceptions\IdExistsException;
 use Bayfront\Auth\Exceptions\InvalidConfigurationException;
 use Bayfront\Auth\Exceptions\InvalidEntityException;
@@ -16,7 +15,6 @@ use Bayfront\Auth\Exceptions\InvalidUserException;
 use Bayfront\Auth\Exceptions\LoginExistsException;
 use Bayfront\Bones\Exceptions\ControllerException;
 use Bayfront\Bones\Exceptions\HttpException;
-use Bayfront\Bones\Exceptions\ModelException;
 use Bayfront\Bones\Exceptions\ServiceException;
 use Bayfront\Container\NotFoundException;
 use Bayfront\LeakyBucket\AdapterException;
@@ -35,7 +33,7 @@ use Bayfront\Validator\Validate;
 class Users extends ApiController
 {
 
-    /** @var Auth $model */
+    /** @var BonesAuth $model */
 
     protected $model;
 
@@ -286,7 +284,6 @@ class Users extends ApiController
      * @throws InvalidSchemaException
      * @throws InvalidStatusCodeException
      * @throws NotFoundException
-     * @throws ModelException
      */
 
     protected function _getUsers(): void
@@ -296,17 +293,13 @@ class Users extends ApiController
 
         $page_size = (int)Arr::get(Request::getQuery(), 'page.size', get_config('api.default_page_size', 10));
 
-        $request = $this->api->parseQuery(Request::getQuery(), $page_size);
-
-        /** @var UserAuthModel $model */
-
-        $model = get_model('UserAuthModel');
-
         try {
 
-            $users = $model->getUsers($request);
+            $request = $this->api->parseQuery(Request::getQuery(), $page_size);
 
-        } catch (QueryException|InvalidRequestException $e) {
+            $users = $this->model->getUserCollection($request);
+
+        } catch (HttpException|QueryException|BadRequestException $e) {
 
             abort(400, 'Unable to get users: invalid request');
             die;
@@ -316,14 +309,8 @@ class Users extends ApiController
         // Send response
 
         $schema = UserCollection::create([
-            'users' => $users['results'],
-            'page' => [
-                'count' => count($users['results']),
-                'total' => $users['total'],
-                'pages' => ceil($users['total'] / $page_size),
-                'page_size' => $page_size,
-                'page_number' => ($request['offset'] / $request['limit']) + 1
-            ]
+            'results' => $users['results'],
+            'meta' => $users['meta']
         ], [
             'link_prefix' => '/users'
         ]);
@@ -389,7 +376,6 @@ class Users extends ApiController
      * @throws InvalidSchemaException
      * @throws InvalidStatusCodeException
      * @throws InvalidUserException
-     * @throws ModelException
      * @throws NotFoundException
      * @throws QueryException
      * @throws IdExistsException

@@ -18,5 +18,6 @@ return [
     'access_token_lifetime' => 86400, // 24 hours
     'refresh_token_lifetime' => 604800, // e.g.: 604800 (7 days), 2592000 (30 days)
 
-    'default_page_size' => 10
+    'default_page_size' => 10,
+    'v1_current_version' => '1.0.0' // Used in the PublicController status endpoint
 ];

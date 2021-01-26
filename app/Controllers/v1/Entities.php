@@ -3,9 +3,9 @@
 namespace App\Controllers\v1;
 
 use App\Services\BonesAuth\Schemas\EntityCollection;
-use App\Schemas\EntityResource;
 use App\Services\BonesAuth\BonesAuth;
 use App\Services\BonesAuth\Exceptions\BadRequestException;
+use App\Services\BonesAuth\Schemas\EntityResource;
 use App\Services\BonesAuth\Schemas\PermissionCollection;
 use App\Services\BonesAuth\Schemas\UserCollection;
 use Bayfront\ArrayHelpers\Arr;
@@ -66,21 +66,6 @@ class Entities extends ApiController
         // Define default model
 
         $this->model = $this->container->get('auth');
-
-        /*
-         * TODO: Work with permissions
-        $permissions = [];
-
-        foreach ($this->token['payload']['entities'] as $entity) {
-
-            $permissions[$entity] = $this->model->getUserPermissions($this->token['payload']['user_id'], $entity);
-
-        }
-
-        print_r($permissions);
-
-        die;
-        */
 
     }
 

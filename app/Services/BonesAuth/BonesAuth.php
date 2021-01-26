@@ -459,4 +459,63 @@ class BonesAuth extends Auth
 
     }
 
+    /*
+     * ############################################################
+     * Users
+     * ############################################################
+     */
+
+
+    /**
+     * Get users.
+     *
+     * @param array $request
+     *
+     * @return array
+     *
+     * @throws QueryException
+     * @throws BadRequestException
+     */
+
+    public function getUserCollection(array $request): array
+    {
+
+        if (!empty(Arr::except($request['fields'], [ // Allowed field keys
+            'users'
+        ]))) {
+
+            throw new BadRequestException('Unable to get users: invalid request');
+
+        }
+
+        if (isset($request['fields']['users'])) {
+
+            $request['fields']['users'][] = 'id'; // "id" column is required
+
+            $request['fields']['users'] = array_unique(array_filter($request['fields']['users'])); // Remove blank and duplicate values
+
+        }
+
+        $query = new Query($this->db);
+
+        $query->table('user_users')
+            ->select(Arr::get($request, 'fields.users', ['*']))
+            ->limit($request['limit'])
+            ->offset($request['offset'])
+            ->orderBy($request['order_by']);
+
+        foreach ($request['filters'] as $column => $filter) {
+
+            foreach ($filter as $operator => $value) {
+
+                $query->where($column, $operator, $value);
+
+            }
+
+        }
+
+        return $this->_returnResults($query, $request);
+
+    }
+
 }
