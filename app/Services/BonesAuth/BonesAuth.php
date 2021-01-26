@@ -342,5 +342,63 @@ class BonesAuth extends Auth
 
     }
 
+    /*
+     * ############################################################
+     * Groups
+     * ############################################################
+     */
+
+    /**
+     * Get group collection using a query builder.
+     *
+     * @param array $request
+     *
+     * @return array
+     *
+     * @throws QueryException
+     * @throws BadRequestException
+     */
+
+    public function getGroupCollection(array $request): array
+    {
+
+        if (!empty(Arr::except($request['fields'], [ // Allowed field keys
+            'groups'
+        ]))) {
+
+            throw new BadRequestException('Unable to get groups: invalid request');
+
+        }
+
+        if (isset($request['fields']['groups'])) {
+
+            $request['fields']['groups'][] = 'id'; // "id" column is required
+
+            $request['fields']['groups'] = array_unique(array_filter($request['fields']['groups'])); // Remove blank and duplicate values
+
+        }
+
+        $query = new Query($this->db);
+
+        $query->table('user_groups')
+            ->select(Arr::get($request, 'fields.groups', ['*']))
+            ->limit($request['limit'])
+            ->offset($request['offset'])
+            ->orderBy($request['order_by']);
+
+        foreach ($request['filters'] as $column => $filter) {
+
+            foreach ($filter as $operator => $value) {
+
+                $query->where($column, $operator, $value);
+
+            }
+
+        }
+
+        return $this->_returnResults($query, $request);
+
+    }
+
 
 }

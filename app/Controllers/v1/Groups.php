@@ -2,13 +2,12 @@
 
 namespace App\Controllers\v1;
 
-use App\Exceptions\InvalidRequestException;
-use App\Models\UserAuthModel;
-use App\Schemas\GroupCollection;
-use App\Schemas\GroupResource;
+use App\Services\BonesAuth\BonesAuth;
+use App\Services\BonesAuth\Exceptions\BadRequestException;
+use App\Services\BonesAuth\Schemas\GroupCollection;
+use App\Services\BonesAuth\Schemas\GroupResource;
 use Bayfront\ArrayHelpers\Arr;
 use Bayfront\ArraySchema\InvalidSchemaException;
-use Bayfront\Auth\Auth;
 use Bayfront\Auth\Exceptions\IdExistsException;
 use Bayfront\Auth\Exceptions\InvalidConfigurationException;
 use Bayfront\Auth\Exceptions\InvalidEntityException;
@@ -17,7 +16,6 @@ use Bayfront\Auth\Exceptions\InvalidUserException;
 use Bayfront\Auth\Exceptions\NameExistsException;
 use Bayfront\Bones\Exceptions\ControllerException;
 use Bayfront\Bones\Exceptions\HttpException;
-use Bayfront\Bones\Exceptions\ModelException;
 use Bayfront\Bones\Exceptions\ServiceException;
 use Bayfront\Container\NotFoundException;
 use Bayfront\LeakyBucket\AdapterException;
@@ -36,7 +34,7 @@ use Bayfront\Validator\Validate;
 class Groups extends ApiController
 {
 
-    /** @var Auth $model */
+    /** @var BonesAuth $model */
 
     protected $model;
 
@@ -293,7 +291,6 @@ class Groups extends ApiController
      * @throws InvalidSchemaException
      * @throws InvalidStatusCodeException
      * @throws NotFoundException
-     * @throws ModelException
      */
 
     protected function _getGroups(): void
@@ -303,17 +300,13 @@ class Groups extends ApiController
 
         $page_size = (int)Arr::get(Request::getQuery(), 'page.size', get_config('api.default_page_size', 10));
 
-        $request = $this->api->parseQuery(Request::getQuery(), $page_size);
-
-        /** @var UserAuthModel $model */
-
-        $model = get_model('UserAuthModel');
-
         try {
 
-            $groups = $model->getGroups($request);
+            $request = $this->api->parseQuery(Request::getQuery(), $page_size);
 
-        } catch (QueryException|InvalidRequestException $e) {
+            $groups = $this->model->getGroupCollection($request);
+
+        } catch (HttpException|QueryException|BadRequestException $e) {
 
             abort(400, 'Unable to get groups: invalid request');
             die;
@@ -323,14 +316,8 @@ class Groups extends ApiController
         // Send response
 
         $schema = GroupCollection::create([
-            'groups' => $groups['results'],
-            'page' => [
-                'count' => count($groups['results']),
-                'total' => $groups['total'],
-                'pages' => ceil($groups['total'] / $page_size),
-                'page_size' => $page_size,
-                'page_number' => ($request['offset'] / $request['limit']) + 1
-            ]
+            'results' => $groups['results'],
+            'meta' => $groups['meta']
         ], [
             'link_prefix' => '/groups'
         ]);
@@ -394,7 +381,6 @@ class Groups extends ApiController
      * @throws HttpException
      * @throws InvalidSchemaException
      * @throws InvalidStatusCodeException
-     * @throws ModelException
      * @throws NotFoundException
      * @throws QueryException
      * @throws InvalidConfigurationException
