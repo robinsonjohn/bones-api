@@ -2,13 +2,12 @@
 
 namespace App\Controllers\v1;
 
-use App\Exceptions\InvalidRequestException;
-use App\Models\UserAuthModel;
-use App\Schemas\RoleCollection;
-use App\Schemas\RoleResource;
+use App\Services\BonesAuth\BonesAuth;
+use App\Services\BonesAuth\Exceptions\BadRequestException;
+use App\Services\BonesAuth\Schemas\RoleCollection;
+use App\Services\BonesAuth\Schemas\RoleResource;
 use Bayfront\ArrayHelpers\Arr;
 use Bayfront\ArraySchema\InvalidSchemaException;
-use Bayfront\Auth\Auth;
 use Bayfront\Auth\Exceptions\IdExistsException;
 use Bayfront\Auth\Exceptions\InvalidConfigurationException;
 use Bayfront\Auth\Exceptions\InvalidEntityException;
@@ -17,7 +16,6 @@ use Bayfront\Auth\Exceptions\InvalidUserException;
 use Bayfront\Auth\Exceptions\NameExistsException;
 use Bayfront\Bones\Exceptions\ControllerException;
 use Bayfront\Bones\Exceptions\HttpException;
-use Bayfront\Bones\Exceptions\ModelException;
 use Bayfront\Bones\Exceptions\ServiceException;
 use Bayfront\Container\NotFoundException;
 use Bayfront\LeakyBucket\AdapterException;
@@ -36,7 +34,7 @@ use Bayfront\Validator\Validate;
 class Roles extends ApiController
 {
 
-    /** @var Auth $model */
+    /** @var BonesAuth $model */
 
     protected $model;
 
@@ -67,7 +65,7 @@ class Roles extends ApiController
     }
 
     /**
-     * Create new group.
+     * Create new role.
      *
      * @return void
      *
@@ -293,7 +291,6 @@ class Roles extends ApiController
      * @throws InvalidSchemaException
      * @throws InvalidStatusCodeException
      * @throws NotFoundException
-     * @throws ModelException
      */
 
     protected function _getRoles(): void
@@ -303,17 +300,13 @@ class Roles extends ApiController
 
         $page_size = (int)Arr::get(Request::getQuery(), 'page.size', get_config('api.default_page_size', 10));
 
-        $request = $this->api->parseQuery(Request::getQuery(), $page_size);
-
-        /** @var UserAuthModel $model */
-
-        $model = get_model('UserAuthModel');
-
         try {
 
-            $roles = $model->getRoles($request);
+            $request = $this->api->parseQuery(Request::getQuery(), $page_size);
 
-        } catch (QueryException|InvalidRequestException $e) {
+            $roles = $this->model->getRoleCollection($request);
+
+        } catch (HttpException|QueryException|BadRequestException $e) {
 
             abort(400, 'Unable to get roles: invalid request');
             die;
@@ -323,14 +316,8 @@ class Roles extends ApiController
         // Send response
 
         $schema = RoleCollection::create([
-            'roles' => $roles['results'],
-            'page' => [
-                'count' => count($roles['results']),
-                'total' => $roles['total'],
-                'pages' => ceil($roles['total'] / $page_size),
-                'page_size' => $page_size,
-                'page_number' => ($request['offset'] / $request['limit']) + 1
-            ]
+            'results' => $roles['results'],
+            'meta' => $roles['meta']
         ], [
             'link_prefix' => '/roles'
         ]);
@@ -394,7 +381,6 @@ class Roles extends ApiController
      * @throws HttpException
      * @throws InvalidSchemaException
      * @throws InvalidStatusCodeException
-     * @throws ModelException
      * @throws NotFoundException
      * @throws QueryException
      * @throws InvalidConfigurationException

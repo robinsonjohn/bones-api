@@ -400,5 +400,63 @@ class BonesAuth extends Auth
 
     }
 
+    /*
+     * ############################################################
+     * Roles
+     * ############################################################
+     */
+
+
+    /**
+     * Get roles.
+     *
+     * @param array $request
+     *
+     * @return array
+     *
+     * @throws QueryException
+     * @throws BadRequestException
+     */
+
+    public function getRoleCollection(array $request): array
+    {
+
+        if (!empty(Arr::except($request['fields'], [ // Allowed field keys
+            'roles'
+        ]))) {
+
+            throw new BadRequestException('Unable to get roles: invalid request');
+
+        }
+
+        if (isset($request['fields']['roles'])) {
+
+            $request['fields']['roles'][] = 'id'; // "id" column is required
+
+            $request['fields']['roles'] = array_unique(array_filter($request['fields']['roles'])); // Remove blank and duplicate values
+
+        }
+
+        $query = new Query($this->db);
+
+        $query->table('user_roles')
+            ->select(Arr::get($request, 'fields.roles', ['*']))
+            ->limit($request['limit'])
+            ->offset($request['offset'])
+            ->orderBy($request['order_by']);
+
+        foreach ($request['filters'] as $column => $filter) {
+
+            foreach ($filter as $operator => $value) {
+
+                $query->where($column, $operator, $value);
+
+            }
+
+        }
+
+        return $this->_returnResults($query, $request);
+
+    }
 
 }
