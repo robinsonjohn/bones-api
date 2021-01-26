@@ -2,15 +2,16 @@
 
 namespace App\Controllers\v1;
 
-use App\Exceptions\InvalidRequestException;
+use App\Exceptions\InvalidRequestException as IRE;
 use App\Models\UserAuthModel;
-use App\Schemas\EntityCollection;
+use App\Services\BonesAuth\Schemas\EntityCollection;
 use App\Schemas\EntityResource;
 use App\Schemas\PermissionCollection;
 use App\Schemas\UserCollection;
+use App\Services\BonesAuth\BonesAuth;
+use App\Services\BonesAuth\Exceptions\BadRequestException;
 use Bayfront\ArrayHelpers\Arr;
 use Bayfront\ArraySchema\InvalidSchemaException;
-use Bayfront\Auth\Auth;
 use Bayfront\Auth\Exceptions\EntityOwnerException;
 use Bayfront\Auth\Exceptions\InvalidConfigurationException;
 use Bayfront\Auth\Exceptions\InvalidEntityException;
@@ -41,7 +42,7 @@ use Bayfront\Validator\Validate;
 class Entities extends ApiController
 {
 
-    /** @var Auth $model */
+    /** @var BonesAuth $model */
 
     protected $model;
 
@@ -315,7 +316,6 @@ class Entities extends ApiController
      * @throws InvalidSchemaException
      * @throws InvalidStatusCodeException
      * @throws NotFoundException
-     * @throws ModelException
      */
 
     protected function _getEntities(): void
@@ -327,15 +327,11 @@ class Entities extends ApiController
 
         $request = $this->api->parseQuery(Request::getQuery(), $page_size);
 
-        /** @var UserAuthModel $model */
-
-        $model = get_model('UserAuthModel');
-
         try {
 
-            $entities = $model->getEntities($request);
+            $entities = $this->model->getEntityCollection($request);
 
-        } catch (QueryException|InvalidRequestException $e) {
+        } catch (QueryException|BadRequestException $e) {
 
             abort(400, 'Unable to get entities: invalid request');
             die;
@@ -345,14 +341,8 @@ class Entities extends ApiController
         // Send response
 
         $schema = EntityCollection::create([
-            'entities' => $entities['results'],
-            'page' => [
-                'count' => count($entities['results']),
-                'total' => $entities['total'],
-                'pages' => ceil($entities['total'] / $page_size),
-                'page_size' => $page_size,
-                'page_number' => ($request['offset'] / $request['limit']) + 1
-            ]
+            'results' => $entities['results'],
+            'meta' => $entities['meta']
         ], [
             'link_prefix' => '/entities'
         ]);
@@ -439,7 +429,7 @@ class Entities extends ApiController
 
             $permissions = $model->getEntityPermissions($entity_id, $request);
 
-        } catch (QueryException|InvalidRequestException $e) {
+        } catch (QueryException|IRE $e) {
 
             abort(400, 'Unable to get entity permissions: invalid request');
             die;
@@ -640,7 +630,7 @@ class Entities extends ApiController
 
             $users = $model->getEntityUsers($entity_id, $request);
 
-        } catch (QueryException|InvalidRequestException $e) {
+        } catch (QueryException|IRE $e) {
 
             abort(400, 'Unable to get entity users: invalid request');
             die;

@@ -8,21 +8,26 @@
  * Place the BonesApi service into the services container
  */
 
-use Bayfront\Auth\Auth;
+use App\Services\BonesAuth\BonesAuth;
 
 get_service('BonesApi', [
     'config' => get_config('api')
 ]);
 
 /*
- * Place the User Auth library into the services container
+ * Place the BonesAuth library into the services container
  */
 
 /** @var PDO $pdo */
 
 $pdo = get_from_container('db')->get('primary');
 
-$auth = new Auth($pdo, get_config('app.key', ''));
+/** @var BonesAuth $bones_auth */
+
+$auth = get_service('BonesAuth\\BonesAuth', [
+    'pdo' => $pdo,
+    'pepper' => get_config('app.key', '')
+]);
 
 $container = get_container();
 

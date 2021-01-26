@@ -15,61 +15,6 @@ class UserAuthModel extends Model
 {
 
     /**
-     * Get entities.
-     *
-     * @param array $request
-     *
-     * @return array
-     *
-     * @throws QueryException
-     * @throws InvalidRequestException
-     */
-
-    public function getEntities(array $request): array
-    {
-
-        $query = new Query($this->db);
-
-        if (!empty(Arr::except($request['fields'], [ // Allowed field keys
-            'entities'
-        ]))) {
-
-            throw new InvalidRequestException('Unable to get entities: invalid request');
-
-        }
-
-        if (isset($request['fields']['entities'])) {
-
-            $request['fields']['entities'][] = 'id'; // "id" column is required
-
-            $request['fields']['entities'] = array_unique(array_filter($request['fields']['entities'])); // Remove blank and duplicate values
-
-        }
-
-        $query->table('user_entities')
-            ->select(Arr::get($request, 'fields.entities', ['*']))
-            ->limit($request['limit'])
-            ->offset($request['offset'])
-            ->orderBy($request['order_by']);
-
-        foreach ($request['filters'] as $column => $filter) {
-
-            foreach ($filter as $operator => $value) {
-
-                $query->where($column, $operator, $value);
-
-            }
-
-        }
-
-        return [
-            'results' => $query->get(),
-            'total' => $query->getTotalRows()
-        ];
-
-    }
-
-    /**
      * Get entity permissions.
      *
      * @param string $entity_id
