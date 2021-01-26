@@ -2,14 +2,12 @@
 
 namespace App\Controllers\v1;
 
-use App\Exceptions\InvalidRequestException as IRE;
-use App\Models\UserAuthModel;
 use App\Services\BonesAuth\Schemas\EntityCollection;
 use App\Schemas\EntityResource;
-use App\Schemas\PermissionCollection;
-use App\Schemas\UserCollection;
 use App\Services\BonesAuth\BonesAuth;
 use App\Services\BonesAuth\Exceptions\BadRequestException;
+use App\Services\BonesAuth\Schemas\PermissionCollection;
+use App\Services\BonesAuth\Schemas\UserCollection;
 use Bayfront\ArrayHelpers\Arr;
 use Bayfront\ArraySchema\InvalidSchemaException;
 use Bayfront\Auth\Exceptions\EntityOwnerException;
@@ -21,7 +19,6 @@ use Bayfront\Auth\Exceptions\InvalidUserException;
 use Bayfront\Auth\Exceptions\NameExistsException;
 use Bayfront\Bones\Exceptions\ControllerException;
 use Bayfront\Bones\Exceptions\HttpException;
-use Bayfront\Bones\Exceptions\ModelException;
 use Bayfront\Bones\Exceptions\ServiceException;
 use Bayfront\Container\NotFoundException;
 use Bayfront\LeakyBucket\AdapterException;
@@ -325,13 +322,13 @@ class Entities extends ApiController
 
         $page_size = (int)Arr::get(Request::getQuery(), 'page.size', get_config('api.default_page_size', 10));
 
-        $request = $this->api->parseQuery(Request::getQuery(), $page_size);
-
         try {
+
+            $request = $this->api->parseQuery(Request::getQuery(), $page_size);
 
             $entities = $this->model->getEntityCollection($request);
 
-        } catch (QueryException|BadRequestException $e) {
+        } catch (HttpException|QueryException|BadRequestException $e) {
 
             abort(400, 'Unable to get entities: invalid request');
             die;
@@ -402,34 +399,28 @@ class Entities extends ApiController
      * @throws HttpException
      * @throws InvalidSchemaException
      * @throws InvalidStatusCodeException
-     * @throws ModelException
      * @throws NotFoundException
-     * @throws QueryException
      */
 
     protected function _getEntityPermissions(string $entity_id): void
     {
 
-        if (!$this->model->entityIdExists($entity_id)) {
-            abort(404, 'Unable to get entity permissions: entity ID does not exist');
-            die;
-        }
-
         // Get permissions
 
         $page_size = (int)Arr::get(Request::getQuery(), 'page.size', get_config('api.default_page_size', 10));
 
-        $request = $this->api->parseQuery(Request::getQuery(), $page_size);
-
-        /** @var UserAuthModel $model */
-
-        $model = get_model('UserAuthModel');
-
         try {
 
-            $permissions = $model->getEntityPermissions($entity_id, $request);
+            $request = $this->api->parseQuery(Request::getQuery(), $page_size);
 
-        } catch (QueryException|IRE $e) {
+            $permissions = $this->model->getEntityPermissionCollection($entity_id, $request);
+
+        } catch (HttpException|InvalidEntityException $e) {
+
+            abort(404, 'Unable to get entity permissions: entity ID does not exist');
+            die;
+
+        } catch (QueryException|BadRequestException $e) {
 
             abort(400, 'Unable to get entity permissions: invalid request');
             die;
@@ -439,14 +430,8 @@ class Entities extends ApiController
         // Send response
 
         $schema = PermissionCollection::create([
-            'permissions' => $permissions['results'],
-            'page' => [
-                'count' => count($permissions['results']),
-                'total' => $permissions['total'],
-                'pages' => ceil($permissions['total'] / $page_size),
-                'page_size' => $page_size,
-                'page_number' => ($request['offset'] / $request['limit']) + 1
-            ]
+            'results' => $permissions['results'],
+            'meta' => $permissions['meta']
         ], [
             'link_prefix' => '/permissions'
         ]);
@@ -594,20 +579,13 @@ class Entities extends ApiController
      * @throws HttpException
      * @throws InvalidSchemaException
      * @throws InvalidStatusCodeException
-     * @throws ModelException
      * @throws NotFoundException
-     * @throws QueryException
      */
 
     protected function _getEntityUsers(string $entity_id): void
     {
 
-        if (!$this->model->entityIdExists($entity_id)) {
-            abort(404, 'Unable to get entity users: entity ID does not exist');
-            die;
-        }
-
-        // Get users
+        // Get permissions
 
         $page_size = (int)Arr::get(Request::getQuery(), 'page.size', get_config('api.default_page_size', 10));
 
@@ -615,22 +593,14 @@ class Entities extends ApiController
 
             $request = $this->api->parseQuery(Request::getQuery(), $page_size);
 
-        } catch (HttpException $e) {
+            $permissions = $this->model->getEntityUserCollection($entity_id, $request);
 
-            abort(400, 'Unable to get entity users: invalid request');
+        } catch (HttpException|InvalidEntityException $e) {
+
+            abort(404, 'Unable to get entity users: entity ID does not exist');
             die;
 
-        }
-
-        /** @var UserAuthModel $model */
-
-        $model = get_model('UserAuthModel');
-
-        try {
-
-            $users = $model->getEntityUsers($entity_id, $request);
-
-        } catch (QueryException|IRE $e) {
+        } catch (QueryException|BadRequestException $e) {
 
             abort(400, 'Unable to get entity users: invalid request');
             die;
@@ -640,16 +610,10 @@ class Entities extends ApiController
         // Send response
 
         $schema = UserCollection::create([
-            'users' => $users['results'],
-            'page' => [
-                'count' => count($users['results']),
-                'total' => $users['total'],
-                'pages' => ceil($users['total'] / $page_size),
-                'page_size' => $page_size,
-                'page_number' => ($request['offset'] / $request['limit']) + 1
-            ]
+            'results' => $permissions['results'],
+            'meta' => $permissions['meta']
         ], [
-            'link_prefix' => '/users'
+            'link_prefix' => '/permissions'
         ]);
 
         $this->response->setHeaders([
@@ -820,7 +784,6 @@ class Entities extends ApiController
      * @throws InvalidSchemaException
      * @throws InvalidStatusCodeException
      * @throws InvalidUserException
-     * @throws ModelException
      * @throws NotFoundException
      * @throws QueryException
      * @throws TransactionException
@@ -891,7 +854,6 @@ class Entities extends ApiController
      * @throws InvalidDatabaseException
      * @throws InvalidSchemaException
      * @throws InvalidStatusCodeException
-     * @throws ModelException
      * @throws NotFoundException
      * @throws QueryException
      */
@@ -931,7 +893,6 @@ class Entities extends ApiController
      * @throws HttpException
      * @throws InvalidSchemaException
      * @throws InvalidStatusCodeException
-     * @throws ModelException
      * @throws NotFoundException
      * @throws QueryException
      */
