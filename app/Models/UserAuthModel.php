@@ -128,11 +128,99 @@ class UserAuthModel extends Model
 
         foreach ($request['filters'] as $column => $filter) {
 
+            // Do not allow request to filter the entity ID
+
+            if ($column == 'user_entity_permissions.entity_id') {
+                throw new InvalidRequestException('Unable to get entity permissions: invalid request');
+            }
+
             foreach ($filter as $operator => $value) {
 
                 // Prefix the table name to the column for the LEFT JOIN clause
 
                 $query->where('user_permissions.' . $column, $operator, $value);
+
+            }
+
+        }
+
+        return [
+            'results' => $query->get(),
+            'total' => $query->getTotalRows()
+        ];
+
+    }
+
+    /**
+     * Get entity users.
+     *
+     * @param string $entity_id
+     * @param array $request
+     *
+     * @return array
+     *
+     * @throws InvalidRequestException
+     * @throws QueryException
+     */
+
+    public function getEntityUsers(string $entity_id, array $request): array
+    {
+
+        $query = new Query($this->db);
+
+        if (!empty(Arr::except($request['fields'], [ // Allowed field keys
+            'users'
+        ]))) {
+
+            throw new InvalidRequestException('Unable to get entity users: invalid request');
+
+        }
+
+        if (isset($request['fields']['users'])) {
+
+            $request['fields']['users'][] = 'id'; // "id" column is required
+
+            $request['fields']['users'] = array_unique(array_filter($request['fields']['users'])); // Remove blank and duplicate values
+
+        }
+
+        // Prefix the table name to the fields and columns for the LEFT JOIN clause
+
+        $fields = Arr::get($request, 'fields.users', ['*']);
+
+        foreach ($fields as $k => $field) {
+
+            $fields[$k] = 'user_users.' . $field;
+
+        }
+
+        foreach ($request['order_by'] as $k => $col) {
+
+            $request['order_by'][$k] = 'user_users.' . $col;
+
+        }
+
+        $query->table('user_users')
+            ->leftJoin('user_user_entities', 'user_users.id', 'user_user_entities.user_id')
+            ->select($fields)
+            ->where('user_user_entities.entity_id', 'eq', $entity_id)
+            ->limit($request['limit'])
+            ->offset($request['offset'])
+            ->orderBy($request['order_by']);
+
+        foreach ($request['filters'] as $column => $filter) {
+
+            // Do not allow request to filter the entity ID
+
+            if ($column == 'user_user_entities.entity_id') {
+                throw new InvalidRequestException('Unable to get entity users: invalid request');
+            }
+
+            foreach ($filter as $operator => $value) {
+
+                // Prefix the table name to the column for the LEFT JOIN clause
+
+                $query->where('user_users.' . $column, $operator, $value);
 
             }
 

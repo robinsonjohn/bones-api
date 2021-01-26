@@ -7,9 +7,11 @@ use App\Models\UserAuthModel;
 use App\Schemas\EntityCollection;
 use App\Schemas\EntityResource;
 use App\Schemas\PermissionCollection;
+use App\Schemas\UserCollection;
 use Bayfront\ArrayHelpers\Arr;
 use Bayfront\ArraySchema\InvalidSchemaException;
 use Bayfront\Auth\Auth;
+use Bayfront\Auth\Exceptions\EntityOwnerException;
 use Bayfront\Auth\Exceptions\InvalidConfigurationException;
 use Bayfront\Auth\Exceptions\InvalidEntityException;
 use Bayfront\Auth\Exceptions\InvalidOwnerException;
@@ -400,7 +402,6 @@ class Entities extends ApiController
 
     // -------------------- Permissions --------------------
 
-
     /**
      * Get entity permissions.
      *
@@ -591,6 +592,226 @@ class Entities extends ApiController
 
     }
 
+    // -------------------- Users --------------------
+
+    /**
+     * Get entity users.
+     *
+     * @param string $entity_id
+     *
+     * @return void
+     *
+     * @throws HttpException
+     * @throws InvalidSchemaException
+     * @throws InvalidStatusCodeException
+     * @throws ModelException
+     * @throws NotFoundException
+     * @throws QueryException
+     */
+
+    protected function _getEntityUsers(string $entity_id): void
+    {
+
+        if (!$this->model->entityIdExists($entity_id)) {
+            abort(404, 'Unable to get entity users: entity ID does not exist');
+            die;
+        }
+
+        // Get users
+
+        $page_size = (int)Arr::get(Request::getQuery(), 'page.size', get_config('api.default_page_size', 10));
+
+        try {
+
+            $request = $this->api->parseQuery(Request::getQuery(), $page_size);
+
+        } catch (HttpException $e) {
+
+            abort(400, 'Unable to get entity users: invalid request');
+            die;
+
+        }
+
+        /** @var UserAuthModel $model */
+
+        $model = get_model('UserAuthModel');
+
+        try {
+
+            $users = $model->getEntityUsers($entity_id, $request);
+
+        } catch (QueryException|InvalidRequestException $e) {
+
+            abort(400, 'Unable to get entity users: invalid request');
+            die;
+
+        }
+
+        // Send response
+
+        $schema = UserCollection::create([
+            'users' => $users['results'],
+            'page' => [
+                'count' => count($users['results']),
+                'total' => $users['total'],
+                'pages' => ceil($users['total'] / $page_size),
+                'page_size' => $page_size,
+                'page_number' => ($request['offset'] / $request['limit']) + 1
+            ]
+        ], [
+            'link_prefix' => '/users'
+        ]);
+
+        $this->response->setHeaders([
+            'Cache-Control' => 'max-age=3600' // 1 hour
+        ])->sendJson($schema);
+
+    }
+
+    /**
+     * Grant entity users.
+     *
+     * @param string $entity_id
+     *
+     * @return void
+     *
+     * @throws HttpException
+     * @throws InvalidStatusCodeException
+     * @throws NotFoundException
+     * @throws QueryException
+     */
+
+    protected function _grantEntityUsers(string $entity_id): void
+    {
+
+        // Get body
+
+        $body = $this->api->getBody([
+            'users'
+        ]); // Required keys
+
+        if (!empty(Arr::except($body, [ // If invalid keys have been sent
+            'users'
+        ]))) {
+
+            abort(400, 'Unable to grant entity users: request body contains invalid parameters');
+            die;
+
+        }
+
+        // Validate body
+
+        if (!is_array($body['users'])) {
+            abort(400, 'Unable to validate: key (users) with rule (array)');
+            die;
+        }
+
+        // Grant users
+
+        try {
+
+            foreach ($body['users'] as $user) {
+
+                // TODO: Update user-auth library to accept an array and avoid iterating here
+
+                $this->model->grantUserEntity($user, $entity_id);
+
+            }
+
+        } catch (InvalidEntityException $e) {
+
+            abort(404, 'Unable to grant entity users: entity ID does not exist');
+            die;
+
+        } catch (InvalidUserException $e) {
+
+            abort(400, 'Unable to grant entity users: user ID does not exist');
+            die;
+
+        }
+
+        // entity.users.grant event
+
+        do_event('entity.users.grant', $entity_id, $body['users']);
+
+        // Send response
+
+        $this->response->setStatusCode(204)->send();
+
+    }
+
+    /**
+     * Revoke entity users.
+     *
+     * @param string $entity_id
+     *
+     * @return void
+     *
+     * @throws HttpException
+     * @throws InvalidStatusCodeException
+     * @throws NotFoundException
+     * @throws QueryException
+     */
+
+    protected function _revokeEntityUsers(string $entity_id): void
+    {
+
+        // Get body
+
+        $body = $this->api->getBody([
+            'users'
+        ]); // Required keys
+
+        if (!empty(Arr::except($body, [ // If invalid keys have been sent
+            'users'
+        ]))) {
+
+            abort(400, 'Unable to revoke entity users: request body contains invalid parameters');
+            die;
+
+        }
+
+        // Validate body
+
+        if (!is_array($body['users'])) {
+            abort(400, 'Unable to validate: key (users) with rule (array)');
+            die;
+        }
+
+        // Revoke users
+
+        if (!$this->model->entityIdExists($entity_id)) {
+            abort(404, 'Unable to revoke entity users: entity ID does not exist');
+            die;
+        }
+
+        try {
+
+            foreach ($body['users'] as $user) {
+
+                // TODO: Update user-auth library to accept an array and avoid iterating here
+
+                $this->model->revokeUserEntity($user, $entity_id);
+
+            }
+
+        } catch (EntityOwnerException $e) {
+
+            abort(400, 'Unable to revoke entity users: entity owner cannot be revoked');
+            die;
+
+        }
+
+        // entity.users.revoke event
+
+        do_event('entity.users.revoke', $entity_id, $body['users']);
+
+        // Send response
+
+        $this->response->setStatusCode(204)->send();
+
+    }
+
     /*
      * ############################################################
      * Public methods
@@ -674,6 +895,8 @@ class Entities extends ApiController
      *
      * @param array $params
      *
+     * @return void
+     *
      * @throws HttpException
      * @throws InvalidDatabaseException
      * @throws InvalidSchemaException
@@ -683,7 +906,7 @@ class Entities extends ApiController
      * @throws QueryException
      */
 
-    public function permissions(array $params)
+    public function permissions(array $params): void
     {
 
         $this->api->allowedMethods([
@@ -703,6 +926,46 @@ class Entities extends ApiController
         } else { // Delete
 
             $this->_revokeEntityPermissions($params['id']);
+
+        }
+
+    }
+
+    /**
+     * Router destination for sub-resource: users
+     *
+     * @param array $params
+     *
+     * @return void
+     *
+     * @throws HttpException
+     * @throws InvalidSchemaException
+     * @throws InvalidStatusCodeException
+     * @throws ModelException
+     * @throws NotFoundException
+     * @throws QueryException
+     */
+
+    public function users(array $params): void
+    {
+
+        $this->api->allowedMethods([
+            'POST',
+            'GET',
+            'DELETE'
+        ]);
+
+        if (Request::isPost()) {
+
+            $this->_grantEntityUsers($params['id']);
+
+        } else if (Request::isGet()) {
+
+            $this->_getEntityUsers($params['id']);
+
+        } else { // Delete
+
+            $this->_revokeEntityUsers($params['id']);
 
         }
 
