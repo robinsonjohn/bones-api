@@ -613,7 +613,7 @@ class Entities extends ApiController
             'results' => $permissions['results'],
             'meta' => $permissions['meta']
         ], [
-            'link_prefix' => '/permissions'
+            'link_prefix' => '/users'
         ]);
 
         $this->response->setHeaders([

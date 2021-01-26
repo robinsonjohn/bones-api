@@ -2,13 +2,12 @@
 
 namespace App\Controllers\v1;
 
-use App\Exceptions\InvalidRequestException;
-use App\Models\UserAuthModel;
-use App\Schemas\PermissionCollection;
-use App\Schemas\PermissionResource;
+use App\Services\BonesAuth\BonesAuth;
+use App\Services\BonesAuth\Exceptions\BadRequestException;
+use App\Services\BonesAuth\Schemas\PermissionCollection;
+use App\Services\BonesAuth\Schemas\PermissionResource;
 use Bayfront\ArrayHelpers\Arr;
 use Bayfront\ArraySchema\InvalidSchemaException;
-use Bayfront\Auth\Auth;
 use Bayfront\Auth\Exceptions\InvalidConfigurationException;
 use Bayfront\Auth\Exceptions\InvalidEntityException;
 use Bayfront\Auth\Exceptions\InvalidPermissionException;
@@ -16,7 +15,6 @@ use Bayfront\Auth\Exceptions\InvalidUserException;
 use Bayfront\Auth\Exceptions\NameExistsException;
 use Bayfront\Bones\Exceptions\ControllerException;
 use Bayfront\Bones\Exceptions\HttpException;
-use Bayfront\Bones\Exceptions\ModelException;
 use Bayfront\Bones\Exceptions\ServiceException;
 use Bayfront\Container\NotFoundException;
 use Bayfront\LeakyBucket\AdapterException;
@@ -35,7 +33,7 @@ use Bayfront\Validator\Validate;
 class Permissions extends ApiController
 {
 
-    /** @var Auth $model */
+    /** @var BonesAuth $model */
 
     protected $model;
 
@@ -272,27 +270,22 @@ class Permissions extends ApiController
      * @throws InvalidSchemaException
      * @throws InvalidStatusCodeException
      * @throws NotFoundException
-     * @throws ModelException
      */
 
     protected function _getPermissions(): void
     {
 
-        // Get permissions
+        // Get entities
 
         $page_size = (int)Arr::get(Request::getQuery(), 'page.size', get_config('api.default_page_size', 10));
 
-        $request = $this->api->parseQuery(Request::getQuery(), $page_size);
-
-        /** @var UserAuthModel $model */
-
-        $model = get_model('UserAuthModel');
-
         try {
 
-            $permissions = $model->getPermissions($request);
+            $request = $this->api->parseQuery(Request::getQuery(), $page_size);
 
-        } catch (QueryException|InvalidRequestException $e) {
+            $entities = $this->model->getPermissionCollection($request);
+
+        } catch (HttpException|QueryException|BadRequestException $e) {
 
             abort(400, 'Unable to get permissions: invalid request');
             die;
@@ -302,14 +295,8 @@ class Permissions extends ApiController
         // Send response
 
         $schema = PermissionCollection::create([
-            'permissions' => $permissions['results'],
-            'page' => [
-                'count' => count($permissions['results']),
-                'total' => $permissions['total'],
-                'pages' => ceil($permissions['total'] / $page_size),
-                'page_size' => $page_size,
-                'page_number' => ($request['offset'] / $request['limit']) + 1
-            ]
+            'results' => $entities['results'],
+            'meta' => $entities['meta']
         ], [
             'link_prefix' => '/permissions'
         ]);
@@ -373,7 +360,6 @@ class Permissions extends ApiController
      * @throws HttpException
      * @throws InvalidSchemaException
      * @throws InvalidStatusCodeException
-     * @throws ModelException
      * @throws NotFoundException
      * @throws QueryException
      * @throws InvalidConfigurationException
@@ -401,7 +387,7 @@ class Permissions extends ApiController
 
         } else if (Request::isGet()) {
 
-            if (isset($params['id'])) { // Single entity
+            if (isset($params['id'])) { // Single permission
 
                 $this->_getPermission($params['id']);
 

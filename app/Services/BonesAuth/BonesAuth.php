@@ -58,6 +58,65 @@ class BonesAuth extends Auth
 
     /*
      * ############################################################
+     * Permissions
+     * ############################################################
+     */
+
+    /**
+     * Get permission collection using a query builder.
+     *
+     * @param array $request
+     *
+     * @return array
+     *
+     * @throws QueryException
+     * @throws BadRequestException
+     */
+
+    public function getPermissionCollection(array $request): array
+    {
+
+        if (!empty(Arr::except($request['fields'], [ // Allowed field keys
+            'permissions'
+        ]))) {
+
+            throw new BadRequestException('Unable to get permissions: invalid request');
+
+        }
+
+        if (isset($request['fields']['permissions'])) {
+
+            $request['fields']['permissions'][] = 'id'; // "id" column is required
+
+            $request['fields']['permissions'] = array_unique(array_filter($request['fields']['permissions'])); // Remove blank and duplicate values
+
+        }
+
+        $query = new Query($this->db);
+
+        $query->table('user_permissions')
+            ->select(Arr::get($request, 'fields.permissions', ['*']))
+            ->limit($request['limit'])
+            ->offset($request['offset'])
+            ->orderBy($request['order_by']);
+
+        foreach ($request['filters'] as $column => $filter) {
+
+            foreach ($filter as $operator => $value) {
+
+                $query->where($column, $operator, $value);
+
+            }
+
+        }
+
+        return $this->_returnResults($query, $request);
+
+    }
+
+
+    /*
+     * ############################################################
      * Entities
      * ############################################################
      */
