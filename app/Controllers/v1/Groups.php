@@ -20,6 +20,7 @@ use Bayfront\Bones\Exceptions\ServiceException;
 use Bayfront\Container\NotFoundException;
 use Bayfront\LeakyBucket\AdapterException;
 use Bayfront\LeakyBucket\BucketException;
+use Bayfront\MonologFactory\Exceptions\ChannelNotFoundException;
 use Bayfront\Validator\ValidationException;
 use Bayfront\HttpRequest\Request;
 use Bayfront\HttpResponse\InvalidStatusCodeException;
@@ -77,6 +78,7 @@ class Groups extends ApiController
      * @throws InvalidConfigurationException
      * @throws IdExistsException
      * @throws InvalidGroupException
+     * @throws ChannelNotFoundException
      */
 
     protected function _createGroup(): void
@@ -137,6 +139,10 @@ class Groups extends ApiController
 
         }
 
+        log_info('Group created', [
+            'id' => $id
+        ]);
+
         // group.create event
 
         do_event('group.create', $id);
@@ -164,6 +170,7 @@ class Groups extends ApiController
      * @throws NotFoundException
      * @throws QueryException
      * @throws InvalidGroupException
+     * @throws ChannelNotFoundException
      */
 
     protected function _updateGroup(string $id): void
@@ -225,6 +232,10 @@ class Groups extends ApiController
             die;
 
         }
+
+        log_info('Group updated', [
+            'id' => $id
+        ]);
 
         // group.update event
 
@@ -339,6 +350,7 @@ class Groups extends ApiController
      * @throws InvalidStatusCodeException
      * @throws NotFoundException
      * @throws QueryException
+     * @throws ChannelNotFoundException
      */
 
     protected function _deleteGroup(string $id): void
@@ -349,6 +361,10 @@ class Groups extends ApiController
         $deleted = $this->model->deleteGroup($id);
 
         if ($deleted) {
+
+            log_info('Group deleted', [
+                'id' => $id
+            ]);
 
             // group.delete event
 
@@ -386,6 +402,7 @@ class Groups extends ApiController
      * @throws InvalidConfigurationException
      * @throws InvalidGroupException
      * @throws IdExistsException
+     * @throws ChannelNotFoundException
      */
 
     public function index(array $params)

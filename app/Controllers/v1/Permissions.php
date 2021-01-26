@@ -19,6 +19,7 @@ use Bayfront\Bones\Exceptions\ServiceException;
 use Bayfront\Container\NotFoundException;
 use Bayfront\LeakyBucket\AdapterException;
 use Bayfront\LeakyBucket\BucketException;
+use Bayfront\MonologFactory\Exceptions\ChannelNotFoundException;
 use Bayfront\Validator\ValidationException;
 use Bayfront\HttpRequest\Request;
 use Bayfront\HttpResponse\InvalidStatusCodeException;
@@ -75,6 +76,7 @@ class Permissions extends ApiController
      * @throws QueryException
      * @throws InvalidConfigurationException
      * @throws InvalidPermissionException
+     * @throws ChannelNotFoundException
      */
 
     protected function _createPermission(): void
@@ -125,6 +127,10 @@ class Permissions extends ApiController
 
         }
 
+        log_info('Permission created', [
+            'id' => $id
+        ]);
+
         // permission.create event
 
         do_event('permission.create', $id);
@@ -152,6 +158,7 @@ class Permissions extends ApiController
      * @throws NotFoundException
      * @throws QueryException
      * @throws InvalidPermissionException
+     * @throws ChannelNotFoundException
      */
 
     protected function _updatePermission(string $id): void
@@ -204,6 +211,10 @@ class Permissions extends ApiController
             die;
 
         }
+
+        log_info('Permission updated', [
+            'id' => $id
+        ]);
 
         // permission.update event
 
@@ -318,6 +329,7 @@ class Permissions extends ApiController
      * @throws InvalidStatusCodeException
      * @throws NotFoundException
      * @throws QueryException
+     * @throws ChannelNotFoundException
      */
 
     protected function _deletePermission(string $id): void
@@ -328,6 +340,10 @@ class Permissions extends ApiController
         $deleted = $this->model->deletePermission($id);
 
         if ($deleted) {
+
+            log_info('Permission deleted', [
+                'id' => $id
+            ]);
 
             // permission.delete event
 
@@ -364,6 +380,7 @@ class Permissions extends ApiController
      * @throws QueryException
      * @throws InvalidConfigurationException
      * @throws InvalidPermissionException
+     * @throws ChannelNotFoundException
      */
 
     public function index(array $params)

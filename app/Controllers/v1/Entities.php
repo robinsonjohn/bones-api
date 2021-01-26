@@ -23,6 +23,7 @@ use Bayfront\Bones\Exceptions\ServiceException;
 use Bayfront\Container\NotFoundException;
 use Bayfront\LeakyBucket\AdapterException;
 use Bayfront\LeakyBucket\BucketException;
+use Bayfront\MonologFactory\Exceptions\ChannelNotFoundException;
 use Bayfront\PDO\Exceptions\InvalidDatabaseException;
 use Bayfront\PDO\Exceptions\TransactionException;
 use Bayfront\Validator\ValidationException;
@@ -82,6 +83,7 @@ class Entities extends ApiController
      * @throws QueryException
      * @throws TransactionException
      * @throws InvalidConfigurationException
+     * @throws ChannelNotFoundException
      */
 
     protected function _createEntity(): void
@@ -142,6 +144,10 @@ class Entities extends ApiController
 
         }
 
+        log_info('Entity created', [
+            'id' => $id
+        ]);
+
         // entity.create event
 
         do_event('entity.create', $id);
@@ -171,6 +177,7 @@ class Entities extends ApiController
      * @throws TransactionException
      * @throws InvalidUserException
      * @throws InvalidEntityException
+     * @throws ChannelNotFoundException
      */
 
     protected function _updateEntity(string $id): void
@@ -232,6 +239,10 @@ class Entities extends ApiController
             die;
 
         }
+
+        log_info('Entity updated', [
+            'id' => $id
+        ]);
 
         // entity.update event
 
@@ -346,6 +357,7 @@ class Entities extends ApiController
      * @throws InvalidStatusCodeException
      * @throws NotFoundException
      * @throws QueryException
+     * @throws ChannelNotFoundException
      */
 
     protected function _deleteEntity(string $id): void
@@ -356,6 +368,10 @@ class Entities extends ApiController
         $deleted = $this->model->deleteEntity($id);
 
         if ($deleted) {
+
+            log_info('Entity deleted', [
+                'id' => $id
+            ]);
 
             // entity.delete event
 
@@ -439,6 +455,7 @@ class Entities extends ApiController
      * @throws NotFoundException
      * @throws QueryException
      * @throws InvalidDatabaseException
+     * @throws ChannelNotFoundException
      */
 
     protected function _grantEntityPermissions(string $entity_id): void
@@ -484,6 +501,11 @@ class Entities extends ApiController
 
         }
 
+        log_info('Granted entity permissions', [
+            'id' => $entity_id,
+            'permissions' => $body['permissions']
+        ]);
+
         // entity.permissions.grant event
 
         do_event('entity.permissions.grant', $entity_id, $body['permissions']);
@@ -506,6 +528,7 @@ class Entities extends ApiController
      * @throws InvalidStatusCodeException
      * @throws NotFoundException
      * @throws QueryException
+     * @throws ChannelNotFoundException
      */
 
     protected function _revokeEntityPermissions(string $entity_id): void
@@ -541,6 +564,11 @@ class Entities extends ApiController
         }
 
         $this->model->revokeEntityPermission($entity_id, $body['permissions']);
+
+        log_info('Revoked entity permissions', [
+            'id' => $entity_id,
+            'permissions' => $body['permissions']
+        ]);
 
         // entity.permissions.revoke event
 
@@ -618,6 +646,7 @@ class Entities extends ApiController
      * @throws InvalidStatusCodeException
      * @throws NotFoundException
      * @throws QueryException
+     * @throws ChannelNotFoundException
      */
 
     protected function _grantEntityUsers(string $entity_id): void
@@ -669,6 +698,11 @@ class Entities extends ApiController
 
         }
 
+        log_info('Granted entity users', [
+            'id' => $entity_id,
+            'permissions' => $body['users']
+        ]);
+
         // entity.users.grant event
 
         do_event('entity.users.grant', $entity_id, $body['users']);
@@ -690,6 +724,7 @@ class Entities extends ApiController
      * @throws InvalidStatusCodeException
      * @throws NotFoundException
      * @throws QueryException
+     * @throws ChannelNotFoundException
      */
 
     protected function _revokeEntityUsers(string $entity_id): void
@@ -741,6 +776,11 @@ class Entities extends ApiController
 
         }
 
+        log_info('Revoked entity permissions', [
+            'id' => $entity_id,
+            'permissions' => $body['users']
+        ]);
+
         // entity.users.revoke event
 
         do_event('entity.users.revoke', $entity_id, $body['users']);
@@ -773,6 +813,7 @@ class Entities extends ApiController
      * @throws QueryException
      * @throws TransactionException
      * @throws InvalidConfigurationException
+     * @throws ChannelNotFoundException
      */
 
     public function index(array $params)
@@ -841,6 +882,7 @@ class Entities extends ApiController
      * @throws InvalidStatusCodeException
      * @throws NotFoundException
      * @throws QueryException
+     * @throws ChannelNotFoundException
      */
 
     public function permissions(array $params): void
@@ -880,6 +922,7 @@ class Entities extends ApiController
      * @throws InvalidStatusCodeException
      * @throws NotFoundException
      * @throws QueryException
+     * @throws ChannelNotFoundException
      */
 
     public function users(array $params): void

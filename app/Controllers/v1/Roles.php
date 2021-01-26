@@ -20,6 +20,7 @@ use Bayfront\Bones\Exceptions\ServiceException;
 use Bayfront\Container\NotFoundException;
 use Bayfront\LeakyBucket\AdapterException;
 use Bayfront\LeakyBucket\BucketException;
+use Bayfront\MonologFactory\Exceptions\ChannelNotFoundException;
 use Bayfront\Validator\ValidationException;
 use Bayfront\HttpRequest\Request;
 use Bayfront\HttpResponse\InvalidStatusCodeException;
@@ -77,6 +78,7 @@ class Roles extends ApiController
      * @throws InvalidConfigurationException
      * @throws IdExistsException
      * @throws InvalidRoleException
+     * @throws ChannelNotFoundException
      */
 
     protected function _createRole(): void
@@ -137,6 +139,10 @@ class Roles extends ApiController
 
         }
 
+        log_info('Role created', [
+            'id' => $id
+        ]);
+
         // role.create event
 
         do_event('role.create', $id);
@@ -164,6 +170,7 @@ class Roles extends ApiController
      * @throws NotFoundException
      * @throws QueryException
      * @throws InvalidRoleException
+     * @throws ChannelNotFoundException
      */
 
     protected function _updateRole(string $id): void
@@ -225,6 +232,10 @@ class Roles extends ApiController
             die;
 
         }
+
+        log_info('Role updated', [
+            'id' => $id
+        ]);
 
         // role.update event
 
@@ -339,6 +350,7 @@ class Roles extends ApiController
      * @throws InvalidStatusCodeException
      * @throws NotFoundException
      * @throws QueryException
+     * @throws ChannelNotFoundException
      */
 
     protected function _deleteRole(string $id): void
@@ -349,6 +361,10 @@ class Roles extends ApiController
         $deleted = $this->model->deleteRole($id);
 
         if ($deleted) {
+
+            log_info('Role deleted', [
+                'id' => $id
+            ]);
 
             // role.delete event
 
@@ -386,6 +402,7 @@ class Roles extends ApiController
      * @throws InvalidConfigurationException
      * @throws IdExistsException
      * @throws InvalidRoleException
+     * @throws ChannelNotFoundException
      */
 
     public function index(array $params)

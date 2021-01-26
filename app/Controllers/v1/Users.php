@@ -19,6 +19,7 @@ use Bayfront\Bones\Exceptions\ServiceException;
 use Bayfront\Container\NotFoundException;
 use Bayfront\LeakyBucket\AdapterException;
 use Bayfront\LeakyBucket\BucketException;
+use Bayfront\MonologFactory\Exceptions\ChannelNotFoundException;
 use Bayfront\Validator\ValidationException;
 use Bayfront\HttpRequest\Request;
 use Bayfront\HttpResponse\InvalidStatusCodeException;
@@ -76,6 +77,7 @@ class Users extends ApiController
      * @throws InvalidUserException
      * @throws NotFoundException
      * @throws QueryException
+     * @throws ChannelNotFoundException
      */
 
     protected function _createUser(): void
@@ -133,6 +135,10 @@ class Users extends ApiController
 
         }
 
+        log_info('User created', [
+            'id' => $id
+        ]);
+
         // user.create event
 
         do_event('user.create', $id);
@@ -160,6 +166,7 @@ class Users extends ApiController
      * @throws NotFoundException
      * @throws QueryException
      * @throws InvalidUserException
+     * @throws ChannelNotFoundException
      */
 
     protected function _updateUser(string $id): void
@@ -218,6 +225,10 @@ class Users extends ApiController
             die;
 
         }
+
+        log_info('User updated', [
+            'id' => $id
+        ]);
 
         // user.update event
 
@@ -332,6 +343,7 @@ class Users extends ApiController
      * @throws InvalidStatusCodeException
      * @throws NotFoundException
      * @throws QueryException
+     * @throws ChannelNotFoundException
      */
 
     protected function _deleteUser(string $id): void
@@ -342,6 +354,10 @@ class Users extends ApiController
         $deleted = $this->model->deleteUser($id);
 
         if ($deleted) {
+
+            log_info('User deleted', [
+                'id' => $id
+            ]);
 
             // user.delete event
 
@@ -379,6 +395,7 @@ class Users extends ApiController
      * @throws NotFoundException
      * @throws QueryException
      * @throws IdExistsException
+     * @throws ChannelNotFoundException
      */
 
     public function index(array $params)
