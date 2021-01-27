@@ -410,12 +410,12 @@ class Roles extends ApiController
 
             $permissions = $this->model->getRolePermissionCollection($role_id, $request);
 
-        } catch (HttpException|InvalidRoleException $e) {
+        } catch (InvalidRoleException $e) {
 
             abort(404, 'Unable to get role permissions: role ID does not exist');
             die;
 
-        } catch (QueryException|BadRequestException $e) {
+        } catch (HttpException|QueryException|BadRequestException $e) {
 
             abort(400, 'Unable to get role permissions: invalid request');
             die;

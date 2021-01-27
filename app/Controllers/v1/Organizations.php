@@ -4,6 +4,7 @@ namespace App\Controllers\v1;
 
 use App\Services\BonesAuth\BonesAuth;
 use App\Services\BonesAuth\Exceptions\BadRequestException;
+use App\Services\BonesAuth\Schemas\GroupCollection;
 use App\Services\BonesAuth\Schemas\OrganizationCollection;
 use App\Services\BonesAuth\Schemas\OrganizationResource;
 use App\Services\BonesAuth\Schemas\PermissionCollection;
@@ -384,6 +385,62 @@ class Organizations extends ApiController
 
     }
 
+    // -------------------- Groups --------------------
+
+    /**
+     * Get organization groups.
+     *
+     * @param string $organization_id
+     *
+     * @return void
+     *
+     * @throws HttpException
+     * @throws InvalidSchemaException
+     * @throws InvalidStatusCodeException
+     * @throws NotFoundException
+     */
+
+    protected function _getOrganizationGroups(string $organization_id): void
+    {
+
+        // Get permissions
+
+        $page_size = (int)Arr::get(Request::getQuery(), 'page.size', get_config('api.default_page_size', 10));
+
+        try {
+
+            $request = $this->api->parseQuery(Request::getQuery(), $page_size);
+
+            $permissions = $this->model->getOrganizationGroupCollection($organization_id, $request);
+
+        } catch (InvalidOrganizationException $e) {
+
+            abort(404, 'Unable to get organization groups: organization ID does not exist');
+            die;
+
+        } catch (HttpException|QueryException|BadRequestException $e) {
+
+            abort(400, 'Unable to get organization groups: invalid request');
+            die;
+
+        }
+
+        // Send response
+
+        $schema = GroupCollection::create([
+            'results' => $permissions['results'],
+            'meta' => $permissions['meta']
+        ], [
+            'object_prefix' => '/groups',
+            'collection_prefix' => '/organizations/' . $organization_id . '/groups'
+        ]);
+
+        $this->response->setHeaders([
+            'Cache-Control' => 'max-age=3600' // 1 hour
+        ])->sendJson($schema);
+
+    }
+
     // -------------------- Permissions --------------------
 
     /**
@@ -412,12 +469,12 @@ class Organizations extends ApiController
 
             $permissions = $this->model->getOrganizationPermissionCollection($organization_id, $request);
 
-        } catch (HttpException|InvalidOrganizationException $e) {
+        } catch (InvalidOrganizationException $e) {
 
             abort(404, 'Unable to get organization permissions: organization ID does not exist');
             die;
 
-        } catch (QueryException|BadRequestException $e) {
+        } catch (HttpException|QueryException|BadRequestException $e) {
 
             abort(400, 'Unable to get organization permissions: invalid request');
             die;
@@ -618,12 +675,12 @@ class Organizations extends ApiController
 
             $permissions = $this->model->getOrganizationUserCollection($organization_id, $request);
 
-        } catch (HttpException|InvalidOrganizationException $e) {
+        } catch (InvalidOrganizationException $e) {
 
             abort(404, 'Unable to get organization users: organization ID does not exist');
             die;
 
-        } catch (QueryException|BadRequestException $e) {
+        } catch (HttpException|QueryException|BadRequestException $e) {
 
             abort(400, 'Unable to get organization users: invalid request');
             die;
@@ -890,6 +947,31 @@ class Organizations extends ApiController
             $this->_deleteOrganization($params['id']);
 
         }
+
+    }
+
+    /**
+     * Router destination for sub-resource: groups
+     *
+     * @param array $params
+     *
+     * @return void
+     *
+     * @throws ChannelNotFoundException
+     * @throws HttpException
+     * @throws InvalidSchemaException
+     * @throws InvalidStatusCodeException
+     * @throws NotFoundException
+     */
+
+    public function groups(array $params): void
+    {
+
+        $this->api->allowedMethods([
+            'GET'
+        ]);
+
+        $this->_getOrganizationGroups($params['id']);
 
     }
 

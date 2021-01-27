@@ -185,6 +185,71 @@ class BonesAuth extends Auth
     }
 
     /**
+     * Get organization group collection using a query builder.
+     *
+     * @param string $organization_id
+     * @param array $request
+     *
+     * @return array
+     *
+     * @throws BadRequestException
+     * @throws QueryException
+     * @throws InvalidOrganizationException
+     */
+
+    public function getOrganizationGroupCollection(string $organization_id, array $request): array
+    {
+
+        if (!$this->organizationIdExists($organization_id)) {
+            throw new InvalidOrganizationException('Unable to get organization groups: organization ID does not exist');
+        }
+
+        if (!empty(Arr::except($request['fields'], [ // Allowed field keys
+            'groups'
+        ]))) {
+
+            throw new BadRequestException('Unable to get organization groups: invalid request');
+
+        }
+
+        if (isset($request['fields']['groups'])) {
+
+            $request['fields']['groups'][] = 'id'; // "id" column is required
+
+            $request['fields']['groups'] = array_unique(array_filter($request['fields']['groups'])); // Remove blank and duplicate values
+
+        }
+
+        $query = new Query($this->db);
+
+        $query->table('user_groups')
+            ->select(Arr::get($request, 'fields.groups', ['*']))
+            ->where('organization_id', 'eq', $organization_id)
+            ->limit($request['limit'])
+            ->offset($request['offset'])
+            ->orderBy($request['order_by']);
+
+        foreach ($request['filters'] as $column => $filter) {
+
+            // Do not allow request to filter the organization ID
+
+            if ($column == 'organization_id') {
+                throw new BadRequestException('Unable to get organization groups: invalid request');
+            }
+
+            foreach ($filter as $operator => $value) {
+
+                $query->where($column, $operator, $value);
+
+            }
+
+        }
+
+        return $this->_returnResults($query, $request);
+
+    }
+
+    /**
      * Get organization permission collection using a query builder.
      *
      * @param string $organization_id
@@ -693,6 +758,14 @@ class BonesAuth extends Auth
         }
 
         return $this->_returnResults($query, $request);
+
+    }
+
+    public function getUserPermissionCollection(string $user_id, array $request): array
+    {
+
+        return [];
+        // TODO: How to filter this?
 
     }
 

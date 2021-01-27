@@ -410,12 +410,12 @@ class Groups extends ApiController
 
             $permissions = $this->model->getGroupPermissionCollection($group_id, $request);
 
-        } catch (HttpException|InvalidGroupException $e) {
+        } catch (InvalidGroupException $e) {
 
             abort(404, 'Unable to get group permissions: group ID does not exist');
             die;
 
-        } catch (QueryException|BadRequestException $e) {
+        } catch (HttpException|QueryException|BadRequestException $e) {
 
             abort(400, 'Unable to get group permissions: invalid request');
             die;
