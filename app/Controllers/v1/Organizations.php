@@ -471,9 +471,17 @@ class Organizations extends ApiController
 
         // Validate body
 
-        if (!is_array($body['permissions'])) {
-            abort(400, 'Unable to validate: key (permissions) with rule (array)');
+        try {
+
+            Validate::as($body, [
+                'permissions' => 'array'
+            ]);
+
+        } catch (ValidationException $e) {
+
+            abort(400, $e->getMessage());
             die;
+
         }
 
         // Grant permissions
@@ -543,9 +551,17 @@ class Organizations extends ApiController
 
         // Validate body
 
-        if (!is_array($body['permissions'])) {
-            abort(400, 'Unable to validate: key (permissions) with rule (array)');
+        try {
+
+            Validate::as($body, [
+                'permissions' => 'array'
+            ]);
+
+        } catch (ValidationException $e) {
+
+            abort(400, $e->getMessage());
             die;
+
         }
 
         // Revoke permissions
@@ -660,9 +676,17 @@ class Organizations extends ApiController
 
         // Validate body
 
-        if (!is_array($body['users'])) {
-            abort(400, 'Unable to validate: key (users) with rule (array)');
+        try {
+
+            Validate::as($body, [
+                'users' => 'array'
+            ]);
+
+        } catch (ValidationException $e) {
+
+            abort(400, $e->getMessage());
             die;
+
         }
 
         // Grant users
@@ -738,9 +762,17 @@ class Organizations extends ApiController
 
         // Validate body
 
-        if (!is_array($body['users'])) {
-            abort(400, 'Unable to validate: key (users) with rule (array)');
+        try {
+
+            Validate::as($body, [
+                'users' => 'array'
+            ]);
+
+        } catch (ValidationException $e) {
+
+            abort(400, $e->getMessage());
             die;
+
         }
 
         // Revoke users
