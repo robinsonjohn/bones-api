@@ -28,25 +28,17 @@ class PermissionObject implements SchemaInterface
             throw new InvalidSchemaException('Unable to create PermissionObject schema: missing required keys');
         }
 
-        $return = [
+        return [
             'type' => 'permission',
             'id' => $array['id'],
             'attributes' => [
+                'name' => Arr::get($array, 'name'),
+                'description' => Arr::get($array, 'description')
             ],
             'links' => [
                 'self' => Arr::get($config, 'object_prefix', '') . '/' . $array['id']
             ]
         ];
-
-        if (isset($array['name'])) {
-            Arr::set($return, 'attributes.name', $array['name']);
-        }
-
-        if (isset($array['description'])) {
-            Arr::set($return, 'attributes.description', $array['description']);
-        }
-
-        return $return;
 
     }
 
