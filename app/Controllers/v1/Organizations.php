@@ -8,6 +8,7 @@ use App\Services\BonesAuth\Schemas\GroupCollection;
 use App\Services\BonesAuth\Schemas\OrganizationCollection;
 use App\Services\BonesAuth\Schemas\OrganizationResource;
 use App\Services\BonesAuth\Schemas\PermissionCollection;
+use App\Services\BonesAuth\Schemas\RoleCollection;
 use App\Services\BonesAuth\Schemas\UserCollection;
 use Bayfront\ArrayHelpers\Arr;
 use Bayfront\ArraySchema\InvalidSchemaException;
@@ -403,8 +404,6 @@ class Organizations extends ApiController
     protected function _getOrganizationGroups(string $organization_id): void
     {
 
-        // Get permissions
-
         $page_size = (int)Arr::get(Request::getQuery(), 'page.size', get_config('api.default_page_size', 10));
 
         try {
@@ -458,8 +457,6 @@ class Organizations extends ApiController
 
     protected function _getOrganizationPermissions(string $organization_id): void
     {
-
-        // Get permissions
 
         $page_size = (int)Arr::get(Request::getQuery(), 'page.size', get_config('api.default_page_size', 10));
 
@@ -644,6 +641,60 @@ class Organizations extends ApiController
         // Send response
 
         $this->response->setStatusCode(204)->send();
+
+    }
+
+    // -------------------- Roles --------------------
+
+    /**
+     * Get organization roles.
+     *
+     * @param string $organization_id
+     *
+     * @return void
+     *
+     * @throws HttpException
+     * @throws InvalidSchemaException
+     * @throws InvalidStatusCodeException
+     * @throws NotFoundException
+     */
+
+    protected function _getOrganizationRoles(string $organization_id): void
+    {
+
+        $page_size = (int)Arr::get(Request::getQuery(), 'page.size', get_config('api.default_page_size', 10));
+
+        try {
+
+            $request = $this->api->parseQuery(Request::getQuery(), $page_size);
+
+            $permissions = $this->model->getOrganizationRoleCollection($organization_id, $request);
+
+        } catch (InvalidOrganizationException $e) {
+
+            abort(404, 'Unable to get organization roles: organization ID does not exist');
+            die;
+
+        } catch (HttpException|QueryException|BadRequestException $e) {
+
+            abort(400, 'Unable to get organization roles: invalid request');
+            die;
+
+        }
+
+        // Send response
+
+        $schema = RoleCollection::create([
+            'results' => $permissions['results'],
+            'meta' => $permissions['meta']
+        ], [
+            'object_prefix' => '/roles',
+            'collection_prefix' => '/organizations/' . $organization_id . '/roles'
+        ]);
+
+        $this->response->setHeaders([
+            'Cache-Control' => 'max-age=3600' // 1 hour
+        ])->sendJson($schema);
 
     }
 
@@ -957,7 +1008,6 @@ class Organizations extends ApiController
      *
      * @return void
      *
-     * @throws ChannelNotFoundException
      * @throws HttpException
      * @throws InvalidSchemaException
      * @throws InvalidStatusCodeException
@@ -1011,6 +1061,30 @@ class Organizations extends ApiController
             $this->_revokeOrganizationPermissions($params['id']);
 
         }
+
+    }
+
+    /**
+     * Router destination for sub-resource: roles
+     *
+     * @param array $params
+     *
+     * @return void
+     *
+     * @throws HttpException
+     * @throws InvalidSchemaException
+     * @throws InvalidStatusCodeException
+     * @throws NotFoundException
+     */
+
+    public function roles(array $params): void
+    {
+
+        $this->api->allowedMethods([
+            'GET'
+        ]);
+
+        $this->_getOrganizationRoles($params['id']);
 
     }
 
