@@ -2,7 +2,7 @@
 
 namespace App\Controllers\v1;
 
-use Bayfront\Auth\Exceptions\InvalidEntityException;
+use Bayfront\Auth\Exceptions\InvalidOrganizationException;
 use Bayfront\Auth\Exceptions\InvalidUserException;
 use Bayfront\Bones\Exceptions\ControllerException;
 use Bayfront\Bones\Exceptions\HttpException;
@@ -27,11 +27,11 @@ class ExampleApiController extends ApiController
      * @throws ControllerException
      * @throws HttpException
      * @throws InvalidStatusCodeException
-     * @throws NotFoundException
-     * @throws ServiceException
-     * @throws InvalidEntityException
      * @throws InvalidUserException
+     * @throws NotFoundException
      * @throws QueryException
+     * @throws ServiceException
+     * @throws InvalidOrganizationException
      */
 
     public function __construct()

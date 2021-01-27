@@ -4,8 +4,8 @@ namespace App\Controllers\v1;
 
 use App\Services\BonesAuth\Schemas\AuthResource;
 use Bayfront\Auth\Exceptions\AuthenticationException;
-use Bayfront\Auth\Exceptions\InvalidEntityException;
 use Bayfront\Auth\Exceptions\InvalidMetaException;
+use Bayfront\Auth\Exceptions\InvalidOrganizationException;
 use Bayfront\Auth\Exceptions\InvalidUserException;
 use Bayfront\ArrayHelpers\Arr;
 use Bayfront\ArraySchema\InvalidSchemaException;
@@ -45,8 +45,8 @@ class Auth extends ApiController
      * @throws InvalidUserException
      * @throws NotFoundException
      * @throws ServiceException
-     * @throws InvalidEntityException
      * @throws QueryException
+     * @throws InvalidOrganizationException
      */
 
     public function __construct()
@@ -85,7 +85,7 @@ class Auth extends ApiController
 
         $payload = do_filter('jwt.payload', [
             'user_id' => $data['user_id'],
-            'entities' => $data['entities'],
+            'orgs' => $data['orgs'],
             'rate_limit' => $rate_limit
         ]);
 
@@ -211,7 +211,7 @@ class Auth extends ApiController
         $data = [
             'user_id' => $user['id'],
             'login' => $user['login'],
-            'entities' => Arr::pluck($this->model->getUserEntities($user['id']), 'id')
+            'orgs' => Arr::pluck($this->model->getUserOrganizations($user['id']), 'id')
         ];
 
         log_info('Successful login', [
@@ -377,7 +377,7 @@ class Auth extends ApiController
                 $data = [
                     'user_id' => $user['id'],
                     'login' => $user['login'],
-                    'entities' => Arr::pluck($this->model->getUserEntities($user['id']), 'id')
+                    'orgs' => Arr::pluck($this->model->getUserOrganizations($user['id']), 'id')
                 ];
 
                 log_info('Successful login via refresh token', [

@@ -11,7 +11,7 @@ namespace App\Services\BonesAuth\Schemas;
 
 use Bayfront\ArraySchema\SchemaInterface;
 
-class EntityResource implements SchemaInterface
+class OrganizationResource implements SchemaInterface
 {
 
     /**
@@ -21,7 +21,7 @@ class EntityResource implements SchemaInterface
     {
 
         return [
-            'data' => EntityObject::create($array, $config)
+            'data' => OrganizationObject::create($array, $config)
         ];
 
     }

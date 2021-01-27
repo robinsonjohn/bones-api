@@ -4,13 +4,15 @@ namespace App\Controllers\v1;
 
 use App\Services\BonesAuth\BonesAuth;
 use App\Services\BonesAuth\Exceptions\BadRequestException;
+use App\Services\BonesAuth\Schemas\PermissionCollection;
 use App\Services\BonesAuth\Schemas\RoleCollection;
 use App\Services\BonesAuth\Schemas\RoleResource;
 use Bayfront\ArrayHelpers\Arr;
 use Bayfront\ArraySchema\InvalidSchemaException;
 use Bayfront\Auth\Exceptions\IdExistsException;
-use Bayfront\Auth\Exceptions\InvalidConfigurationException;
-use Bayfront\Auth\Exceptions\InvalidEntityException;
+use Bayfront\Auth\Exceptions\InvalidKeysException;
+use Bayfront\Auth\Exceptions\InvalidOrganizationException;
+use Bayfront\Auth\Exceptions\InvalidPermissionException;
 use Bayfront\Auth\Exceptions\InvalidRoleException;
 use Bayfront\Auth\Exceptions\InvalidUserException;
 use Bayfront\Auth\Exceptions\NameExistsException;
@@ -26,6 +28,7 @@ use Bayfront\HttpRequest\Request;
 use Bayfront\HttpResponse\InvalidStatusCodeException;
 use Bayfront\PDO\Exceptions\QueryException;
 use Bayfront\Validator\Validate;
+use Exception;
 
 /**
  * Roles controller.
@@ -46,12 +49,12 @@ class Roles extends ApiController
      * @throws BucketException
      * @throws ControllerException
      * @throws HttpException
-     * @throws InvalidEntityException
      * @throws InvalidStatusCodeException
      * @throws InvalidUserException
      * @throws NotFoundException
      * @throws QueryException
      * @throws ServiceException
+     * @throws InvalidOrganizationException
      */
 
     public function __construct()
@@ -70,15 +73,14 @@ class Roles extends ApiController
      *
      * @return void
      *
+     * @throws ChannelNotFoundException
      * @throws HttpException
+     * @throws IdExistsException
+     * @throws InvalidRoleException
      * @throws InvalidSchemaException
      * @throws InvalidStatusCodeException
      * @throws NotFoundException
-     * @throws QueryException
-     * @throws InvalidConfigurationException
-     * @throws IdExistsException
-     * @throws InvalidRoleException
-     * @throws ChannelNotFoundException
+     * @throws InvalidKeysException
      */
 
     protected function _createRole(): void
@@ -87,12 +89,12 @@ class Roles extends ApiController
         // Get body
 
         $body = $this->api->getBody([
-            'entity_id',
+            'organization_id',
             'name'
         ]); // Required keys
 
         if (!empty(Arr::except($body, [ // If invalid keys have been sent
-            'entity_id',
+            'organization_id',
             'name',
             'attributes',
             'active'
@@ -108,7 +110,7 @@ class Roles extends ApiController
         try {
 
             Validate::as($body, [
-                'entity_id' => 'string',
+                'organization_id' => 'string',
                 'name' => 'string',
                 'attributes' => 'json',
                 'active' => 'boolean'
@@ -127,9 +129,9 @@ class Roles extends ApiController
 
             $id = $this->model->createRole($body);
 
-        } catch (InvalidEntityException $e) {
+        } catch (InvalidOrganizationException $e) {
 
-            abort(400, 'Unable to create role: entity ID does not exist');
+            abort(400, 'Unable to create role: organization ID does not exist');
             die;
 
         } catch (NameExistsException $e) {
@@ -164,13 +166,13 @@ class Roles extends ApiController
      *
      * @return void
      *
+     * @throws ChannelNotFoundException
      * @throws HttpException
+     * @throws InvalidKeysException
+     * @throws InvalidRoleException
      * @throws InvalidSchemaException
      * @throws InvalidStatusCodeException
      * @throws NotFoundException
-     * @throws QueryException
-     * @throws InvalidRoleException
-     * @throws ChannelNotFoundException
      */
 
     protected function _updateRole(string $id): void
@@ -181,7 +183,7 @@ class Roles extends ApiController
         $body = $this->api->getBody();
 
         if (!empty(Arr::except($body, [ // If invalid keys have been sent
-            'entity_id',
+            'organization_id',
             'name',
             'attributes',
             'active'
@@ -197,7 +199,7 @@ class Roles extends ApiController
         try {
 
             Validate::as($body, [
-                'entity_id' => 'string',
+                'organization_id' => 'string',
                 'name' => 'string',
                 'attributes' => 'json',
                 'active' => 'boolean'
@@ -221,9 +223,9 @@ class Roles extends ApiController
             abort(404, 'Unable to update role: role ID does not exist');
             die;
 
-        } catch (InvalidEntityException $e) {
+        } catch (InvalidOrganizationException $e) {
 
-            abort(400, 'Unable to update role: entity ID does not exist');
+            abort(400, 'Unable to update role: organization ID does not exist');
             die;
 
         } catch (NameExistsException $e) {
@@ -262,7 +264,6 @@ class Roles extends ApiController
      * @throws InvalidSchemaException
      * @throws InvalidStatusCodeException
      * @throws NotFoundException
-     * @throws QueryException
      */
 
     protected function _getRole(string $id): void
@@ -346,11 +347,10 @@ class Roles extends ApiController
      *
      * @return void
      *
+     * @throws ChannelNotFoundException
      * @throws HttpException
      * @throws InvalidStatusCodeException
      * @throws NotFoundException
-     * @throws QueryException
-     * @throws ChannelNotFoundException
      */
 
     protected function _deleteRole(string $id): void
@@ -381,6 +381,196 @@ class Roles extends ApiController
 
     }
 
+    // -------------------- Permissions --------------------
+
+    /**
+     * Get role permissions.
+     *
+     * @param string $role_id
+     *
+     * @return void
+     *
+     * @throws HttpException
+     * @throws InvalidSchemaException
+     * @throws InvalidStatusCodeException
+     * @throws NotFoundException
+     */
+
+    protected function _getRolePermissions(string $role_id): void
+    {
+
+        // Get permissions
+
+        $page_size = (int)Arr::get(Request::getQuery(), 'page.size', get_config('api.default_page_size', 10));
+
+        try {
+
+            $request = $this->api->parseQuery(Request::getQuery(), $page_size);
+
+            $permissions = $this->model->getRolePermissionCollection($role_id, $request);
+
+        } catch (HttpException|InvalidRoleException $e) {
+
+            abort(404, 'Unable to get role permissions: role ID does not exist');
+            die;
+
+        } catch (QueryException|BadRequestException $e) {
+
+            abort(400, 'Unable to get role permissions: invalid request');
+            die;
+
+        }
+
+        // Send response
+
+        $schema = PermissionCollection::create([
+            'results' => $permissions['results'],
+            'meta' => $permissions['meta']
+        ], [
+            'link_prefix' => '/permissions'
+        ]);
+
+        $this->response->setHeaders([
+            'Cache-Control' => 'max-age=3600' // 1 hour
+        ])->sendJson($schema);
+
+    }
+
+    /**
+     * Grant role permissions.
+     *
+     * @param string $role_id
+     *
+     * @return void
+     *
+     * @throws ChannelNotFoundException
+     * @throws HttpException
+     * @throws InvalidStatusCodeException
+     * @throws NotFoundException
+     * @throws Exception
+     */
+
+    protected function _grantRolePermissions(string $role_id): void
+    {
+
+        // Get body
+
+        $body = $this->api->getBody([
+            'permissions'
+        ]); // Required keys
+
+        if (!empty(Arr::except($body, [ // If invalid keys have been sent
+            'permissions'
+        ]))) {
+
+            abort(400, 'Unable to grant role permissions: request body contains invalid parameters');
+            die;
+
+        }
+
+        // Validate body
+
+        if (!is_array($body['permissions'])) {
+            abort(400, 'Unable to validate: key (permissions) with rule (array)');
+            die;
+        }
+
+        // Grant permissions
+
+        try {
+
+            $this->model->grantRolePermissions($role_id, $body['permissions']);
+
+        } catch (InvalidRoleException $e) {
+
+            abort(404, 'Unable to grant role permissions: role ID does not exist');
+            die;
+
+        } catch (InvalidPermissionException $e) {
+
+            abort(400, 'Unable to grant role permissions: permission ID does not exist');
+            die;
+
+        }
+
+        log_info('Granted role permissions', [
+            'id' => $role_id,
+            'permissions' => $body['permissions']
+        ]);
+
+        // role.permissions.grant event
+
+        do_event('role.permissions.grant', $role_id, $body['permissions']);
+
+        // Send response
+
+        $this->response->setStatusCode(204)->send();
+
+    }
+
+    /**
+     * Revoke role permissions.
+     *
+     * @param string $role_id
+     *
+     * @return void
+     *
+     * @throws ChannelNotFoundException
+     * @throws HttpException
+     * @throws InvalidStatusCodeException
+     * @throws NotFoundException
+     * @throws Exception
+     */
+
+    protected function _revokeRolePermissions(string $role_id): void
+    {
+
+        // Get body
+
+        $body = $this->api->getBody([
+            'permissions'
+        ]); // Required keys
+
+        if (!empty(Arr::except($body, [ // If invalid keys have been sent
+            'permissions'
+        ]))) {
+
+            abort(400, 'Unable to revoke role permissions: request body contains invalid parameters');
+            die;
+
+        }
+
+        // Validate body
+
+        if (!is_array($body['permissions'])) {
+            abort(400, 'Unable to validate: key (permissions) with rule (array)');
+            die;
+        }
+
+        // Revoke permissions
+
+        if (!$this->model->roleIdExists($role_id)) {
+            abort(404, 'Unable to revoke role permissions: group ID does not exist');
+            die;
+        }
+
+        $this->model->revokeRolePermissions($role_id, $body['permissions']);
+
+        log_info('Revoked role permissions', [
+            'id' => $role_id,
+            'permissions' => $body['permissions']
+        ]);
+
+        // role.permissions.revoke event
+
+        do_event('role.permissions.revoke', $role_id, $body['permissions']);
+
+        // Send response
+
+        $this->response->setStatusCode(204)->send();
+
+    }
+
     /*
      * ############################################################
      * Public methods
@@ -394,15 +584,14 @@ class Roles extends ApiController
      *
      * @return void
      *
+     * @throws ChannelNotFoundException
      * @throws HttpException
+     * @throws IdExistsException
+     * @throws InvalidKeysException
+     * @throws InvalidRoleException
      * @throws InvalidSchemaException
      * @throws InvalidStatusCodeException
      * @throws NotFoundException
-     * @throws QueryException
-     * @throws InvalidConfigurationException
-     * @throws IdExistsException
-     * @throws InvalidRoleException
-     * @throws ChannelNotFoundException
      */
 
     public function index(array $params)
@@ -453,6 +642,45 @@ class Roles extends ApiController
             }
 
             $this->_deleteRole($params['id']);
+
+        }
+
+    }
+
+    /**
+     * Router destination for sub-resource: permissions
+     *
+     * @param array $params
+     *
+     * @return void
+     *
+     * @throws ChannelNotFoundException
+     * @throws HttpException
+     * @throws InvalidSchemaException
+     * @throws InvalidStatusCodeException
+     * @throws NotFoundException
+     */
+
+    public function permissions(array $params): void
+    {
+
+        $this->api->allowedMethods([
+            'POST',
+            'GET',
+            'DELETE'
+        ]);
+
+        if (Request::isPost()) {
+
+            $this->_grantRolePermissions($params['id']);
+
+        } else if (Request::isGet()) {
+
+            $this->_getRolePermissions($params['id']);
+
+        } else { // Delete
+
+            $this->_revokeRolePermissions($params['id']);
 
         }
 

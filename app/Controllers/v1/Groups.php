@@ -6,12 +6,14 @@ use App\Services\BonesAuth\BonesAuth;
 use App\Services\BonesAuth\Exceptions\BadRequestException;
 use App\Services\BonesAuth\Schemas\GroupCollection;
 use App\Services\BonesAuth\Schemas\GroupResource;
+use App\Services\BonesAuth\Schemas\PermissionCollection;
 use Bayfront\ArrayHelpers\Arr;
 use Bayfront\ArraySchema\InvalidSchemaException;
 use Bayfront\Auth\Exceptions\IdExistsException;
-use Bayfront\Auth\Exceptions\InvalidConfigurationException;
-use Bayfront\Auth\Exceptions\InvalidEntityException;
 use Bayfront\Auth\Exceptions\InvalidGroupException;
+use Bayfront\Auth\Exceptions\InvalidKeysException;
+use Bayfront\Auth\Exceptions\InvalidOrganizationException;
+use Bayfront\Auth\Exceptions\InvalidPermissionException;
 use Bayfront\Auth\Exceptions\InvalidUserException;
 use Bayfront\Auth\Exceptions\NameExistsException;
 use Bayfront\Bones\Exceptions\ControllerException;
@@ -26,6 +28,7 @@ use Bayfront\HttpRequest\Request;
 use Bayfront\HttpResponse\InvalidStatusCodeException;
 use Bayfront\PDO\Exceptions\QueryException;
 use Bayfront\Validator\Validate;
+use Exception;
 
 /**
  * Groups controller.
@@ -46,12 +49,12 @@ class Groups extends ApiController
      * @throws BucketException
      * @throws ControllerException
      * @throws HttpException
-     * @throws InvalidEntityException
      * @throws InvalidStatusCodeException
      * @throws InvalidUserException
      * @throws NotFoundException
      * @throws QueryException
      * @throws ServiceException
+     * @throws InvalidOrganizationException
      */
 
     public function __construct()
@@ -70,15 +73,14 @@ class Groups extends ApiController
      *
      * @return void
      *
+     * @throws ChannelNotFoundException
      * @throws HttpException
+     * @throws IdExistsException
+     * @throws InvalidGroupException
      * @throws InvalidSchemaException
      * @throws InvalidStatusCodeException
      * @throws NotFoundException
-     * @throws QueryException
-     * @throws InvalidConfigurationException
-     * @throws IdExistsException
-     * @throws InvalidGroupException
-     * @throws ChannelNotFoundException
+     * @throws InvalidKeysException
      */
 
     protected function _createGroup(): void
@@ -87,12 +89,12 @@ class Groups extends ApiController
         // Get body
 
         $body = $this->api->getBody([
-            'entity_id',
+            'organization_id',
             'name'
         ]); // Required keys
 
         if (!empty(Arr::except($body, [ // If invalid keys have been sent
-            'entity_id',
+            'organization_id',
             'name',
             'attributes',
             'active'
@@ -108,7 +110,7 @@ class Groups extends ApiController
         try {
 
             Validate::as($body, [
-                'entity_id' => 'string',
+                'organization_id' => 'string',
                 'name' => 'string',
                 'attributes' => 'json',
                 'active' => 'boolean'
@@ -127,9 +129,9 @@ class Groups extends ApiController
 
             $id = $this->model->createGroup($body);
 
-        } catch (InvalidEntityException $e) {
+        } catch (InvalidOrganizationException $e) {
 
-            abort(400, 'Unable to create group: entity ID does not exist');
+            abort(400, 'Unable to create group: organization ID does not exist');
             die;
 
         } catch (NameExistsException $e) {
@@ -164,13 +166,13 @@ class Groups extends ApiController
      *
      * @return void
      *
+     * @throws ChannelNotFoundException
      * @throws HttpException
+     * @throws InvalidGroupException
+     * @throws InvalidKeysException
      * @throws InvalidSchemaException
      * @throws InvalidStatusCodeException
      * @throws NotFoundException
-     * @throws QueryException
-     * @throws InvalidGroupException
-     * @throws ChannelNotFoundException
      */
 
     protected function _updateGroup(string $id): void
@@ -181,7 +183,7 @@ class Groups extends ApiController
         $body = $this->api->getBody();
 
         if (!empty(Arr::except($body, [ // If invalid keys have been sent
-            'entity_id',
+            'organization_id',
             'name',
             'attributes',
             'active'
@@ -197,7 +199,7 @@ class Groups extends ApiController
         try {
 
             Validate::as($body, [
-                'entity_id' => 'string',
+                'organization_id' => 'string',
                 'name' => 'string',
                 'attributes' => 'json',
                 'active' => 'boolean'
@@ -221,9 +223,9 @@ class Groups extends ApiController
             abort(404, 'Unable to update group: group ID does not exist');
             die;
 
-        } catch (InvalidEntityException $e) {
+        } catch (InvalidOrganizationException $e) {
 
-            abort(400, 'Unable to update group: entity ID does not exist');
+            abort(400, 'Unable to update group: organization ID does not exist');
             die;
 
         } catch (NameExistsException $e) {
@@ -262,7 +264,6 @@ class Groups extends ApiController
      * @throws InvalidSchemaException
      * @throws InvalidStatusCodeException
      * @throws NotFoundException
-     * @throws QueryException
      */
 
     protected function _getGroup(string $id): void
@@ -346,11 +347,10 @@ class Groups extends ApiController
      *
      * @return void
      *
+     * @throws ChannelNotFoundException
      * @throws HttpException
      * @throws InvalidStatusCodeException
      * @throws NotFoundException
-     * @throws QueryException
-     * @throws ChannelNotFoundException
      */
 
     protected function _deleteGroup(string $id): void
@@ -381,6 +381,196 @@ class Groups extends ApiController
 
     }
 
+    // -------------------- Permissions --------------------
+
+    /**
+     * Get group permissions.
+     *
+     * @param string $group_id
+     *
+     * @return void
+     *
+     * @throws HttpException
+     * @throws InvalidSchemaException
+     * @throws InvalidStatusCodeException
+     * @throws NotFoundException
+     */
+
+    protected function _getGroupPermissions(string $group_id): void
+    {
+
+        // Get permissions
+
+        $page_size = (int)Arr::get(Request::getQuery(), 'page.size', get_config('api.default_page_size', 10));
+
+        try {
+
+            $request = $this->api->parseQuery(Request::getQuery(), $page_size);
+
+            $permissions = $this->model->getGroupPermissionCollection($group_id, $request);
+
+        } catch (HttpException|InvalidGroupException $e) {
+
+            abort(404, 'Unable to get group permissions: group ID does not exist');
+            die;
+
+        } catch (QueryException|BadRequestException $e) {
+
+            abort(400, 'Unable to get group permissions: invalid request');
+            die;
+
+        }
+
+        // Send response
+
+        $schema = PermissionCollection::create([
+            'results' => $permissions['results'],
+            'meta' => $permissions['meta']
+        ], [
+            'link_prefix' => '/permissions'
+        ]);
+
+        $this->response->setHeaders([
+            'Cache-Control' => 'max-age=3600' // 1 hour
+        ])->sendJson($schema);
+
+    }
+
+    /**
+     * Grant group permissions.
+     *
+     * @param string $group_id
+     *
+     * @return void
+     *
+     * @throws ChannelNotFoundException
+     * @throws HttpException
+     * @throws InvalidStatusCodeException
+     * @throws NotFoundException
+     * @throws Exception
+     */
+
+    protected function _grantGroupPermissions(string $group_id): void
+    {
+
+        // Get body
+
+        $body = $this->api->getBody([
+            'permissions'
+        ]); // Required keys
+
+        if (!empty(Arr::except($body, [ // If invalid keys have been sent
+            'permissions'
+        ]))) {
+
+            abort(400, 'Unable to grant group permissions: request body contains invalid parameters');
+            die;
+
+        }
+
+        // Validate body
+
+        if (!is_array($body['permissions'])) {
+            abort(400, 'Unable to validate: key (permissions) with rule (array)');
+            die;
+        }
+
+        // Grant permissions
+
+        try {
+
+            $this->model->grantGroupPermissions($group_id, $body['permissions']);
+
+        } catch (InvalidGroupException $e) {
+
+            abort(404, 'Unable to grant group permissions: group ID does not exist');
+            die;
+
+        } catch (InvalidPermissionException $e) {
+
+            abort(400, 'Unable to grant group permissions: permission ID does not exist');
+            die;
+
+        }
+
+        log_info('Granted group permissions', [
+            'id' => $group_id,
+            'permissions' => $body['permissions']
+        ]);
+
+        // group.permissions.grant event
+
+        do_event('group.permissions.grant', $group_id, $body['permissions']);
+
+        // Send response
+
+        $this->response->setStatusCode(204)->send();
+
+    }
+
+    /**
+     * Revoke group permissions.
+     *
+     * @param string $group_id
+     *
+     * @return void
+     *
+     * @throws ChannelNotFoundException
+     * @throws HttpException
+     * @throws InvalidStatusCodeException
+     * @throws NotFoundException
+     * @throws Exception
+     */
+
+    protected function _revokeGroupPermissions(string $group_id): void
+    {
+
+        // Get body
+
+        $body = $this->api->getBody([
+            'permissions'
+        ]); // Required keys
+
+        if (!empty(Arr::except($body, [ // If invalid keys have been sent
+            'permissions'
+        ]))) {
+
+            abort(400, 'Unable to revoke group permissions: request body contains invalid parameters');
+            die;
+
+        }
+
+        // Validate body
+
+        if (!is_array($body['permissions'])) {
+            abort(400, 'Unable to validate: key (permissions) with rule (array)');
+            die;
+        }
+
+        // Revoke permissions
+
+        if (!$this->model->groupIdExists($group_id)) {
+            abort(404, 'Unable to revoke group permissions: group ID does not exist');
+            die;
+        }
+
+        $this->model->revokeGroupPermissions($group_id, $body['permissions']);
+
+        log_info('Revoked group permissions', [
+            'id' => $group_id,
+            'permissions' => $body['permissions']
+        ]);
+
+        // group.permissions.revoke event
+
+        do_event('group.permissions.revoke', $group_id, $body['permissions']);
+
+        // Send response
+
+        $this->response->setStatusCode(204)->send();
+
+    }
+
     /*
      * ############################################################
      * Public methods
@@ -394,15 +584,14 @@ class Groups extends ApiController
      *
      * @return void
      *
+     * @throws ChannelNotFoundException
      * @throws HttpException
+     * @throws IdExistsException
+     * @throws InvalidGroupException
+     * @throws InvalidKeysException
      * @throws InvalidSchemaException
      * @throws InvalidStatusCodeException
      * @throws NotFoundException
-     * @throws QueryException
-     * @throws InvalidConfigurationException
-     * @throws InvalidGroupException
-     * @throws IdExistsException
-     * @throws ChannelNotFoundException
      */
 
     public function index(array $params)
@@ -453,6 +642,45 @@ class Groups extends ApiController
             }
 
             $this->_deleteGroup($params['id']);
+
+        }
+
+    }
+
+    /**
+     * Router destination for sub-resource: permissions
+     *
+     * @param array $params
+     *
+     * @return void
+     *
+     * @throws ChannelNotFoundException
+     * @throws HttpException
+     * @throws InvalidSchemaException
+     * @throws InvalidStatusCodeException
+     * @throws NotFoundException
+     */
+
+    public function permissions(array $params): void
+    {
+
+        $this->api->allowedMethods([
+            'POST',
+            'GET',
+            'DELETE'
+        ]);
+
+        if (Request::isPost()) {
+
+            $this->_grantGroupPermissions($params['id']);
+
+        } else if (Request::isGet()) {
+
+            $this->_getGroupPermissions($params['id']);
+
+        } else { // Delete
+
+            $this->_revokeGroupPermissions($params['id']);
 
         }
 

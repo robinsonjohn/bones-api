@@ -2,21 +2,21 @@
 
 namespace App\Controllers\v1;
 
-use App\Services\BonesAuth\Schemas\EntityCollection;
 use App\Services\BonesAuth\BonesAuth;
 use App\Services\BonesAuth\Exceptions\BadRequestException;
-use App\Services\BonesAuth\Schemas\EntityResource;
+use App\Services\BonesAuth\Schemas\OrganizationCollection;
+use App\Services\BonesAuth\Schemas\OrganizationResource;
 use App\Services\BonesAuth\Schemas\PermissionCollection;
 use App\Services\BonesAuth\Schemas\UserCollection;
 use Bayfront\ArrayHelpers\Arr;
 use Bayfront\ArraySchema\InvalidSchemaException;
-use Bayfront\Auth\Exceptions\EntityOwnerException;
-use Bayfront\Auth\Exceptions\InvalidConfigurationException;
-use Bayfront\Auth\Exceptions\InvalidEntityException;
+use Bayfront\Auth\Exceptions\InvalidKeysException;
+use Bayfront\Auth\Exceptions\InvalidOrganizationException;
 use Bayfront\Auth\Exceptions\InvalidOwnerException;
 use Bayfront\Auth\Exceptions\InvalidPermissionException;
 use Bayfront\Auth\Exceptions\InvalidUserException;
 use Bayfront\Auth\Exceptions\NameExistsException;
+use Bayfront\Auth\Exceptions\OrganizationOwnerException;
 use Bayfront\Bones\Exceptions\ControllerException;
 use Bayfront\Bones\Exceptions\HttpException;
 use Bayfront\Bones\Exceptions\ServiceException;
@@ -24,20 +24,19 @@ use Bayfront\Container\NotFoundException;
 use Bayfront\LeakyBucket\AdapterException;
 use Bayfront\LeakyBucket\BucketException;
 use Bayfront\MonologFactory\Exceptions\ChannelNotFoundException;
-use Bayfront\PDO\Exceptions\InvalidDatabaseException;
-use Bayfront\PDO\Exceptions\TransactionException;
 use Bayfront\Validator\ValidationException;
 use Bayfront\HttpRequest\Request;
 use Bayfront\HttpResponse\InvalidStatusCodeException;
 use Bayfront\PDO\Exceptions\QueryException;
 use Bayfront\Validator\Validate;
+use Exception;
 
 /**
- * Entities controller.
+ * Organizations controller.
  *
  * This controller allows rate limited authenticated access to endpoints.
  */
-class Entities extends ApiController
+class Organizations extends ApiController
 {
 
     /** @var BonesAuth $model */
@@ -45,13 +44,13 @@ class Entities extends ApiController
     protected $model;
 
     /**
-     * Entities constructor.
+     * Organizations constructor.
      *
      * @throws AdapterException
      * @throws BucketException
      * @throws ControllerException
      * @throws HttpException
-     * @throws InvalidEntityException
+     * @throws InvalidOrganizationException
      * @throws InvalidStatusCodeException
      * @throws InvalidUserException
      * @throws NotFoundException
@@ -71,22 +70,21 @@ class Entities extends ApiController
     }
 
     /**
-     * Create new entity.
+     * Create new organization.
      *
      * @return void
      *
+     * @throws ChannelNotFoundException
      * @throws HttpException
-     * @throws InvalidEntityException
+     * @throws InvalidOrganizationException
      * @throws InvalidSchemaException
      * @throws InvalidStatusCodeException
+     * @throws InvalidUserException
      * @throws NotFoundException
-     * @throws QueryException
-     * @throws TransactionException
-     * @throws InvalidConfigurationException
-     * @throws ChannelNotFoundException
+     * @throws InvalidKeysException
      */
 
-    protected function _createEntity(): void
+    protected function _createOrganization(): void
     {
 
         // Get body
@@ -103,7 +101,7 @@ class Entities extends ApiController
             'active'
         ]))) {
 
-            abort(400, 'Unable to create entity: request body contains invalid parameters');
+            abort(400, 'Unable to create organization: request body contains invalid parameters');
             die;
 
         }
@@ -126,36 +124,36 @@ class Entities extends ApiController
 
         }
 
-        // Create entity
+        // Create organization
 
         try {
 
-            $id = $this->model->createEntity($body);
+            $id = $this->model->createOrganization($body);
 
         } catch (InvalidOwnerException $e) {
 
-            abort(400, 'Unable to create entity: owner ID does not exist');
+            abort(400, 'Unable to create organization: owner ID does not exist');
             die;
 
         } catch (NameExistsException $e) {
 
-            abort(400, 'Unable to create entity: entity name already exists');
+            abort(400, 'Unable to create organization: organization name already exists');
             die;
 
         }
 
-        log_info('Entity created', [
+        log_info('Organization created', [
             'id' => $id
         ]);
 
-        // entity.create event
+        // organization.create event
 
-        do_event('entity.create', $id);
+        do_event('organization.create', $id);
 
         // Send response
 
-        $schema = EntityResource::create($this->model->getEntity($id), [
-            'link_prefix' => '/entities'
+        $schema = OrganizationResource::create($this->model->getOrganization($id), [
+            'link_prefix' => '/organizations'
         ]);
 
         $this->response->sendJson($schema);
@@ -163,24 +161,23 @@ class Entities extends ApiController
     }
 
     /**
-     * Update entity.
+     * Update organization.
      *
      * @param string $id
      *
      * @return void
      *
+     * @throws ChannelNotFoundException
      * @throws HttpException
+     * @throws InvalidKeysException
+     * @throws InvalidOrganizationException
      * @throws InvalidSchemaException
      * @throws InvalidStatusCodeException
-     * @throws NotFoundException
-     * @throws QueryException
-     * @throws TransactionException
      * @throws InvalidUserException
-     * @throws InvalidEntityException
-     * @throws ChannelNotFoundException
+     * @throws NotFoundException
      */
 
-    protected function _updateEntity(string $id): void
+    protected function _updateOrganization(string $id): void
     {
 
         // Get body
@@ -194,7 +191,7 @@ class Entities extends ApiController
             'active'
         ]))) {
 
-            abort(400, 'Unable to update entity: request body contains invalid parameters');
+            abort(400, 'Unable to update organization: request body contains invalid parameters');
             die;
 
         }
@@ -217,41 +214,41 @@ class Entities extends ApiController
 
         }
 
-        // Update entity
+        // Update organization
 
         try {
 
-            $this->model->updateEntity($id, $body);
+            $this->model->updateOrganization($id, $body);
 
-        } catch (InvalidEntityException $e) {
+        } catch (InvalidOrganizationException $e) {
 
-            abort(404, 'Unable to update entity: entity ID does not exist');
+            abort(404, 'Unable to update organization: organization ID does not exist');
             die;
 
         } catch (InvalidOwnerException $e) {
 
-            abort(400, 'Unable to update entity: owner ID does not exist');
+            abort(400, 'Unable to update organization: owner ID does not exist');
             die;
 
         } catch (NameExistsException $e) {
 
-            abort(400, 'Unable to update entity: entity name already exists');
+            abort(400, 'Unable to update organization: organization name already exists');
             die;
 
         }
 
-        log_info('Entity updated', [
+        log_info('Organization updated', [
             'id' => $id
         ]);
 
-        // entity.update event
+        // organization.update event
 
-        do_event('entity.update', $id);
+        do_event('organization.update', $id);
 
         // Send response
 
-        $schema = EntityResource::create($this->model->getEntity($id), [
-            'link_prefix' => '/entities'
+        $schema = OrganizationResource::create($this->model->getOrganization($id), [
+            'link_prefix' => '/organizations'
         ]);
 
         $this->response->sendJson($schema);
@@ -259,7 +256,7 @@ class Entities extends ApiController
     }
 
     /**
-     * Get single entity.
+     * Get single organization.
      *
      * @param string $id
      *
@@ -269,29 +266,28 @@ class Entities extends ApiController
      * @throws InvalidSchemaException
      * @throws InvalidStatusCodeException
      * @throws NotFoundException
-     * @throws QueryException
      */
 
-    protected function _getEntity(string $id): void
+    protected function _getOrganization(string $id): void
     {
 
-        // Get entity
+        // Get organization
 
         try {
 
-            $entity = $this->model->getEntity($id);
+            $organization = $this->model->getOrganization($id);
 
-        } catch (InvalidEntityException $e) {
+        } catch (InvalidOrganizationException $e) {
 
-            abort(404, 'Unable to get entity: entity ID does not exist');
+            abort(404, 'Unable to get organization: organization ID does not exist');
             die;
 
         }
 
         // Send response
 
-        $schema = EntityResource::create($entity, [
-            'link_prefix' => '/entities'
+        $schema = OrganizationResource::create($organization, [
+            'link_prefix' => '/organizations'
         ]);
 
         $this->response->setHeaders([
@@ -301,20 +297,20 @@ class Entities extends ApiController
     }
 
     /**
-     * Get entities.
+     * Get organizations.
      *
      * @return void
      *
      * @throws HttpException
-     * @throws InvalidSchemaException
      * @throws InvalidStatusCodeException
      * @throws NotFoundException
+     * @throws InvalidSchemaException
      */
 
-    protected function _getEntities(): void
+    protected function _getOrganizations(): void
     {
 
-        // Get entities
+        // Get organizations
 
         $page_size = (int)Arr::get(Request::getQuery(), 'page.size', get_config('api.default_page_size', 10));
 
@@ -322,22 +318,22 @@ class Entities extends ApiController
 
             $request = $this->api->parseQuery(Request::getQuery(), $page_size);
 
-            $entities = $this->model->getEntityCollection($request);
+            $organizations = $this->model->getOrganizationCollection($request);
 
         } catch (HttpException|QueryException|BadRequestException $e) {
 
-            abort(400, 'Unable to get entities: invalid request');
+            abort(400, 'Unable to get organizations: invalid request');
             die;
 
         }
 
         // Send response
 
-        $schema = EntityCollection::create([
-            'results' => $entities['results'],
-            'meta' => $entities['meta']
+        $schema = OrganizationCollection::create([
+            'results' => $organizations['results'],
+            'meta' => $organizations['meta']
         ], [
-            'link_prefix' => '/entities'
+            'link_prefix' => '/organizations'
         ]);
 
         $this->response->setHeaders([
@@ -347,41 +343,40 @@ class Entities extends ApiController
     }
 
     /**
-     * Delete entity.
+     * Delete organization.
      *
      * @param string $id
      *
      * @return void
      *
+     * @throws ChannelNotFoundException
      * @throws HttpException
      * @throws InvalidStatusCodeException
      * @throws NotFoundException
-     * @throws QueryException
-     * @throws ChannelNotFoundException
      */
 
-    protected function _deleteEntity(string $id): void
+    protected function _deleteOrganization(string $id): void
     {
 
-        // Delete entity
+        // Delete organization
 
-        $deleted = $this->model->deleteEntity($id);
+        $deleted = $this->model->deleteOrganization($id);
 
         if ($deleted) {
 
-            log_info('Entity deleted', [
+            log_info('Organization deleted', [
                 'id' => $id
             ]);
 
-            // entity.delete event
+            // organization.delete event
 
-            do_event('entity.delete', $id);
+            do_event('organization.delete', $id);
 
             $this->response->setStatusCode(204)->send();
 
         } else {
 
-            abort(404, 'Unable to delete entity: entity ID does not exist');
+            abort(404, 'Unable to delete organization: organization ID does not exist');
             die;
 
         }
@@ -391,9 +386,9 @@ class Entities extends ApiController
     // -------------------- Permissions --------------------
 
     /**
-     * Get entity permissions.
+     * Get organization permissions.
      *
-     * @param string $entity_id
+     * @param string $organization_id
      *
      * @return void
      *
@@ -403,7 +398,7 @@ class Entities extends ApiController
      * @throws NotFoundException
      */
 
-    protected function _getEntityPermissions(string $entity_id): void
+    protected function _getOrganizationPermissions(string $organization_id): void
     {
 
         // Get permissions
@@ -414,16 +409,16 @@ class Entities extends ApiController
 
             $request = $this->api->parseQuery(Request::getQuery(), $page_size);
 
-            $permissions = $this->model->getEntityPermissionCollection($entity_id, $request);
+            $permissions = $this->model->getOrganizationPermissionCollection($organization_id, $request);
 
-        } catch (HttpException|InvalidEntityException $e) {
+        } catch (HttpException|InvalidOrganizationException $e) {
 
-            abort(404, 'Unable to get entity permissions: entity ID does not exist');
+            abort(404, 'Unable to get organization permissions: organization ID does not exist');
             die;
 
         } catch (QueryException|BadRequestException $e) {
 
-            abort(400, 'Unable to get entity permissions: invalid request');
+            abort(400, 'Unable to get organization permissions: invalid request');
             die;
 
         }
@@ -434,7 +429,7 @@ class Entities extends ApiController
             'results' => $permissions['results'],
             'meta' => $permissions['meta']
         ], [
-            'link_prefix' => '/permissions'
+            'link_prefix' => '/organizations/' . $organization_id . '/permissions'
         ]);
 
         $this->response->setHeaders([
@@ -444,21 +439,19 @@ class Entities extends ApiController
     }
 
     /**
-     * Grant entity permissions.
+     * Grant organization permissions.
      *
-     * @param string $entity_id
+     * @param string $organization_id
      *
      * @return void
      *
+     * @throws ChannelNotFoundException
      * @throws HttpException
      * @throws InvalidStatusCodeException
      * @throws NotFoundException
-     * @throws QueryException
-     * @throws InvalidDatabaseException
-     * @throws ChannelNotFoundException
      */
 
-    protected function _grantEntityPermissions(string $entity_id): void
+    protected function _grantOrganizationPermissions(string $organization_id): void
     {
 
         // Get body
@@ -471,7 +464,7 @@ class Entities extends ApiController
             'permissions'
         ]))) {
 
-            abort(400, 'Unable to grant entity permissions: request body contains invalid parameters');
+            abort(400, 'Unable to grant organization permissions: request body contains invalid parameters');
             die;
 
         }
@@ -487,28 +480,28 @@ class Entities extends ApiController
 
         try {
 
-            $this->model->grantEntityPermission($entity_id, $body['permissions']);
+            $this->model->grantOrganizationPermissions($organization_id, $body['permissions']);
 
-        } catch (InvalidEntityException $e) {
+        } catch (InvalidOrganizationException $e) {
 
-            abort(404, 'Unable to grant entity permissions: entity ID does not exist');
+            abort(404, 'Unable to grant organization permissions: organization ID does not exist');
             die;
 
         } catch (InvalidPermissionException $e) {
 
-            abort(400, 'Unable to grant entity permissions: permission ID does not exist');
+            abort(400, 'Unable to grant organization permissions: permission ID does not exist');
             die;
 
         }
 
-        log_info('Granted entity permissions', [
-            'id' => $entity_id,
+        log_info('Granted organization permissions', [
+            'id' => $organization_id,
             'permissions' => $body['permissions']
         ]);
 
-        // entity.permissions.grant event
+        // organization.permissions.grant event
 
-        do_event('entity.permissions.grant', $entity_id, $body['permissions']);
+        do_event('organization.permissions.grant', $organization_id, $body['permissions']);
 
         // Send response
 
@@ -517,21 +510,20 @@ class Entities extends ApiController
     }
 
     /**
-     * Revoke entity permissions.
+     * Revoke organization permissions.
      *
-     * @param string $entity_id
+     * @param string $organization_id
      *
      * @return void
      *
+     * @throws ChannelNotFoundException
      * @throws HttpException
-     * @throws InvalidDatabaseException
      * @throws InvalidStatusCodeException
      * @throws NotFoundException
-     * @throws QueryException
-     * @throws ChannelNotFoundException
+     * @throws Exception
      */
 
-    protected function _revokeEntityPermissions(string $entity_id): void
+    protected function _revokeOrganizationPermissions(string $organization_id): void
     {
 
         // Get body
@@ -544,7 +536,7 @@ class Entities extends ApiController
             'permissions'
         ]))) {
 
-            abort(400, 'Unable to revoke entity permissions: request body contains invalid parameters');
+            abort(400, 'Unable to revoke organization permissions: request body contains invalid parameters');
             die;
 
         }
@@ -558,21 +550,21 @@ class Entities extends ApiController
 
         // Revoke permissions
 
-        if (!$this->model->entityIdExists($entity_id)) {
-            abort(404, 'Unable to revoke entity permissions: entity ID does not exist');
+        if (!$this->model->organizationIdExists($organization_id)) {
+            abort(404, 'Unable to revoke organization permissions: organization ID does not exist');
             die;
         }
 
-        $this->model->revokeEntityPermission($entity_id, $body['permissions']);
+        $this->model->revokeOrganizationPermissions($organization_id, $body['permissions']);
 
-        log_info('Revoked entity permissions', [
-            'id' => $entity_id,
+        log_info('Revoked organization permissions', [
+            'id' => $organization_id,
             'permissions' => $body['permissions']
         ]);
 
-        // entity.permissions.revoke event
+        // organization.permissions.revoke event
 
-        do_event('entity.permissions.revoke', $entity_id, $body['permissions']);
+        do_event('organization.permissions.revoke', $organization_id, $body['permissions']);
 
         // Send response
 
@@ -583,9 +575,9 @@ class Entities extends ApiController
     // -------------------- Users --------------------
 
     /**
-     * Get entity users.
+     * Get organization users.
      *
-     * @param string $entity_id
+     * @param string $organization_id
      *
      * @return void
      *
@@ -595,7 +587,7 @@ class Entities extends ApiController
      * @throws NotFoundException
      */
 
-    protected function _getEntityUsers(string $entity_id): void
+    protected function _getOrganizationUsers(string $organization_id): void
     {
 
         // Get permissions
@@ -606,16 +598,16 @@ class Entities extends ApiController
 
             $request = $this->api->parseQuery(Request::getQuery(), $page_size);
 
-            $permissions = $this->model->getEntityUserCollection($entity_id, $request);
+            $permissions = $this->model->getOrganizationUserCollection($organization_id, $request);
 
-        } catch (HttpException|InvalidEntityException $e) {
+        } catch (HttpException|InvalidOrganizationException $e) {
 
-            abort(404, 'Unable to get entity users: entity ID does not exist');
+            abort(404, 'Unable to get organization users: organization ID does not exist');
             die;
 
         } catch (QueryException|BadRequestException $e) {
 
-            abort(400, 'Unable to get entity users: invalid request');
+            abort(400, 'Unable to get organization users: invalid request');
             die;
 
         }
@@ -636,20 +628,19 @@ class Entities extends ApiController
     }
 
     /**
-     * Grant entity users.
+     * Grant organization users.
      *
-     * @param string $entity_id
+     * @param string $organization_id
      *
      * @return void
      *
+     * @throws ChannelNotFoundException
      * @throws HttpException
      * @throws InvalidStatusCodeException
      * @throws NotFoundException
-     * @throws QueryException
-     * @throws ChannelNotFoundException
      */
 
-    protected function _grantEntityUsers(string $entity_id): void
+    protected function _grantOrganizationUsers(string $organization_id): void
     {
 
         // Get body
@@ -662,7 +653,7 @@ class Entities extends ApiController
             'users'
         ]))) {
 
-            abort(400, 'Unable to grant entity users: request body contains invalid parameters');
+            abort(400, 'Unable to grant organization users: request body contains invalid parameters');
             die;
 
         }
@@ -682,30 +673,30 @@ class Entities extends ApiController
 
                 // TODO: Update user-auth library to accept an array and avoid iterating here
 
-                $this->model->grantUserEntity($user, $entity_id);
+                $this->model->grantUserOrganizations($user, $organization_id);
 
             }
 
-        } catch (InvalidEntityException $e) {
+        } catch (InvalidOrganizationException $e) {
 
-            abort(404, 'Unable to grant entity users: entity ID does not exist');
+            abort(404, 'Unable to grant organization users: organization ID does not exist');
             die;
 
         } catch (InvalidUserException $e) {
 
-            abort(400, 'Unable to grant entity users: user ID does not exist');
+            abort(400, 'Unable to grant organization users: user ID does not exist');
             die;
 
         }
 
-        log_info('Granted entity users', [
-            'id' => $entity_id,
+        log_info('Granted organization users', [
+            'id' => $organization_id,
             'permissions' => $body['users']
         ]);
 
-        // entity.users.grant event
+        // organization.users.grant event
 
-        do_event('entity.users.grant', $entity_id, $body['users']);
+        do_event('organization.users.grant', $organization_id, $body['users']);
 
         // Send response
 
@@ -714,20 +705,20 @@ class Entities extends ApiController
     }
 
     /**
-     * Revoke entity users.
+     * Revoke organization users.
      *
-     * @param string $entity_id
+     * @param string $organization_id
      *
      * @return void
      *
+     * @throws ChannelNotFoundException
      * @throws HttpException
      * @throws InvalidStatusCodeException
      * @throws NotFoundException
-     * @throws QueryException
-     * @throws ChannelNotFoundException
+     * @throws Exception
      */
 
-    protected function _revokeEntityUsers(string $entity_id): void
+    protected function _revokeOrganizationUsers(string $organization_id): void
     {
 
         // Get body
@@ -740,7 +731,7 @@ class Entities extends ApiController
             'users'
         ]))) {
 
-            abort(400, 'Unable to revoke entity users: request body contains invalid parameters');
+            abort(400, 'Unable to revoke organization users: request body contains invalid parameters');
             die;
 
         }
@@ -754,8 +745,8 @@ class Entities extends ApiController
 
         // Revoke users
 
-        if (!$this->model->entityIdExists($entity_id)) {
-            abort(404, 'Unable to revoke entity users: entity ID does not exist');
+        if (!$this->model->organizationIdExists($organization_id)) {
+            abort(404, 'Unable to revoke organization users: organization ID does not exist');
             die;
         }
 
@@ -763,27 +754,27 @@ class Entities extends ApiController
 
             foreach ($body['users'] as $user) {
 
-                // TODO: Update user-auth library to accept an array and avoid iterating here
+                // TODO: Update user-auth library to accept an array and avoid iterating here- need something like revokeOrganizationUsers
 
-                $this->model->revokeUserEntity($user, $entity_id);
+                $this->model->revokeUserOrganizations($user, $organization_id);
 
             }
 
-        } catch (EntityOwnerException $e) {
+        } catch (OrganizationOwnerException $e) {
 
-            abort(400, 'Unable to revoke entity users: entity owner cannot be revoked');
+            abort(400, 'Unable to revoke organization users: organization owner cannot be revoked');
             die;
 
         }
 
-        log_info('Revoked entity permissions', [
-            'id' => $entity_id,
+        log_info('Revoked organization permissions', [
+            'id' => $organization_id,
             'permissions' => $body['users']
         ]);
 
-        // entity.users.revoke event
+        // organization.users.revoke event
 
-        do_event('entity.users.revoke', $entity_id, $body['users']);
+        do_event('organization.users.revoke', $organization_id, $body['users']);
 
         // Send response
 
@@ -804,16 +795,14 @@ class Entities extends ApiController
      *
      * @return void
      *
+     * @throws ChannelNotFoundException
      * @throws HttpException
-     * @throws InvalidEntityException
+     * @throws InvalidKeysException
+     * @throws InvalidOrganizationException
      * @throws InvalidSchemaException
      * @throws InvalidStatusCodeException
      * @throws InvalidUserException
      * @throws NotFoundException
-     * @throws QueryException
-     * @throws TransactionException
-     * @throws InvalidConfigurationException
-     * @throws ChannelNotFoundException
      */
 
     public function index(array $params)
@@ -833,17 +822,17 @@ class Entities extends ApiController
                 die;
             }
 
-            $this->_createEntity();
+            $this->_createOrganization();
 
         } else if (Request::isGet()) {
 
-            if (isset($params['id'])) { // Single entity
+            if (isset($params['id'])) { // Single organization
 
-                $this->_getEntity($params['id']);
+                $this->_getOrganization($params['id']);
 
-            } else { // Get all entities
+            } else { // Get all organizations
 
-                $this->_getEntities();
+                $this->_getOrganizations();
 
             }
 
@@ -854,7 +843,7 @@ class Entities extends ApiController
                 die;
             }
 
-            $this->_updateEntity($params['id']);
+            $this->_updateOrganization($params['id']);
 
         } else { // Delete
 
@@ -863,7 +852,7 @@ class Entities extends ApiController
                 die;
             }
 
-            $this->_deleteEntity($params['id']);
+            $this->_deleteOrganization($params['id']);
 
         }
 
@@ -876,13 +865,11 @@ class Entities extends ApiController
      *
      * @return void
      *
+     * @throws ChannelNotFoundException
      * @throws HttpException
-     * @throws InvalidDatabaseException
      * @throws InvalidSchemaException
      * @throws InvalidStatusCodeException
      * @throws NotFoundException
-     * @throws QueryException
-     * @throws ChannelNotFoundException
      */
 
     public function permissions(array $params): void
@@ -896,15 +883,15 @@ class Entities extends ApiController
 
         if (Request::isPost()) {
 
-            $this->_grantEntityPermissions($params['id']);
+            $this->_grantOrganizationPermissions($params['id']);
 
         } else if (Request::isGet()) {
 
-            $this->_getEntityPermissions($params['id']);
+            $this->_getOrganizationPermissions($params['id']);
 
         } else { // Delete
 
-            $this->_revokeEntityPermissions($params['id']);
+            $this->_revokeOrganizationPermissions($params['id']);
 
         }
 
@@ -917,12 +904,11 @@ class Entities extends ApiController
      *
      * @return void
      *
+     * @throws ChannelNotFoundException
      * @throws HttpException
      * @throws InvalidSchemaException
      * @throws InvalidStatusCodeException
      * @throws NotFoundException
-     * @throws QueryException
-     * @throws ChannelNotFoundException
      */
 
     public function users(array $params): void
@@ -936,15 +922,15 @@ class Entities extends ApiController
 
         if (Request::isPost()) {
 
-            $this->_grantEntityUsers($params['id']);
+            $this->_grantOrganizationUsers($params['id']);
 
         } else if (Request::isGet()) {
 
-            $this->_getEntityUsers($params['id']);
+            $this->_getOrganizationUsers($params['id']);
 
         } else { // Delete
 
-            $this->_revokeEntityUsers($params['id']);
+            $this->_revokeOrganizationUsers($params['id']);
 
         }
 

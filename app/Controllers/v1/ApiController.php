@@ -3,7 +3,7 @@
 namespace App\Controllers\v1;
 
 use Bayfront\Auth\Auth;
-use Bayfront\Auth\Exceptions\InvalidEntityException;
+use Bayfront\Auth\Exceptions\InvalidOrganizationException;
 use Bayfront\Auth\Exceptions\InvalidUserException;
 use Bayfront\Bones\Controller;
 use Bayfront\Bones\Exceptions\ControllerException;
@@ -49,7 +49,7 @@ abstract class ApiController extends Controller
      * @throws InvalidStatusCodeException
      * @throws NotFoundException
      * @throws ServiceException
-     * @throws InvalidEntityException
+     * @throws InvalidOrganizationException
      * @throws InvalidUserException
      * @throws QueryException
      */
@@ -85,9 +85,13 @@ abstract class ApiController extends Controller
 
             }
 
-            foreach ($this->token['payload']['entities'] as $entity) { // TODO: Work with permissions
+            if (isset($this->token['payload']['orgs'])) {
 
-                $this->permissions[$entity] = $this->auth->getUserPermissions($this->token['payload']['user_id'], $entity);
+                foreach ($this->token['payload']['orgs'] as $organization) { // TODO: Work with permissions
+
+                    $this->permissions[$organization] = $this->auth->getUserPermissions($this->token['payload']['user_id'], $organization);
+
+                }
 
             }
 

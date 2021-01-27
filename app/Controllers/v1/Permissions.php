@@ -8,8 +8,8 @@ use App\Services\BonesAuth\Schemas\PermissionCollection;
 use App\Services\BonesAuth\Schemas\PermissionResource;
 use Bayfront\ArrayHelpers\Arr;
 use Bayfront\ArraySchema\InvalidSchemaException;
-use Bayfront\Auth\Exceptions\InvalidConfigurationException;
-use Bayfront\Auth\Exceptions\InvalidEntityException;
+use Bayfront\Auth\Exceptions\InvalidKeysException;
+use Bayfront\Auth\Exceptions\InvalidOrganizationException;
 use Bayfront\Auth\Exceptions\InvalidPermissionException;
 use Bayfront\Auth\Exceptions\InvalidUserException;
 use Bayfront\Auth\Exceptions\NameExistsException;
@@ -46,11 +46,11 @@ class Permissions extends ApiController
      * @throws ControllerException
      * @throws HttpException
      * @throws InvalidStatusCodeException
+     * @throws InvalidUserException
      * @throws NotFoundException
      * @throws QueryException
      * @throws ServiceException
-     * @throws InvalidEntityException
-     * @throws InvalidUserException
+     * @throws InvalidOrganizationException
      */
 
     public function __construct()
@@ -69,14 +69,13 @@ class Permissions extends ApiController
      *
      * @return void
      *
+     * @throws ChannelNotFoundException
      * @throws HttpException
+     * @throws InvalidPermissionException
      * @throws InvalidSchemaException
      * @throws InvalidStatusCodeException
      * @throws NotFoundException
-     * @throws QueryException
-     * @throws InvalidConfigurationException
-     * @throws InvalidPermissionException
-     * @throws ChannelNotFoundException
+     * @throws InvalidKeysException
      */
 
     protected function _createPermission(): void
@@ -152,13 +151,13 @@ class Permissions extends ApiController
      *
      * @return void
      *
+     * @throws ChannelNotFoundException
      * @throws HttpException
+     * @throws InvalidKeysException
+     * @throws InvalidPermissionException
      * @throws InvalidSchemaException
      * @throws InvalidStatusCodeException
      * @throws NotFoundException
-     * @throws QueryException
-     * @throws InvalidPermissionException
-     * @throws ChannelNotFoundException
      */
 
     protected function _updatePermission(string $id): void
@@ -241,7 +240,6 @@ class Permissions extends ApiController
      * @throws InvalidSchemaException
      * @throws InvalidStatusCodeException
      * @throws NotFoundException
-     * @throws QueryException
      */
 
     protected function _getPermission(string $id): void
@@ -286,7 +284,7 @@ class Permissions extends ApiController
     protected function _getPermissions(): void
     {
 
-        // Get entities
+        // Get permissions
 
         $page_size = (int)Arr::get(Request::getQuery(), 'page.size', get_config('api.default_page_size', 10));
 
@@ -294,7 +292,7 @@ class Permissions extends ApiController
 
             $request = $this->api->parseQuery(Request::getQuery(), $page_size);
 
-            $entities = $this->model->getPermissionCollection($request);
+            $permissions = $this->model->getPermissionCollection($request);
 
         } catch (HttpException|QueryException|BadRequestException $e) {
 
@@ -306,8 +304,8 @@ class Permissions extends ApiController
         // Send response
 
         $schema = PermissionCollection::create([
-            'results' => $entities['results'],
-            'meta' => $entities['meta']
+            'results' => $permissions['results'],
+            'meta' => $permissions['meta']
         ], [
             'link_prefix' => '/permissions'
         ]);
@@ -325,11 +323,10 @@ class Permissions extends ApiController
      *
      * @return void
      *
+     * @throws ChannelNotFoundException
      * @throws HttpException
      * @throws InvalidStatusCodeException
      * @throws NotFoundException
-     * @throws QueryException
-     * @throws ChannelNotFoundException
      */
 
     protected function _deletePermission(string $id): void
@@ -373,14 +370,13 @@ class Permissions extends ApiController
      *
      * @return void
      *
+     * @throws ChannelNotFoundException
      * @throws HttpException
+     * @throws InvalidKeysException
+     * @throws InvalidPermissionException
      * @throws InvalidSchemaException
      * @throws InvalidStatusCodeException
      * @throws NotFoundException
-     * @throws QueryException
-     * @throws InvalidConfigurationException
-     * @throws InvalidPermissionException
-     * @throws ChannelNotFoundException
      */
 
     public function index(array $params)

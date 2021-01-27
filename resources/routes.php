@@ -28,10 +28,12 @@ $router->setHost(get_config('router.host'))
 
     // User Auth library
 
-    ->any('v1/entities/{?:id}', 'v1\\Entities:index')
-    ->any('v1/entities/{*:id}/permissions', 'v1\\Entities:permissions')
-    ->any('v1/entities/{*:id}/users', 'v1\\Entities:users')
+    ->any('v1/organizations/{?:id}', 'v1\\Organizations:index')
+    ->any('v1/organizations/{*:id}/permissions', 'v1\\Organizations:permissions')
+    ->any('v1/organizations/{*:id}/users', 'v1\\Organizations:users')
     ->any('v1/groups/{?:id}', 'v1\\Groups:index')
+    ->any('v1/groups/{?:id}/permissions', 'v1\\Groups:permissions')
     ->any('v1/permissions/{?:id}', 'v1\\Permissions:index')
     ->any('v1/roles/{?:id}', 'v1\\Roles:index')
+    ->any('v1/roles/{?id}/permissions', 'v1\\Roles:permissions')
     ->any('v1/users/{?:id}', 'v1\\Users:index');

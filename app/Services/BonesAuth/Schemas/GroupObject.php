@@ -38,8 +38,8 @@ class GroupObject implements SchemaInterface
             ]
         ];
 
-        if (isset($array['entity_id'])) {
-            Arr::set($return, 'attributes.entity_id', $array['entity_id']);
+        if (isset($array['organization_id'])) {
+            Arr::set($return, 'attributes.organization_id', $array['organization_id']);
         }
 
         if (isset($array['name'])) {

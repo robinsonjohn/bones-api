@@ -13,7 +13,7 @@ use Bayfront\ArrayHelpers\Arr;
 use Bayfront\ArraySchema\InvalidSchemaException;
 use Bayfront\ArraySchema\SchemaInterface;
 
-class EntityObject implements SchemaInterface
+class OrganizationObject implements SchemaInterface
 {
 
     /**
@@ -25,11 +25,11 @@ class EntityObject implements SchemaInterface
         if (Arr::isMissing($array, [
             'id'
         ])) {
-            throw new InvalidSchemaException('Unable to create EntityObject schema: missing required keys');
+            throw new InvalidSchemaException('Unable to create OrganizationObject schema: missing required keys');
         }
 
         $return = [
-            'type' => 'entity',
+            'type' => 'organization',
             'id' => $array['id'],
             'attributes' => [
             ],

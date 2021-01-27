@@ -13,7 +13,7 @@ use Bayfront\ArrayHelpers\Arr;
 use Bayfront\ArraySchema\InvalidSchemaException;
 use Bayfront\ArraySchema\SchemaInterface;
 
-class EntityCollection implements SchemaInterface
+class OrganizationCollection implements SchemaInterface
 {
 
     /**
@@ -27,21 +27,21 @@ class EntityCollection implements SchemaInterface
             'results',
             'meta'
         ])) {
-            throw new InvalidSchemaException('Unable to create EntityCollection schema: missing required keys');
+            throw new InvalidSchemaException('Unable to create OrganizationCollection schema: missing required keys');
         }
 
-        $entities = [];
+        $organizations = [];
 
         foreach ($array['results'] as $k => $v) {
 
-            $entities[] = EntityObject::create($v, $config);
+            $organizations[] = OrganizationObject::create($v, $config);
 
         }
 
         $meta_results = ResourceCollectionMetaResults::create($array['meta']);
 
         return [
-            'data' => $entities,
+            'data' => $organizations,
             'meta' => [
                 'results' => $meta_results
             ],

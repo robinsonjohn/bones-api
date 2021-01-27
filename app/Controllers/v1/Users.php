@@ -9,8 +9,8 @@ use App\Services\BonesAuth\Schemas\UserResource;
 use Bayfront\ArrayHelpers\Arr;
 use Bayfront\ArraySchema\InvalidSchemaException;
 use Bayfront\Auth\Exceptions\IdExistsException;
-use Bayfront\Auth\Exceptions\InvalidConfigurationException;
-use Bayfront\Auth\Exceptions\InvalidEntityException;
+use Bayfront\Auth\Exceptions\InvalidKeysException;
+use Bayfront\Auth\Exceptions\InvalidOrganizationException;
 use Bayfront\Auth\Exceptions\InvalidUserException;
 use Bayfront\Auth\Exceptions\LoginExistsException;
 use Bayfront\Bones\Exceptions\ControllerException;
@@ -25,6 +25,7 @@ use Bayfront\HttpRequest\Request;
 use Bayfront\HttpResponse\InvalidStatusCodeException;
 use Bayfront\PDO\Exceptions\QueryException;
 use Bayfront\Validator\Validate;
+use Exception;
 
 /**
  * Users controller.
@@ -45,12 +46,12 @@ class Users extends ApiController
      * @throws BucketException
      * @throws ControllerException
      * @throws HttpException
-     * @throws InvalidEntityException
      * @throws InvalidStatusCodeException
      * @throws InvalidUserException
      * @throws NotFoundException
      * @throws QueryException
      * @throws ServiceException
+     * @throws InvalidOrganizationException
      */
 
     public function __construct()
@@ -69,15 +70,14 @@ class Users extends ApiController
      *
      * @return void
      *
+     * @throws ChannelNotFoundException
      * @throws HttpException
      * @throws IdExistsException
-     * @throws InvalidConfigurationException
      * @throws InvalidSchemaException
      * @throws InvalidStatusCodeException
      * @throws InvalidUserException
      * @throws NotFoundException
-     * @throws QueryException
-     * @throws ChannelNotFoundException
+     * @throws InvalidKeysException
      */
 
     protected function _createUser(): void
@@ -160,13 +160,13 @@ class Users extends ApiController
      *
      * @return void
      *
+     * @throws ChannelNotFoundException
      * @throws HttpException
      * @throws InvalidSchemaException
      * @throws InvalidStatusCodeException
-     * @throws NotFoundException
-     * @throws QueryException
      * @throws InvalidUserException
-     * @throws ChannelNotFoundException
+     * @throws NotFoundException
+     * @throws Exception
      */
 
     protected function _updateUser(string $id): void
@@ -255,7 +255,6 @@ class Users extends ApiController
      * @throws InvalidSchemaException
      * @throws InvalidStatusCodeException
      * @throws NotFoundException
-     * @throws QueryException
      */
 
     protected function _getUser(string $id): void
@@ -339,11 +338,10 @@ class Users extends ApiController
      *
      * @return void
      *
+     * @throws ChannelNotFoundException
      * @throws HttpException
      * @throws InvalidStatusCodeException
      * @throws NotFoundException
-     * @throws QueryException
-     * @throws ChannelNotFoundException
      */
 
     protected function _deleteUser(string $id): void
@@ -387,15 +385,14 @@ class Users extends ApiController
      *
      * @return void
      *
+     * @throws ChannelNotFoundException
      * @throws HttpException
-     * @throws InvalidConfigurationException
+     * @throws IdExistsException
+     * @throws InvalidKeysException
      * @throws InvalidSchemaException
      * @throws InvalidStatusCodeException
      * @throws InvalidUserException
      * @throws NotFoundException
-     * @throws QueryException
-     * @throws IdExistsException
-     * @throws ChannelNotFoundException
      */
 
     public function index(array $params)
