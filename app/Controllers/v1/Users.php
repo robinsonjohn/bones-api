@@ -146,7 +146,7 @@ class Users extends ApiController
         // Send response
 
         $schema = UserResource::create($this->model->getUser($id), [
-            'link_prefix' => '/users'
+            'object_prefix' => '/users'
         ]);
 
         $this->response->sendJson($schema);
@@ -237,7 +237,7 @@ class Users extends ApiController
         // Send response
 
         $schema = UserResource::create($this->model->getUser($id), [
-            'link_prefix' => '/users'
+            'object_prefix' => '/users'
         ]);
 
         $this->response->sendJson($schema);
@@ -276,7 +276,7 @@ class Users extends ApiController
         // Send response
 
         $schema = UserResource::create($user, [
-            'link_prefix' => '/users'
+            'object_prefix' => '/users'
         ]);
 
         $this->response->setHeaders([
@@ -322,7 +322,8 @@ class Users extends ApiController
             'results' => $users['results'],
             'meta' => $users['meta']
         ], [
-            'link_prefix' => '/users'
+            'object_prefix' => '/users',
+            'collection_prefix' => '/users'
         ]);
 
         $this->response->setHeaders([

@@ -153,7 +153,7 @@ class Organizations extends ApiController
         // Send response
 
         $schema = OrganizationResource::create($this->model->getOrganization($id), [
-            'link_prefix' => '/organizations'
+            'object_prefix' => '/organizations'
         ]);
 
         $this->response->sendJson($schema);
@@ -248,7 +248,7 @@ class Organizations extends ApiController
         // Send response
 
         $schema = OrganizationResource::create($this->model->getOrganization($id), [
-            'link_prefix' => '/organizations'
+            'object_prefix' => '/organizations'
         ]);
 
         $this->response->sendJson($schema);
@@ -287,7 +287,7 @@ class Organizations extends ApiController
         // Send response
 
         $schema = OrganizationResource::create($organization, [
-            'link_prefix' => '/organizations'
+            'object_prefix' => '/organizations'
         ]);
 
         $this->response->setHeaders([
@@ -333,7 +333,8 @@ class Organizations extends ApiController
             'results' => $organizations['results'],
             'meta' => $organizations['meta']
         ], [
-            'link_prefix' => '/organizations'
+            'object_prefix' => '/organizations',
+            'collection_prefix' => '/organizations'
         ]);
 
         $this->response->setHeaders([
@@ -429,7 +430,8 @@ class Organizations extends ApiController
             'results' => $permissions['results'],
             'meta' => $permissions['meta']
         ], [
-            'link_prefix' => '/organizations/' . $organization_id . '/permissions'
+            'object_prefix' => '/permissions',
+            'collection_prefix' => '/organizations/' . $organization_id . '/permissions',
         ]);
 
         $this->response->setHeaders([
@@ -634,7 +636,8 @@ class Organizations extends ApiController
             'results' => $permissions['results'],
             'meta' => $permissions['meta']
         ], [
-            'link_prefix' => '/users'
+            'object_prefix' => '/users',
+            'collection_prefix' => '/organizations/' . $organization_id . '/users'
         ]);
 
         $this->response->setHeaders([

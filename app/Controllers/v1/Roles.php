@@ -152,7 +152,7 @@ class Roles extends ApiController
         // Send response
 
         $schema = RoleResource::create($this->model->getRole($id), [
-            'link_prefix' => '/roles'
+            'object_prefix' => '/roles'
         ]);
 
         $this->response->sendJson($schema);
@@ -246,7 +246,7 @@ class Roles extends ApiController
         // Send response
 
         $schema = RoleResource::create($this->model->getRole($id), [
-            'link_prefix' => '/roles'
+            'object_prefix' => '/roles'
         ]);
 
         $this->response->sendJson($schema);
@@ -285,7 +285,7 @@ class Roles extends ApiController
         // Send response
 
         $schema = RoleResource::create($role, [
-            'link_prefix' => '/roles'
+            'object_prefix' => '/roles'
         ]);
 
         $this->response->setHeaders([
@@ -331,7 +331,8 @@ class Roles extends ApiController
             'results' => $roles['results'],
             'meta' => $roles['meta']
         ], [
-            'link_prefix' => '/roles'
+            'object_prefix' => '/roles',
+            'collection_prefix' => '/roles'
         ]);
 
         $this->response->setHeaders([
@@ -427,7 +428,8 @@ class Roles extends ApiController
             'results' => $permissions['results'],
             'meta' => $permissions['meta']
         ], [
-            'link_prefix' => '/permissions'
+            'object_prefix' => '/permissions',
+            'collection_prefix' => '/roles/' . $role_id . '/permissions'
         ]);
 
         $this->response->setHeaders([

@@ -152,7 +152,7 @@ class Groups extends ApiController
         // Send response
 
         $schema = GroupResource::create($this->model->getGroup($id), [
-            'link_prefix' => '/groups'
+            'object_prefix' => '/groups'
         ]);
 
         $this->response->sendJson($schema);
@@ -246,7 +246,7 @@ class Groups extends ApiController
         // Send response
 
         $schema = GroupResource::create($this->model->getGroup($id), [
-            'link_prefix' => '/groups'
+            'object_prefix' => '/groups'
         ]);
 
         $this->response->sendJson($schema);
@@ -285,7 +285,7 @@ class Groups extends ApiController
         // Send response
 
         $schema = GroupResource::create($group, [
-            'link_prefix' => '/groups'
+            'object_prefix' => '/groups'
         ]);
 
         $this->response->setHeaders([
@@ -331,7 +331,8 @@ class Groups extends ApiController
             'results' => $groups['results'],
             'meta' => $groups['meta']
         ], [
-            'link_prefix' => '/groups'
+            'object_prefix' => '/groups',
+            'collection_prefix' => '/groups'
         ]);
 
         $this->response->setHeaders([
@@ -427,7 +428,8 @@ class Groups extends ApiController
             'results' => $permissions['results'],
             'meta' => $permissions['meta']
         ], [
-            'link_prefix' => '/permissions'
+            'object_prefix' => '/permissions',
+            'collection_prefix' => '/groups/' . $group_id . '/permissions'
         ]);
 
         $this->response->setHeaders([

@@ -34,7 +34,7 @@ class UserObject implements SchemaInterface
             'attributes' => [
             ],
             'links' => [
-                'self' => Arr::get($config, 'link_prefix', '') . '/' . $array['id']
+                'self' => Arr::get($config, 'object_prefix', '') . '/' . $array['id']
             ]
         ];
 

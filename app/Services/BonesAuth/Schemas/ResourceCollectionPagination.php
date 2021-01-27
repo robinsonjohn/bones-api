@@ -42,7 +42,7 @@ class ResourceCollectionPagination implements SchemaInterface
 
         // Self
 
-        $links['self'] = Arr::get($config, 'link_prefix', '') . '?' . Arr::query(array_replace($query_string, [
+        $links['self'] = Arr::get($config, 'collection_prefix', '') . '?' . Arr::query(array_replace($query_string, [
                 'page' => [
                     'size' => Arr::get($query_string, 'page.size', $array['page_size']),
                     'number' => $array['page_number']
@@ -51,7 +51,7 @@ class ResourceCollectionPagination implements SchemaInterface
 
         // First
 
-        $links['first'] = Arr::get($config, 'link_prefix', '') . '?' . Arr::query(array_replace($query_string, [
+        $links['first'] = Arr::get($config, 'collection_prefix', '') . '?' . Arr::query(array_replace($query_string, [
                 'page' => [
                     'size' => Arr::get($query_string, 'page.size', $array['page_size']),
                     'number' => 1
@@ -62,7 +62,7 @@ class ResourceCollectionPagination implements SchemaInterface
 
         if ($array['page_number'] > 1) {
 
-            $links['prev'] = Arr::get($config, 'link_prefix', '') . '?' . Arr::query(array_replace($query_string, [
+            $links['prev'] = Arr::get($config, 'collection_prefix', '') . '?' . Arr::query(array_replace($query_string, [
                     'page' => [
                         'size' => Arr::get($query_string, 'page.size', $array['page_size']),
                         'number' => $array['page_number'] - 1
@@ -79,7 +79,7 @@ class ResourceCollectionPagination implements SchemaInterface
 
         if ($array['pages'] > 1 && $array['pages'] > $array['page_number']) {
 
-            $links['next'] = Arr::get($config, 'link_prefix', '') . '?' . Arr::query(array_replace($query_string, [
+            $links['next'] = Arr::get($config, 'collection_prefix', '') . '?' . Arr::query(array_replace($query_string, [
                     'page' => [
                         'size' => Arr::get($query_string, 'page.size', $array['page_size']),
                         'number' => $array['page_number'] + 1
@@ -94,7 +94,7 @@ class ResourceCollectionPagination implements SchemaInterface
 
         // Last
 
-        $links['last'] = Arr::get($config, 'link_prefix', '') . '?' . Arr::query(array_replace($query_string, [
+        $links['last'] = Arr::get($config, 'collection_prefix', '') . '?' . Arr::query(array_replace($query_string, [
                 'page' => [
                     'size' => Arr::get($query_string, 'page.size', $array['page_size']),
                     'number' => $array['pages']

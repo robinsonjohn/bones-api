@@ -137,7 +137,7 @@ class Permissions extends ApiController
         // Send response
 
         $schema = PermissionResource::create($this->model->getPermission($id), [
-            'link_prefix' => '/permissions'
+            'object_prefix' => '/permissions'
         ]);
 
         $this->response->sendJson($schema);
@@ -222,7 +222,7 @@ class Permissions extends ApiController
         // Send response
 
         $schema = PermissionResource::create($this->model->getPermission($id), [
-            'link_prefix' => '/permissions'
+            'object_prefix' => '/permissions'
         ]);
 
         $this->response->sendJson($schema);
@@ -261,7 +261,7 @@ class Permissions extends ApiController
         // Send response
 
         $schema = PermissionResource::create($permission, [
-            'link_prefix' => '/permissions'
+            'object_prefix' => '/permissions'
         ]);
 
         $this->response->setHeaders([
@@ -307,7 +307,8 @@ class Permissions extends ApiController
             'results' => $permissions['results'],
             'meta' => $permissions['meta']
         ], [
-            'link_prefix' => '/permissions'
+            'object_prefix' => '/permissions',
+            'collection_prefix' => '/permissions'
         ]);
 
         $this->response->setHeaders([
