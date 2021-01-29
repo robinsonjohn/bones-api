@@ -46,12 +46,11 @@ class Users extends ApiController
      * @throws BucketException
      * @throws ControllerException
      * @throws HttpException
+     * @throws InvalidOrganizationException
      * @throws InvalidStatusCodeException
      * @throws InvalidUserException
      * @throws NotFoundException
-     * @throws QueryException
      * @throws ServiceException
-     * @throws InvalidOrganizationException
      */
 
     public function __construct()
@@ -299,13 +298,9 @@ class Users extends ApiController
     protected function _getUsers(): void
     {
 
-        // Get users
-
-        $page_size = (int)Arr::get(Request::getQuery(), 'page.size', get_config('api.default_page_size', 10));
-
         try {
 
-            $request = $this->api->parseQuery(Request::getQuery(), $page_size);
+            $request = $this->api->parseQuery(Request::getQuery(), $this->getPageSize());
 
             $users = $this->model->getUserCollection($request);
 

@@ -2,19 +2,14 @@
 
 namespace App\Controllers\v1;
 
-use Bayfront\Auth\Auth;
-use Bayfront\Auth\Exceptions\InvalidOrganizationException;
-use Bayfront\Auth\Exceptions\InvalidUserException;
+use App\Services\BonesAuth\BonesAuth;
+use Bayfront\ArrayHelpers\Arr;
 use Bayfront\Bones\Controller;
 use Bayfront\Bones\Exceptions\ControllerException;
-use Bayfront\Bones\Exceptions\HttpException;
 use Bayfront\Bones\Exceptions\ServiceException;
 use Bayfront\Bones\Services\BonesApi;
 use Bayfront\Container\NotFoundException;
-use Bayfront\HttpResponse\InvalidStatusCodeException;
-use Bayfront\LeakyBucket\AdapterException;
-use Bayfront\LeakyBucket\BucketException;
-use Bayfront\PDO\Exceptions\QueryException;
+use Bayfront\HttpRequest\Request;
 
 /**
  * ApiController controller.
@@ -22,11 +17,7 @@ use Bayfront\PDO\Exceptions\QueryException;
 abstract class ApiController extends Controller
 {
 
-    /** @var BonesApi $api */
-
     protected $api;
-
-    /** @var Auth $auth */
 
     protected $auth;
 
@@ -37,21 +28,11 @@ abstract class ApiController extends Controller
     /**
      * ApiController constructor.
      *
-     * TODO:
-     * Add required permissions to the constructor
-     *
      * @param bool $requires_authentication
      *
-     * @throws AdapterException
-     * @throws BucketException
      * @throws ControllerException
-     * @throws HttpException
-     * @throws InvalidStatusCodeException
      * @throws NotFoundException
      * @throws ServiceException
-     * @throws InvalidOrganizationException
-     * @throws InvalidUserException
-     * @throws QueryException
      */
 
     public function __construct(bool $requires_authentication = true)
@@ -61,6 +42,8 @@ abstract class ApiController extends Controller
 
         // Get the Bones API service from the container
 
+        /** @var BonesApi $api */
+
         $this->api = get_service('BonesApi');
 
         // Start the API environment
@@ -68,6 +51,8 @@ abstract class ApiController extends Controller
         $this->api->start();
 
         // Get the Auth class from the container
+
+        /** @var BonesAuth $auth */
 
         $this->auth = $this->container->get('auth');
 
@@ -97,6 +82,20 @@ abstract class ApiController extends Controller
 
         }
 
+    }
+
+    /**
+     * Return the page size based on the request query string, and the api.default_page_size and api.max_page_size config values
+     *
+     * TODO:
+     * Add abs() to the value if it does not trigger a status code 400 when page[size] is a negative number
+     *
+     * @return int
+     */
+
+    public function getPageSize():int
+    {
+        return (int)min((int)Arr::get(Request::getQuery(), 'page.size', get_config('api.default_page_size', 10)), (int)get_config('api.max_page_size', 10));
     }
 
 }

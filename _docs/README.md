@@ -20,7 +20,7 @@ The `/app/Controllers/v1` directory exists to contain all controllers for `v1` o
 **NOTE:** This controller must be updated to interact with a user model.
 
 Endpoints do not require authentication. 
-Failed requests are rate limited to the `api.auth_rate_limit` configuration setting.
+Failed requests are rate limited to the `api.rate_limit_auth` configuration setting.
 Successful requests returns an `AuthResource` schema containing the access and refresh tokens.
 
 All requests are logged.
@@ -31,7 +31,7 @@ Endpoints require authentication and are rate limited to the limit set in the JW
 
 **PublicController**
 
-Endpoints do not require authentication and are rate limited to the `api.public_rate_limit` configuration setting.
+Endpoints do not require authentication and are rate limited to the `api.rate_limit_public` configuration setting.
 Public endpoints are useful for cases such as webhooks and API status checks.
 
 ## Exceptions

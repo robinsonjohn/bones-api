@@ -49,12 +49,11 @@ class Roles extends ApiController
      * @throws BucketException
      * @throws ControllerException
      * @throws HttpException
+     * @throws InvalidOrganizationException
      * @throws InvalidStatusCodeException
      * @throws InvalidUserException
      * @throws NotFoundException
-     * @throws QueryException
      * @throws ServiceException
-     * @throws InvalidOrganizationException
      */
 
     public function __construct()
@@ -308,13 +307,9 @@ class Roles extends ApiController
     protected function _getRoles(): void
     {
 
-        // Get roles
-
-        $page_size = (int)Arr::get(Request::getQuery(), 'page.size', get_config('api.default_page_size', 10));
-
         try {
 
-            $request = $this->api->parseQuery(Request::getQuery(), $page_size);
+            $request = $this->api->parseQuery(Request::getQuery(), $this->getPageSize());
 
             $roles = $this->model->getRoleCollection($request);
 
@@ -400,13 +395,9 @@ class Roles extends ApiController
     protected function _getRolePermissions(string $role_id): void
     {
 
-        // Get permissions
-
-        $page_size = (int)Arr::get(Request::getQuery(), 'page.size', get_config('api.default_page_size', 10));
-
         try {
 
-            $request = $this->api->parseQuery(Request::getQuery(), $page_size);
+            $request = $this->api->parseQuery(Request::getQuery(), $this->getPageSize());
 
             $permissions = $this->model->getRolePermissionCollection($role_id, $request);
 

@@ -21,7 +21,6 @@ use Bayfront\JWT\TokenException;
 use Bayfront\LeakyBucket\AdapterException;
 use Bayfront\LeakyBucket\BucketException;
 use Bayfront\MonologFactory\Exceptions\ChannelNotFoundException;
-use Bayfront\PDO\Exceptions\QueryException;
 use Exception;
 
 /**
@@ -41,12 +40,11 @@ class Auth extends ApiController
      * @throws BucketException
      * @throws ControllerException
      * @throws HttpException
+     * @throws InvalidOrganizationException
      * @throws InvalidStatusCodeException
      * @throws InvalidUserException
      * @throws NotFoundException
      * @throws ServiceException
-     * @throws QueryException
-     * @throws InvalidOrganizationException
      */
 
     public function __construct()
@@ -56,7 +54,7 @@ class Auth extends ApiController
 
         // Check rate limit
 
-        $this->api->enforceRateLimit('auth-' . Request::getIp(), get_config('api.auth_rate_limit', 5));
+        $this->api->enforceRateLimit('auth-' . Request::getIp(), get_config('api.rate_limit_auth', 5));
 
         // Define default model
 
@@ -95,7 +93,7 @@ class Auth extends ApiController
 
         // Reset rate limit
 
-        $this->api->resetRateLimit('auth-' . Request::getIp(), get_config('api.auth_rate_limit', 5));
+        $this->api->resetRateLimit('auth-' . Request::getIp(), get_config('api.rate_limit_auth', 5));
 
         // Create JWT
 

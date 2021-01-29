@@ -56,7 +56,6 @@ class Organizations extends ApiController
      * @throws InvalidStatusCodeException
      * @throws InvalidUserException
      * @throws NotFoundException
-     * @throws QueryException
      * @throws ServiceException
      */
 
@@ -314,11 +313,9 @@ class Organizations extends ApiController
 
         // Get organizations
 
-        $page_size = (int)Arr::get(Request::getQuery(), 'page.size', get_config('api.default_page_size', 10));
-
         try {
 
-            $request = $this->api->parseQuery(Request::getQuery(), $page_size);
+            $request = $this->api->parseQuery(Request::getQuery(), $this->getPageSize());
 
             $organizations = $this->model->getOrganizationCollection($request);
 
@@ -404,11 +401,9 @@ class Organizations extends ApiController
     protected function _getOrganizationGroups(string $organization_id): void
     {
 
-        $page_size = (int)Arr::get(Request::getQuery(), 'page.size', get_config('api.default_page_size', 10));
-
         try {
 
-            $request = $this->api->parseQuery(Request::getQuery(), $page_size);
+            $request = $this->api->parseQuery(Request::getQuery(), $this->getPageSize());
 
             $permissions = $this->model->getOrganizationGroupCollection($organization_id, $request);
 
@@ -458,11 +453,9 @@ class Organizations extends ApiController
     protected function _getOrganizationPermissions(string $organization_id): void
     {
 
-        $page_size = (int)Arr::get(Request::getQuery(), 'page.size', get_config('api.default_page_size', 10));
-
         try {
 
-            $request = $this->api->parseQuery(Request::getQuery(), $page_size);
+            $request = $this->api->parseQuery(Request::getQuery(), $this->getPageSize());
 
             $permissions = $this->model->getOrganizationPermissionCollection($organization_id, $request);
 
@@ -662,11 +655,9 @@ class Organizations extends ApiController
     protected function _getOrganizationRoles(string $organization_id): void
     {
 
-        $page_size = (int)Arr::get(Request::getQuery(), 'page.size', get_config('api.default_page_size', 10));
-
         try {
 
-            $request = $this->api->parseQuery(Request::getQuery(), $page_size);
+            $request = $this->api->parseQuery(Request::getQuery(), $this->getPageSize());
 
             $permissions = $this->model->getOrganizationRoleCollection($organization_id, $request);
 
@@ -716,13 +707,9 @@ class Organizations extends ApiController
     protected function _getOrganizationUsers(string $organization_id): void
     {
 
-        // Get permissions
-
-        $page_size = (int)Arr::get(Request::getQuery(), 'page.size', get_config('api.default_page_size', 10));
-
         try {
 
-            $request = $this->api->parseQuery(Request::getQuery(), $page_size);
+            $request = $this->api->parseQuery(Request::getQuery(), $this->getPageSize());
 
             $permissions = $this->model->getOrganizationUserCollection($organization_id, $request);
 

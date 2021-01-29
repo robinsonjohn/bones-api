@@ -49,12 +49,11 @@ class Groups extends ApiController
      * @throws BucketException
      * @throws ControllerException
      * @throws HttpException
+     * @throws InvalidOrganizationException
      * @throws InvalidStatusCodeException
      * @throws InvalidUserException
      * @throws NotFoundException
-     * @throws QueryException
      * @throws ServiceException
-     * @throws InvalidOrganizationException
      */
 
     public function __construct()
@@ -310,11 +309,9 @@ class Groups extends ApiController
 
         // Get groups
 
-        $page_size = (int)Arr::get(Request::getQuery(), 'page.size', get_config('api.default_page_size', 10));
-
         try {
 
-            $request = $this->api->parseQuery(Request::getQuery(), $page_size);
+            $request = $this->api->parseQuery(Request::getQuery(), $this->getPageSize());
 
             $groups = $this->model->getGroupCollection($request);
 
@@ -402,11 +399,9 @@ class Groups extends ApiController
 
         // Get permissions
 
-        $page_size = (int)Arr::get(Request::getQuery(), 'page.size', get_config('api.default_page_size', 10));
-
         try {
 
-            $request = $this->api->parseQuery(Request::getQuery(), $page_size);
+            $request = $this->api->parseQuery(Request::getQuery(), $this->getPageSize());
 
             $permissions = $this->model->getGroupPermissionCollection($group_id, $request);
 
