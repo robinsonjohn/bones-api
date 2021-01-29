@@ -23,8 +23,6 @@ use Bayfront\Bones\Exceptions\ControllerException;
 use Bayfront\Bones\Exceptions\HttpException;
 use Bayfront\Bones\Exceptions\ServiceException;
 use Bayfront\Container\NotFoundException;
-use Bayfront\LeakyBucket\AdapterException;
-use Bayfront\LeakyBucket\BucketException;
 use Bayfront\MonologFactory\Exceptions\ChannelNotFoundException;
 use Bayfront\Validator\ValidationException;
 use Bayfront\HttpRequest\Request;
@@ -48,13 +46,7 @@ class Organizations extends ApiController
     /**
      * Organizations constructor.
      *
-     * @throws AdapterException
-     * @throws BucketException
      * @throws ControllerException
-     * @throws HttpException
-     * @throws InvalidOrganizationException
-     * @throws InvalidStatusCodeException
-     * @throws InvalidUserException
      * @throws NotFoundException
      * @throws ServiceException
      */

@@ -26,7 +26,6 @@ $db = get_from_container('db');
 /** @var BonesAuth $bones_auth */
 
 $auth = get_service('BonesAuth\\BonesAuth', [
-    'db' => $db,
     'pdo' => $db->get('primary'),
     'pepper' => get_config('app.key', '')
 ]);

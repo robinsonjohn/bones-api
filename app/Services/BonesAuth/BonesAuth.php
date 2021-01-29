@@ -15,7 +15,6 @@ use Bayfront\Auth\Auth;
 use Bayfront\Auth\Exceptions\InvalidGroupException;
 use Bayfront\Auth\Exceptions\InvalidOrganizationException;
 use Bayfront\Auth\Exceptions\InvalidRoleException;
-use Bayfront\PDO\Db;
 use Bayfront\PDO\Exceptions\QueryException;
 use Bayfront\PDO\Query;
 use PDO;
@@ -23,14 +22,12 @@ use PDO;
 class BonesAuth extends Auth
 {
 
-    /** @var Db */
+    protected $pdo;
 
-    protected $db;
-
-    public function __construct(Db $db, PDO $pdo, string $pepper)
+    public function __construct(PDO $pdo, string $pepper)
     {
 
-        $this->db = $db;
+        $this->pdo = $pdo;
 
         parent::__construct($pdo, $pepper);
 
@@ -43,8 +40,6 @@ class BonesAuth extends Auth
      * @param array $request
      *
      * @return array
-     *
-     * @throws QueryException
      */
 
     protected function _returnResults(Query $query, array $request): array
@@ -103,7 +98,7 @@ class BonesAuth extends Auth
 
         }
 
-        $query = new Query($this->db);
+        $query = new Query($this->pdo);
 
         $query->table('user_permissions')
             ->select(Arr::get($request, 'fields.permissions', ['*']))
@@ -162,7 +157,7 @@ class BonesAuth extends Auth
 
         }
 
-        $query = new Query($this->db);
+        $query = new Query($this->pdo);
 
         $query->table('user_organizations')
             ->select(Arr::get($request, 'fields.organizations', ['*']))
@@ -220,7 +215,7 @@ class BonesAuth extends Auth
 
         }
 
-        $query = new Query($this->db);
+        $query = new Query($this->pdo);
 
         $query->table('user_groups')
             ->select(Arr::get($request, 'fields.groups', ['*']))
@@ -301,7 +296,7 @@ class BonesAuth extends Auth
 
         }
 
-        $query = new Query($this->db);
+        $query = new Query($this->pdo);
 
         $query->table('user_permissions')
             ->leftJoin('user_organization_permissions', 'user_permissions.id', 'user_organization_permissions.permission_id')
@@ -369,7 +364,7 @@ class BonesAuth extends Auth
 
         }
 
-        $query = new Query($this->db);
+        $query = new Query($this->pdo);
 
         $query->table('user_roles')
             ->select(Arr::get($request, 'fields.roles', ['*']))
@@ -450,7 +445,7 @@ class BonesAuth extends Auth
 
         }
 
-        $query = new Query($this->db);
+        $query = new Query($this->pdo);
 
         $query->table('user_users')
             ->leftJoin('user_user_organizations', 'user_users.id', 'user_user_organizations.user_id')
@@ -518,7 +513,7 @@ class BonesAuth extends Auth
 
         }
 
-        $query = new Query($this->db);
+        $query = new Query($this->pdo);
 
         $query->table('user_groups')
             ->select(Arr::get($request, 'fields.groups', ['*']))
@@ -592,7 +587,7 @@ class BonesAuth extends Auth
 
         }
 
-        $query = new Query($this->db);
+        $query = new Query($this->pdo);
 
         $query->table('user_permissions')
             ->leftJoin('user_group_permissions', 'user_permissions.id', 'user_group_permissions.permission_id')
@@ -661,7 +656,7 @@ class BonesAuth extends Auth
 
         }
 
-        $query = new Query($this->db);
+        $query = new Query($this->pdo);
 
         $query->table('user_roles')
             ->select(Arr::get($request, 'fields.roles', ['*']))
@@ -735,7 +730,7 @@ class BonesAuth extends Auth
 
         }
 
-        $query = new Query($this->db);
+        $query = new Query($this->pdo);
 
         $query->table('user_permissions')
             ->leftJoin('user_role_permissions', 'user_permissions.id', 'user_role_permissions.permission_id')
@@ -804,7 +799,7 @@ class BonesAuth extends Auth
 
         }
 
-        $query = new Query($this->db);
+        $query = new Query($this->pdo);
 
         $query->table('user_users')
             ->select(Arr::get($request, 'fields.users', ['*']))

@@ -14,14 +14,11 @@ use Bayfront\Auth\Exceptions\InvalidGroupException;
 use Bayfront\Auth\Exceptions\InvalidKeysException;
 use Bayfront\Auth\Exceptions\InvalidOrganizationException;
 use Bayfront\Auth\Exceptions\InvalidPermissionException;
-use Bayfront\Auth\Exceptions\InvalidUserException;
 use Bayfront\Auth\Exceptions\NameExistsException;
 use Bayfront\Bones\Exceptions\ControllerException;
 use Bayfront\Bones\Exceptions\HttpException;
 use Bayfront\Bones\Exceptions\ServiceException;
 use Bayfront\Container\NotFoundException;
-use Bayfront\LeakyBucket\AdapterException;
-use Bayfront\LeakyBucket\BucketException;
 use Bayfront\MonologFactory\Exceptions\ChannelNotFoundException;
 use Bayfront\Validator\ValidationException;
 use Bayfront\HttpRequest\Request;
@@ -45,13 +42,7 @@ class Groups extends ApiController
     /**
      * Groups constructor.
      *
-     * @throws AdapterException
-     * @throws BucketException
      * @throws ControllerException
-     * @throws HttpException
-     * @throws InvalidOrganizationException
-     * @throws InvalidStatusCodeException
-     * @throws InvalidUserException
      * @throws NotFoundException
      * @throws ServiceException
      */

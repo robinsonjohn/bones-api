@@ -5,7 +5,6 @@ namespace App\Controllers\v1;
 use App\Services\BonesAuth\Schemas\AuthResource;
 use Bayfront\Auth\Exceptions\AuthenticationException;
 use Bayfront\Auth\Exceptions\InvalidMetaException;
-use Bayfront\Auth\Exceptions\InvalidOrganizationException;
 use Bayfront\Auth\Exceptions\InvalidUserException;
 use Bayfront\ArrayHelpers\Arr;
 use Bayfront\ArraySchema\InvalidSchemaException;
@@ -18,8 +17,6 @@ use Bayfront\HttpRequest\Request;
 use Bayfront\HttpResponse\InvalidStatusCodeException;
 use Bayfront\JWT\Jwt;
 use Bayfront\JWT\TokenException;
-use Bayfront\LeakyBucket\AdapterException;
-use Bayfront\LeakyBucket\BucketException;
 use Bayfront\MonologFactory\Exceptions\ChannelNotFoundException;
 use Exception;
 
@@ -36,13 +33,7 @@ class Auth extends ApiController
     /**
      * Auth constructor.
      *
-     * @throws AdapterException
-     * @throws BucketException
      * @throws ControllerException
-     * @throws HttpException
-     * @throws InvalidOrganizationException
-     * @throws InvalidStatusCodeException
-     * @throws InvalidUserException
      * @throws NotFoundException
      * @throws ServiceException
      */
