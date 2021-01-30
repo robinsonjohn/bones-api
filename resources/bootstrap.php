@@ -1,11 +1,11 @@
 <?php /** @noinspection PhpUnhandledExceptionInspection */
 
+use App\Services\BonesAuth\BonesAuth;
+use Bayfront\PDO\Db;
+
 /*
  * Use this file to bootstrap the application.
  */
-
-use App\Services\BonesAuth\BonesAuth;
-use Bayfront\PDO\Db;
 
 /*
  * Place the BonesApi service into the services container
@@ -26,7 +26,7 @@ $db = get_from_container('db');
 /** @var BonesAuth $bones_auth */
 
 $auth = get_service('BonesAuth\\BonesAuth', [
-    'pdo' => $db->get('primary'),
+    'pdo' => $db->get('primary'), // PDO instance
     'pepper' => get_config('app.key', '')
 ]);
 
