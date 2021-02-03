@@ -23,7 +23,7 @@ get_service('BonesApi', [
 
 $db = get_from_container('db');
 
-/** @var BonesAuth $bones_auth */
+/** @var BonesAuth $auth */
 
 $auth = get_service('BonesAuth\\BonesAuth', [
     'pdo' => $db->get('primary'), // PDO instance

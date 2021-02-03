@@ -30,7 +30,9 @@ abstract class ApiController extends Controller
 
     protected $token; // JWT
 
-    protected $permissions;
+    protected $user_id;
+
+    protected $permissions; // Array of permission names
 
     /**
      * ApiController constructor.
@@ -79,7 +81,9 @@ abstract class ApiController extends Controller
 
             }
 
-            $this->permissions = $this->auth->getUserPermissions(Arr::get($this->token, 'payload.user_id', ''));
+            $this->user_id = $this->token['payload']['user_id'];
+
+            $this->permissions = Arr::pluck($this->auth->getUserPermissions(Arr::get($this->token, 'payload.user_id', '')), 'name');
 
         }
 
@@ -116,6 +120,19 @@ abstract class ApiController extends Controller
 
         return $array;
 
+    }
+
+    /**
+     * Does user have permission(s).
+     *
+     * @param string|array $permissions
+     *
+     * @return bool
+     */
+
+    public function hasPermission($permissions): bool
+    {
+        return count(array_intersect((array)$permissions, $this->permissions)) == count((array)$permissions);
     }
 
 }

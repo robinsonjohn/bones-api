@@ -316,7 +316,6 @@ class Users extends ApiController
 
         // TODO: Check permissions, return 403
 
-
         /*
          * Get request
          */
