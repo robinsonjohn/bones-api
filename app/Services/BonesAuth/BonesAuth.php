@@ -9,7 +9,6 @@
 
 namespace App\Services\BonesAuth;
 
-use App\Services\BonesAuth\Exceptions\BadRequestException;
 use Bayfront\ArrayHelpers\Arr;
 use Bayfront\PDO\Exceptions\QueryException;
 use Bayfront\PDO\Query;
@@ -73,27 +72,10 @@ class BonesAuth extends Auth
      * @return array
      *
      * @throws QueryException
-     * @throws BadRequestException
      */
 
     public function getGroupsCollection(array $request): array
     {
-
-        if (!empty(Arr::except($request['fields'], [ // Allowed field keys
-            'groups'
-        ]))) {
-
-            throw new BadRequestException('Unable to get groups: invalid request');
-
-        }
-
-        if (isset($request['fields']['groups'])) {
-
-            $request['fields']['groups'][] = 'id'; // "id" column is required
-
-            $request['fields']['groups'] = array_unique(array_filter($request['fields']['groups'])); // Remove blank and duplicate values
-
-        }
 
         $query = new Query($this->pdo);
 
@@ -126,27 +108,10 @@ class BonesAuth extends Auth
      * @return array
      *
      * @throws QueryException
-     * @throws BadRequestException
      */
 
     public function getGroupUsersCollection(string $group_id, array $request): array
     {
-
-        if (!empty(Arr::except($request['fields'], [ // Allowed field keys
-            'users'
-        ]))) {
-
-            throw new BadRequestException('Unable to get group users: invalid request');
-
-        }
-
-        if (isset($request['fields']['users'])) {
-
-            $request['fields']['users'][] = 'id'; // "id" column is required
-
-            $request['fields']['users'] = array_unique(array_filter($request['fields']['users'])); // Remove blank and duplicate values
-
-        }
 
         $query = new Query($this->pdo);
 
@@ -186,27 +151,10 @@ class BonesAuth extends Auth
      * @return array
      *
      * @throws QueryException
-     * @throws BadRequestException
      */
 
     public function getPermissionsCollection(array $request): array
     {
-
-        if (!empty(Arr::except($request['fields'], [ // Allowed field keys
-            'permissions'
-        ]))) {
-
-            throw new BadRequestException('Unable to get permissions: invalid request');
-
-        }
-
-        if (isset($request['fields']['permissions'])) {
-
-            $request['fields']['permissions'][] = 'id'; // "id" column is required
-
-            $request['fields']['permissions'] = array_unique(array_filter($request['fields']['permissions'])); // Remove blank and duplicate values
-
-        }
 
         $query = new Query($this->pdo);
 
@@ -244,27 +192,10 @@ class BonesAuth extends Auth
      * @return array
      *
      * @throws QueryException
-     * @throws BadRequestException
      */
 
     public function getRolesCollection(array $request): array
     {
-
-        if (!empty(Arr::except($request['fields'], [ // Allowed field keys
-            'roles'
-        ]))) {
-
-            throw new BadRequestException('Unable to get roles: invalid request');
-
-        }
-
-        if (isset($request['fields']['roles'])) {
-
-            $request['fields']['roles'][] = 'id'; // "id" column is required
-
-            $request['fields']['roles'] = array_unique(array_filter($request['fields']['roles'])); // Remove blank and duplicate values
-
-        }
 
         $query = new Query($this->pdo);
 
@@ -297,27 +228,10 @@ class BonesAuth extends Auth
      * @return array
      *
      * @throws QueryException
-     * @throws BadRequestException
      */
 
     public function getRolePermissionsCollection(string $role_id, array $request): array
     {
-
-        if (!empty(Arr::except($request['fields'], [ // Allowed field keys
-            'permissions'
-        ]))) {
-
-            throw new BadRequestException('Unable to get role permissions: invalid request');
-
-        }
-
-        if (isset($request['fields']['permissions'])) {
-
-            $request['fields']['permissions'][] = 'id'; // "id" column is required
-
-            $request['fields']['permissions'] = array_unique(array_filter($request['fields']['permissions'])); // Remove blank and duplicate values
-
-        }
 
         $query = new Query($this->pdo);
 
@@ -352,27 +266,10 @@ class BonesAuth extends Auth
      * @return array
      *
      * @throws QueryException
-     * @throws BadRequestException
      */
 
     public function getRoleUsersCollection(string $role_id, array $request): array
     {
-
-        if (!empty(Arr::except($request['fields'], [ // Allowed field keys
-            'users'
-        ]))) {
-
-            throw new BadRequestException('Unable to get role users: invalid request');
-
-        }
-
-        if (isset($request['fields']['users'])) {
-
-            $request['fields']['users'][] = 'id'; // "id" column is required
-
-            $request['fields']['users'] = array_unique(array_filter($request['fields']['users'])); // Remove blank and duplicate values
-
-        }
 
         $query = new Query($this->pdo);
 
@@ -411,28 +308,11 @@ class BonesAuth extends Auth
      *
      * @return array
      *
-     * @throws BadRequestException
      * @throws QueryException
      */
 
     public function getUsersCollection(array $request): array
     {
-
-        if (!empty(Arr::except($request['fields'], [ // Allowed field keys
-            'users'
-        ]))) {
-
-            throw new BadRequestException('Unable to get users: invalid request');
-
-        }
-
-        if (isset($request['fields']['users'])) {
-
-            $request['fields']['users'][] = 'id'; // "id" column is required
-
-            $request['fields']['users'] = array_unique(array_filter($request['fields']['users'])); // Remove blank and duplicate values
-
-        }
 
         $query = new Query($this->pdo);
 
@@ -473,27 +353,10 @@ class BonesAuth extends Auth
      * @return array
      *
      * @throws QueryException
-     * @throws BadRequestException
      */
 
     public function getUserRolesCollection(string $user_id, array $request): array
     {
-
-        if (!empty(Arr::except($request['fields'], [ // Allowed field keys
-            'roles'
-        ]))) {
-
-            throw new BadRequestException('Unable to get user roles: invalid request');
-
-        }
-
-        if (isset($request['fields']['roles'])) {
-
-            $request['fields']['roles'][] = 'id'; // "id" column is required
-
-            $request['fields']['roles'] = array_unique(array_filter($request['fields']['roles'])); // Remove blank and duplicate values
-
-        }
 
         $query = new Query($this->pdo);
 
@@ -529,27 +392,10 @@ class BonesAuth extends Auth
      * @return array
      *
      * @throws QueryException
-     * @throws BadRequestException
      */
 
     public function getUserGroupsCollection(string $user_id, array $request): array
     {
-
-        if (!empty(Arr::except($request['fields'], [ // Allowed field keys
-            'groups'
-        ]))) {
-
-            throw new BadRequestException('Unable to get user groups: invalid request');
-
-        }
-
-        if (isset($request['fields']['groups'])) {
-
-            $request['fields']['groups'][] = 'id'; // "id" column is required
-
-            $request['fields']['groups'] = array_unique(array_filter($request['fields']['groups'])); // Remove blank and duplicate values
-
-        }
 
         $query = new Query($this->pdo);
 
@@ -585,31 +431,10 @@ class BonesAuth extends Auth
      * @return array
      *
      * @throws QueryException
-     * @throws BadRequestException
      */
 
     public function getUserMetaCollection(string $user_id, array $request): array
     {
-
-        // TODO: All fields need returned, so do not allow field keys
-
-        if (!empty(Arr::except($request['fields'], [ // Allowed field keys
-            'meta'
-        ]))) {
-
-            throw new BadRequestException('Unable to get user meta: invalid request');
-
-        }
-
-        if (isset($request['fields']['meta'])) {
-
-            // TODO: JSON:API requires a unique ID
-
-            //$request['fields']['meta'][] = 'id'; // "id" column is required
-
-            $request['fields']['meta'] = array_unique(array_filter($request['fields']['users'])); // Remove blank and duplicate values
-
-        }
 
         $query = new Query($this->pdo);
 

@@ -13,6 +13,8 @@ use Bayfront\HttpRequest\Request;
 use Bayfront\HttpResponse\InvalidStatusCodeException;
 use Bayfront\JWT\Jwt;
 use Bayfront\JWT\TokenException;
+use Bayfront\LeakyBucket\AdapterException;
+use Bayfront\LeakyBucket\BucketException;
 use Bayfront\MonologFactory\Exceptions\ChannelNotFoundException;
 use Bayfront\RBAC\Auth as RBACAuth;
 use Bayfront\RBAC\Exceptions\AuthenticationException;
@@ -34,8 +36,12 @@ class Auth extends ApiController
      * Auth constructor.
      *
      * @throws ControllerException
+     * @throws HttpException
+     * @throws InvalidStatusCodeException
      * @throws NotFoundException
      * @throws ServiceException
+     * @throws AdapterException
+     * @throws BucketException
      */
 
     public function __construct()

@@ -30,6 +30,4 @@ $auth = get_service('BonesAuth\\BonesAuth', [
     'pepper' => get_config('app.key', '')
 ]);
 
-$container = get_container();
-
-$container->put('auth', $auth);
+put_in_container('auth', $auth);

@@ -3,7 +3,6 @@
 namespace App\Controllers\v1;
 
 use App\Services\BonesAuth\BonesAuth;
-use App\Services\BonesAuth\Exceptions\BadRequestException;
 use App\Services\BonesAuth\Schemas\UserCollection;
 use App\Services\BonesAuth\Schemas\UserResource;
 use Bayfront\ArrayHelpers\Arr;
@@ -12,6 +11,8 @@ use Bayfront\Bones\Exceptions\ControllerException;
 use Bayfront\Bones\Exceptions\HttpException;
 use Bayfront\Bones\Exceptions\ServiceException;
 use Bayfront\Container\NotFoundException;
+use Bayfront\LeakyBucket\AdapterException;
+use Bayfront\LeakyBucket\BucketException;
 use Bayfront\MonologFactory\Exceptions\ChannelNotFoundException;
 use Bayfront\RBAC\Exceptions\InvalidKeysException;
 use Bayfront\RBAC\Exceptions\InvalidUserException;
@@ -40,8 +41,12 @@ class Users extends ApiController
      * Groups constructor.
      *
      * @throws ControllerException
+     * @throws HttpException
+     * @throws InvalidStatusCodeException
      * @throws NotFoundException
      * @throws ServiceException
+     * @throws AdapterException
+     * @throws BucketException
      */
 
     public function __construct()
@@ -74,7 +79,9 @@ class Users extends ApiController
 
         // TODO: Check permissions, return 403
 
-        // Get body
+        /*
+         * Get body
+         */
 
         $body = $this->api->getBody([
             'login',
@@ -99,7 +106,9 @@ class Users extends ApiController
 
         }
 
-        // Validate body
+        /*
+         * Validate body
+         */
 
         try {
 
@@ -118,7 +127,9 @@ class Users extends ApiController
 
         }
 
-        // Create user
+        /*
+         * Perform action
+         */
 
         try {
 
@@ -136,19 +147,31 @@ class Users extends ApiController
 
         }
 
+        /*
+         * Log action
+         */
+
         log_info('User created', [
             'id' => $id
         ]);
 
-        // user.create event
+        /*
+         * Do event
+         */
 
         do_event('user.create', $id);
 
-        // Send response
+        /*
+         * Build schema
+         */
 
         $schema = UserResource::create($this->model->getUser($id), [
             'object_prefix' => '/users'
         ]);
+
+        /*
+         * Send response
+         */
 
         $this->response->sendJson($schema);
 
@@ -175,7 +198,9 @@ class Users extends ApiController
 
         // TODO: Check permissions, return 403
 
-        // Get body
+        /*
+         * Get body
+         */
 
         $body = $this->api->getBody();
 
@@ -197,7 +222,9 @@ class Users extends ApiController
 
         }
 
-        // Validate body
+        /*
+         * Validate body
+         */
 
         try {
 
@@ -216,7 +243,9 @@ class Users extends ApiController
 
         }
 
-        // Update user
+        /*
+         * Perform action
+         */
 
         try {
 
@@ -239,19 +268,31 @@ class Users extends ApiController
 
         }
 
+        /*
+         * Log action
+         */
+
         log_info('User updated', [
             'id' => $id
         ]);
 
-        // user.update event
+        /*
+         * Do event
+         */
 
         do_event('user.update', $id);
 
-        // Send response
+        /*
+         * Build schema
+         */
 
         $schema = UserResource::create($this->model->getUser($id), [
             'object_prefix' => '/users'
         ]);
+
+        /*
+         * Send response
+         */
 
         $this->response->sendJson($schema);
 
@@ -275,7 +316,43 @@ class Users extends ApiController
 
         // TODO: Check permissions, return 403
 
-        // Get user
+
+        /*
+         * Get request
+         */
+
+        $request = $this->api->parseQuery(
+            Request::getQuery(),
+            Arr::get(Request::getQuery(), 'page.size', get_config('api.default_page_size', 10)),
+            get_config('api.max_page_size', 100)
+        );
+
+        /*
+         * Validate field types and fields
+         *
+         * Valid fields should match what is available to be
+         * returned in the schema.
+         */
+
+        if (!empty(Arr::except($request['fields'], [ // Valid field types
+                'users'
+            ])) || !empty(Arr::except(array_flip(Arr::get($request['fields'], 'users', [])), [ // Valid fields
+                'id',
+                'login',
+                'email',
+                'enabled',
+                'created_at',
+                'updated_at'
+            ]))) {
+
+            abort(400, 'Unable to get user: query string contains invalid fields');
+            die;
+
+        }
+
+        /*
+         * Get data
+         */
 
         try {
 
@@ -288,11 +365,29 @@ class Users extends ApiController
 
         }
 
-        // Send response
+        /*
+         * Filter fields
+         */
+
+        if (isset($request['fields']['users'])) {
+
+            $request = $this->requireValues($request, 'fields.users', 'id');
+
+            $user = Arr::only($user, $request['fields']['users']);
+
+        }
+
+        /*
+         * Build schema
+         */
 
         $schema = UserResource::create($user, [
             'object_prefix' => '/users'
         ]);
+
+        /*
+         * Send response
+         */
 
         $this->response->setHeaders([
             'Cache-Control' => 'max-age=3600' // 1 hour
@@ -314,8 +409,6 @@ class Users extends ApiController
     protected function _getUsers(): void
     {
 
-        $request = $this->api->parseQuery(Request::getQuery(), $this->getPageSize());
-
         /*
          * TODO: Check permissions
          * Manipulate the $request array according to permissions (eg: WHERE...)
@@ -324,14 +417,25 @@ class Users extends ApiController
          */
 
         /*
-         * Check that only valid fields have been requested.
-         * These fields should match what is available to be
+         * Get request
+         */
+
+        $request = $this->api->parseQuery(
+            Request::getQuery(),
+            Arr::get(Request::getQuery(), 'page.size', get_config('api.default_page_size', 10)),
+            get_config('api.max_page_size', 100)
+        );
+
+        /*
+         * Validate field types and fields
+         *
+         * Valid fields should match what is available to be
          * returned in the schema.
          */
 
-        if (isset($request['fields']['users'])) {
-
-            if (!empty(Arr::except(array_flip($request['fields']['users']), [
+        if (!empty(Arr::except($request['fields'], [ // Valid field types
+                'users'
+            ])) || !empty(Arr::except(array_flip(Arr::get($request['fields'], 'users', [])), [ // Valid fields
                 'id',
                 'login',
                 'email',
@@ -340,25 +444,35 @@ class Users extends ApiController
                 'updated_at'
             ]))) {
 
-                abort(400, 'Unable to get users: query string contains invalid fields');
-                die;
-
-            }
+            abort(400, 'Unable to get users: query string contains invalid fields');
+            die;
 
         }
+
+        /*
+         * Filter fields
+         */
+
+        $request = $this->requireValues($request, 'fields.users', 'id');
+
+        /*
+         * Get data
+         */
 
         try {
 
             $users = $this->model->getUsersCollection($request);
 
-        } catch (QueryException|BadRequestException|PDOException $e) {
+        } catch (QueryException|PDOException $e) {
 
             abort(400, 'Unable to get users: invalid request');
             die;
 
         }
 
-        // Send response
+        /*
+         * Build schema
+         */
 
         $schema = UserCollection::create([
             'results' => $users['results'],
@@ -367,6 +481,10 @@ class Users extends ApiController
             'object_prefix' => '/users',
             'collection_prefix' => '/users'
         ]);
+
+        /*
+         * Send response
+         */
 
         $this->response->setHeaders([
             'Cache-Control' => 'max-age=3600' // 1 hour
@@ -392,21 +510,31 @@ class Users extends ApiController
 
         // TODO: Check permissions
 
-        // Delete user
+        /*
+         * Perform action
+         */
 
         $deleted = $this->model->deleteUser($id);
 
         if ($deleted) {
 
+            /*
+             * Log action
+             */
+
             log_info('User deleted', [
                 'id' => $id
             ]);
 
-            // user.delete event
+            /*
+             * Do event
+             */
 
             do_event('user.delete', $id);
 
-            // Send response
+            /*
+             * Send response
+             */
 
             $this->response->setStatusCode(204)->send();
 

@@ -6,10 +6,13 @@ use App\Services\BonesAuth\BonesAuth;
 use Bayfront\ArrayHelpers\Arr;
 use Bayfront\Bones\Controller;
 use Bayfront\Bones\Exceptions\ControllerException;
+use Bayfront\Bones\Exceptions\HttpException;
 use Bayfront\Bones\Exceptions\ServiceException;
 use Bayfront\Bones\Services\BonesApi;
 use Bayfront\Container\NotFoundException;
-use Bayfront\HttpRequest\Request;
+use Bayfront\HttpResponse\InvalidStatusCodeException;
+use Bayfront\LeakyBucket\AdapterException;
+use Bayfront\LeakyBucket\BucketException;
 
 /**
  * ApiController controller.
@@ -17,13 +20,17 @@ use Bayfront\HttpRequest\Request;
 abstract class ApiController extends Controller
 {
 
+    /** @var BonesApi $api */
+
     protected $api;
+
+    /** @var BonesAuth $auth */
 
     protected $auth;
 
     protected $token; // JWT
 
-    protected $permissions = [];
+    protected $permissions;
 
     /**
      * ApiController constructor.
@@ -33,6 +40,10 @@ abstract class ApiController extends Controller
      * @throws ControllerException
      * @throws NotFoundException
      * @throws ServiceException
+     * @throws HttpException
+     * @throws InvalidStatusCodeException
+     * @throws AdapterException
+     * @throws BucketException
      */
 
     public function __construct(bool $requires_authentication = true)
@@ -52,8 +63,6 @@ abstract class ApiController extends Controller
 
         // Get the Auth class from the container
 
-        /** @var BonesAuth $auth */
-
         $this->auth = $this->container->get('auth');
 
         if (true === $requires_authentication) {
@@ -64,38 +73,49 @@ abstract class ApiController extends Controller
 
             // Check rate limit
 
-            if (isset($this->token['payload']['user_id']) && isset($this->token['payload']['rate_limit'])) {
+            if (Arr::has($this->token, 'payload.user_id') && Arr::has($this->token, 'payload.rate_limit')) {
 
                 $this->api->enforceRateLimit($this->token['payload']['user_id'], $this->token['payload']['rate_limit']);
 
             }
 
-            if (isset($this->token['payload']['orgs'])) {
-
-                foreach ($this->token['payload']['orgs'] as $organization) { // TODO: Work with permissions
-
-                    $this->permissions[$organization] = $this->auth->getUserPermissions($this->token['payload']['user_id'], $organization);
-
-                }
-
-            }
+            $this->permissions = $this->auth->getUserPermissions(Arr::get($this->token, 'payload.user_id', ''));
 
         }
 
     }
 
     /**
-     * Return the page size based on the request query string, and the api.default_page_size and api.max_page_size config values
+     * Require values to exist on an array if the key already exists.
      *
-     * TODO:
-     * Add abs() to the value if it does not trigger a status code 400 when page[size] is a negative number
+     * @param array $array
+     * @param string $key (Array key in dot notation)
+     * @param string|array $values (Value(s) to require)
      *
-     * @return int
+     * @return array
      */
 
-    public function getPageSize():int
+    public function requireValues(array $array, string $key, $values): array
     {
-        return (int)min((int)Arr::get(Request::getQuery(), 'page.size', get_config('api.default_page_size', 10)), (int)get_config('api.max_page_size', 10));
+
+        if (Arr::has($array, $key)) {
+
+            $set = Arr::get($array, $key);
+
+            foreach ((array)$values as $value) {
+
+                $set[] = $value;
+
+            }
+
+            // Remove blank and duplicate values
+
+            Arr::set($array, $key, array_unique(array_filter($set)));
+
+        }
+
+        return $array;
+
     }
 
 }
