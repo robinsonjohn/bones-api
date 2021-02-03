@@ -8,21 +8,21 @@ use App\Services\BonesAuth\Schemas\UserCollection;
 use App\Services\BonesAuth\Schemas\UserResource;
 use Bayfront\ArrayHelpers\Arr;
 use Bayfront\ArraySchema\InvalidSchemaException;
-use Bayfront\Auth\Exceptions\IdExistsException;
-use Bayfront\Auth\Exceptions\InvalidKeysException;
-use Bayfront\Auth\Exceptions\InvalidUserException;
-use Bayfront\Auth\Exceptions\LoginExistsException;
 use Bayfront\Bones\Exceptions\ControllerException;
 use Bayfront\Bones\Exceptions\HttpException;
 use Bayfront\Bones\Exceptions\ServiceException;
 use Bayfront\Container\NotFoundException;
 use Bayfront\MonologFactory\Exceptions\ChannelNotFoundException;
+use Bayfront\RBAC\Exceptions\InvalidKeysException;
+use Bayfront\RBAC\Exceptions\InvalidUserException;
+use Bayfront\RBAC\Exceptions\LoginExistsException;
 use Bayfront\Validator\ValidationException;
 use Bayfront\HttpRequest\Request;
 use Bayfront\HttpResponse\InvalidStatusCodeException;
 use Bayfront\PDO\Exceptions\QueryException;
 use Bayfront\Validator\Validate;
 use Exception;
+use PDOException;
 
 /**
  * Users controller.
@@ -47,7 +47,7 @@ class Users extends ApiController
     public function __construct()
     {
 
-        parent::__construct();
+        parent::__construct(true);
 
         // Define default model
 
@@ -62,16 +62,17 @@ class Users extends ApiController
      *
      * @throws ChannelNotFoundException
      * @throws HttpException
-     * @throws IdExistsException
      * @throws InvalidSchemaException
      * @throws InvalidStatusCodeException
      * @throws InvalidUserException
      * @throws NotFoundException
-     * @throws InvalidKeysException
+     * @throws Exception
      */
 
     protected function _createUser(): void
     {
+
+        // TODO: Check permissions, return 403
 
         // Get body
 
@@ -80,12 +81,17 @@ class Users extends ApiController
             'password'
         ]); // Required keys
 
+        /*
+         * TODO
+         * Filter what is able to be sent depending on permissions (eg: attributes)
+         */
+
         if (!empty(Arr::except($body, [ // If invalid keys have been sent
             'login',
             'password',
             'email',
             'attributes',
-            'active'
+            'enabled'
         ]))) {
 
             abort(400, 'Unable to create user: request body contains invalid parameters');
@@ -101,8 +107,8 @@ class Users extends ApiController
                 'login' => 'string',
                 'password' => 'string',
                 'email' => 'email',
-                'attributes' => 'json',
-                'active' => 'boolean'
+                'attributes' => 'array', // TODO: Need to validate array||null
+                'enabled' => 'boolean'
             ]);
 
         } catch (ValidationException $e) {
@@ -118,9 +124,14 @@ class Users extends ApiController
 
             $id = $this->model->createUser($body);
 
+        } catch (InvalidKeysException $e) {
+
+            abort(400, 'Unable to create user: invalid parameters');
+            die;
+
         } catch (LoginExistsException $e) {
 
-            abort(400, 'Unable to create user: user login already exists');
+            abort(409, 'Unable to create user: login already exists');
             die;
 
         }
@@ -162,16 +173,23 @@ class Users extends ApiController
     protected function _updateUser(string $id): void
     {
 
+        // TODO: Check permissions, return 403
+
         // Get body
 
         $body = $this->api->getBody();
+
+        /*
+         * TODO
+         * Filter what is able to be sent depending on permissions (eg: attributes)
+         */
 
         if (!empty(Arr::except($body, [ // If invalid keys have been sent
             'login',
             'password',
             'email',
             'attributes',
-            'active'
+            'enabled'
         ]))) {
 
             abort(400, 'Unable to update user: request body contains invalid parameters');
@@ -187,8 +205,8 @@ class Users extends ApiController
                 'login' => 'string',
                 'password' => 'string',
                 'email' => 'email',
-                'attributes' => 'json',
-                'active' => 'boolean'
+                'attributes' => 'array', // TODO: Need to validate array||null
+                'enabled' => 'boolean'
             ]);
 
         } catch (ValidationException $e) {
@@ -204,6 +222,11 @@ class Users extends ApiController
 
             $this->model->updateUser($id, $body);
 
+        } catch (InvalidKeysException $e) {
+
+            abort(400, 'Unable to create user: invalid parameters');
+            die;
+
         } catch (InvalidUserException $e) {
 
             abort(404, 'Unable to update user: user ID does not exist');
@@ -211,7 +234,7 @@ class Users extends ApiController
 
         } catch (LoginExistsException $e) {
 
-            abort(400, 'Unable to update user: user login already exists');
+            abort(409, 'Unable to update user: login already exists');
             die;
 
         }
@@ -249,6 +272,8 @@ class Users extends ApiController
 
     protected function _getUser(string $id): void
     {
+
+        // TODO: Check permissions, return 403
 
         // Get user
 
@@ -289,13 +314,44 @@ class Users extends ApiController
     protected function _getUsers(): void
     {
 
+        $request = $this->api->parseQuery(Request::getQuery(), $this->getPageSize());
+
+        /*
+         * TODO: Check permissions
+         * Manipulate the $request array according to permissions (eg: WHERE...)
+         *      - Check fields and filters
+         *      - Return 403
+         */
+
+        /*
+         * Check that only valid fields have been requested.
+         * These fields should match what is available to be
+         * returned in the schema.
+         */
+
+        if (isset($request['fields']['users'])) {
+
+            if (!empty(Arr::except(array_flip($request['fields']['users']), [
+                'id',
+                'login',
+                'email',
+                'enabled',
+                'created_at',
+                'updated_at'
+            ]))) {
+
+                abort(400, 'Unable to get users: query string contains invalid fields');
+                die;
+
+            }
+
+        }
+
         try {
 
-            $request = $this->api->parseQuery(Request::getQuery(), $this->getPageSize());
+            $users = $this->model->getUsersCollection($request);
 
-            $users = $this->model->getUserCollection($request);
-
-        } catch (HttpException|QueryException|BadRequestException $e) {
+        } catch (QueryException|BadRequestException|PDOException $e) {
 
             abort(400, 'Unable to get users: invalid request');
             die;
@@ -334,6 +390,8 @@ class Users extends ApiController
     protected function _deleteUser(string $id): void
     {
 
+        // TODO: Check permissions
+
         // Delete user
 
         $deleted = $this->model->deleteUser($id);
@@ -347,6 +405,8 @@ class Users extends ApiController
             // user.delete event
 
             do_event('user.delete', $id);
+
+            // Send response
 
             $this->response->setStatusCode(204)->send();
 
@@ -374,8 +434,6 @@ class Users extends ApiController
      *
      * @throws ChannelNotFoundException
      * @throws HttpException
-     * @throws IdExistsException
-     * @throws InvalidKeysException
      * @throws InvalidSchemaException
      * @throws InvalidStatusCodeException
      * @throws InvalidUserException

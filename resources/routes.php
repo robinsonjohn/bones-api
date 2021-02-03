@@ -1,4 +1,4 @@
-<?php
+<?php /** @noinspection PhpUnhandledExceptionInspection */
 
 /*
  * This file should be used to define all of the application's routes.
@@ -28,14 +28,15 @@ $router->setHost(get_config('router.host'))
 
     // User Auth library
 
-    ->any('v1/organizations/{?:id}', 'v1\\Organizations:index')
-    ->any('v1/organizations/{*:id}/groups', 'v1\\Organizations:groups')
-    ->any('v1/organizations/{*:id}/permissions', 'v1\\Organizations:permissions')
-    ->any('v1/organizations/{*:id}/roles', 'v1\\Organizations:roles')
-    ->any('v1/organizations/{*:id}/users', 'v1\\Organizations:users')
     ->any('v1/groups/{?:id}', 'v1\\Groups:index')
-    ->any('v1/groups/{*:id}/permissions', 'v1\\Groups:permissions')
+    ->any('v1/groups/{*:group_id}/users/{?:user_id}', 'v1\\Groups:users')
     ->any('v1/permissions/{?:id}', 'v1\\Permissions:index')
+    ->any('v1/permissions/{*:permission_id}/roles/{?:role_id}', 'v1\\Permissions:roles')
     ->any('v1/roles/{?:id}', 'v1\\Roles:index')
-    ->any('v1/roles/{*:id}/permissions', 'v1\\Roles:permissions')
-    ->any('v1/users/{?:id}', 'v1\\Users:index');
+    ->any('v1/roles/{*:role_id}/permissions/{?:permission_id}', 'v1\\Roles:permissions')
+    ->any('v1/roles/{*:role_id}/users/{?:user_id}', 'v1\\Roles:users')
+    ->any('v1/users/{?:id}', 'v1\\Users:index')
+    ->any('v1/users/{*:user_id}/groups/{?:group_id}', 'v1\\Users:groups')
+    ->any('v1/users/{*:user_id}/meta/{?:meta_key}', 'v1\\Users:meta')
+    ->any('v1/users/{*:user_id}/permissions', 'v1\\Users:permissions')
+    ->any('v1/users/{*:user_id}/roles/{?:role_id}', 'v1\\Users:roles');

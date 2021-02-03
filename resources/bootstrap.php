@@ -8,7 +8,7 @@ use Bayfront\PDO\Db;
  */
 
 /*
- * Place the BonesApi service into the services container
+ * Place the BonesApi service into the container
  */
 
 get_service('BonesApi', [
@@ -16,7 +16,7 @@ get_service('BonesApi', [
 ]);
 
 /*
- * Place the BonesAuth library into the services container
+ * Place the BonesAuth service into the container
  */
 
 /** @var Db $db */

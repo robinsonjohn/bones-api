@@ -3,12 +3,8 @@
 namespace App\Controllers\v1;
 
 use App\Services\BonesAuth\Schemas\AuthResource;
-use Bayfront\Auth\Exceptions\AuthenticationException;
-use Bayfront\Auth\Exceptions\InvalidMetaException;
-use Bayfront\Auth\Exceptions\InvalidUserException;
 use Bayfront\ArrayHelpers\Arr;
 use Bayfront\ArraySchema\InvalidSchemaException;
-use Bayfront\Auth\Auth as UserAuth;
 use Bayfront\Bones\Exceptions\ControllerException;
 use Bayfront\Bones\Exceptions\HttpException;
 use Bayfront\Bones\Exceptions\ServiceException;
@@ -18,6 +14,10 @@ use Bayfront\HttpResponse\InvalidStatusCodeException;
 use Bayfront\JWT\Jwt;
 use Bayfront\JWT\TokenException;
 use Bayfront\MonologFactory\Exceptions\ChannelNotFoundException;
+use Bayfront\RBAC\Auth as RBACAuth;
+use Bayfront\RBAC\Exceptions\AuthenticationException;
+use Bayfront\RBAC\Exceptions\InvalidMetaException;
+use Bayfront\RBAC\Exceptions\InvalidUserException;
 use Exception;
 
 /**
@@ -26,7 +26,7 @@ use Exception;
 class Auth extends ApiController
 {
 
-    /** @var UserAuth $model */
+    /** @var RBACAuth $model */
 
     protected $model;
 
@@ -74,7 +74,7 @@ class Auth extends ApiController
 
         $payload = do_filter('jwt.payload', [
             'user_id' => $data['user_id'],
-            'orgs' => $data['orgs'],
+            'groups' => $data['groups'],
             'rate_limit' => $rate_limit
         ]);
 
@@ -174,13 +174,13 @@ class Auth extends ApiController
 
         }
 
-        if (!$user['active']) {
+        if (!$user['enabled']) {
 
-            log_notice('Unsuccessful login: user inactive', [
+            log_notice('Unsuccessful login: user disabled', [
                 'user_id' => $user['id']
             ]);
 
-            abort(403, 'User inactive');
+            abort(403, 'User disabled');
 
             die;
 
@@ -192,15 +192,17 @@ class Auth extends ApiController
 
         $refresh_token = create_key();
 
-        $this->model->setUserMeta($user['id'], '_refresh_token', json_encode([
-            'token' => $refresh_token,
-            'created_at' => time()
-        ]));
+        $this->model->setUserMeta($user['id'], [
+            '_refresh_token' => json_encode([
+                'token' => $refresh_token,
+                'created_at' => time()
+            ])
+        ]);
 
         $data = [
             'user_id' => $user['id'],
             'login' => $user['login'],
-            'orgs' => Arr::pluck($this->model->getUserOrganizations($user['id']), 'id')
+            'groups' => Arr::pluck($this->model->getUserGroups($user['id']), 'id')
         ];
 
         log_info('Successful login', [
@@ -305,7 +307,9 @@ class Auth extends ApiController
 
             // Delete invalid token
 
-            $this->model->deleteUserMeta($token['payload']['user_id'], '_refresh_token');
+            $this->model->deleteUserMeta($token['payload']['user_id'], [
+                '_refresh_token'
+            ]);
 
             log_notice('Unsuccessful login refresh: invalid refresh token format', [
                 'user_id' => $token['payload']['user_id'],
@@ -340,13 +344,13 @@ class Auth extends ApiController
 
                 }
 
-                if (!$user['active']) {
+                if (!$user['enabled']) {
 
-                    log_notice('Unsuccessful login refresh: user inactive', [
+                    log_notice('Unsuccessful login refresh: user disabled', [
                         'user_id' => $user['id']
                     ]);
 
-                    abort(403, 'User inactive');
+                    abort(403, 'User disabled');
 
                     die;
 
@@ -358,15 +362,17 @@ class Auth extends ApiController
 
                 $refresh_token = create_key();
 
-                $this->model->setUserMeta($user['id'], '_refresh_token', json_encode([
-                    'token' => $refresh_token,
-                    'created_at' => time()
-                ]));
+                $this->model->setUserMeta($user['id'], [
+                    '_refresh_token' => json_encode([
+                        'token' => $refresh_token,
+                        'created_at' => time()
+                    ])
+                ]);
 
                 $data = [
                     'user_id' => $user['id'],
                     'login' => $user['login'],
-                    'orgs' => Arr::pluck($this->model->getUserOrganizations($user['id']), 'id')
+                    'groups' => Arr::pluck($this->model->getUserGroups($user['id']), 'id')
                 ];
 
                 log_info('Successful login via refresh token', [
@@ -381,7 +387,9 @@ class Auth extends ApiController
 
             // Delete invalid token
 
-            $this->model->deleteUserMeta($token['payload']['user_id'], '_refresh_token');
+            $this->model->deleteUserMeta($token['payload']['user_id'], [
+                '_refresh_token'
+            ]);
 
             log_notice('Unsuccessful login refresh: expired refresh token', [
                 'user_id' => $token['payload']['user_id']

@@ -11,12 +11,9 @@ namespace App\Services\BonesAuth;
 
 use App\Services\BonesAuth\Exceptions\BadRequestException;
 use Bayfront\ArrayHelpers\Arr;
-use Bayfront\Auth\Auth;
-use Bayfront\Auth\Exceptions\InvalidGroupException;
-use Bayfront\Auth\Exceptions\InvalidOrganizationException;
-use Bayfront\Auth\Exceptions\InvalidRoleException;
 use Bayfront\PDO\Exceptions\QueryException;
 use Bayfront\PDO\Query;
+use Bayfront\RBAC\Auth;
 use PDO;
 
 class BonesAuth extends Auth
@@ -64,427 +61,12 @@ class BonesAuth extends Auth
 
     /*
      * ############################################################
-     * Permissions
-     * ############################################################
-     */
-
-    /**
-     * Get permission collection using a query builder.
-     *
-     * @param array $request
-     *
-     * @return array
-     *
-     * @throws QueryException
-     * @throws BadRequestException
-     */
-
-    public function getPermissionCollection(array $request): array
-    {
-
-        if (!empty(Arr::except($request['fields'], [ // Allowed field keys
-            'permissions'
-        ]))) {
-
-            throw new BadRequestException('Unable to get permissions: invalid request');
-
-        }
-
-        if (isset($request['fields']['permissions'])) {
-
-            $request['fields']['permissions'][] = 'id'; // "id" column is required
-
-            $request['fields']['permissions'] = array_unique(array_filter($request['fields']['permissions'])); // Remove blank and duplicate values
-
-        }
-
-        $query = new Query($this->pdo);
-
-        $query->table('user_permissions')
-            ->select(Arr::get($request, 'fields.permissions', ['*']))
-            ->limit($request['limit'])
-            ->offset($request['offset'])
-            ->orderBy($request['order_by']);
-
-        foreach ($request['filters'] as $column => $filter) {
-
-            foreach ($filter as $operator => $value) {
-
-                $query->where($column, $operator, $value);
-
-            }
-
-        }
-
-        return $this->_returnResults($query, $request);
-
-    }
-
-
-    /*
-     * ############################################################
-     * Organizations
-     * ############################################################
-     */
-
-    /**
-     * Get organization collection using a query builder.
-     *
-     * @param array $request
-     *
-     * @return array
-     *
-     * @throws QueryException
-     * @throws BadRequestException
-     */
-
-    public function getOrganizationCollection(array $request): array
-    {
-
-        if (!empty(Arr::except($request['fields'], [ // Allowed field keys
-            'organizations'
-        ]))) {
-
-            throw new BadRequestException('Unable to get organizations: invalid request');
-
-        }
-
-        if (isset($request['fields']['organizations'])) {
-
-            $request['fields']['organizations'][] = 'id'; // "id" column is required
-
-            $request['fields']['organizations'] = array_unique(array_filter($request['fields']['organizations'])); // Remove blank and duplicate values
-
-        }
-
-        $query = new Query($this->pdo);
-
-        $query->table('user_organizations')
-            ->select(Arr::get($request, 'fields.organizations', ['*']))
-            ->limit($request['limit'])
-            ->offset($request['offset'])
-            ->orderBy($request['order_by']);
-
-        foreach ($request['filters'] as $column => $filter) {
-
-            foreach ($filter as $operator => $value) {
-
-                $query->where($column, $operator, $value);
-
-            }
-
-        }
-
-        return $this->_returnResults($query, $request);
-
-    }
-
-    /**
-     * Get organization group collection using a query builder.
-     *
-     * @param string $organization_id
-     * @param array $request
-     *
-     * @return array
-     *
-     * @throws BadRequestException
-     * @throws QueryException
-     * @throws InvalidOrganizationException
-     */
-
-    public function getOrganizationGroupCollection(string $organization_id, array $request): array
-    {
-
-        if (!$this->organizationIdExists($organization_id)) {
-            throw new InvalidOrganizationException('Unable to get organization groups: organization ID does not exist');
-        }
-
-        if (!empty(Arr::except($request['fields'], [ // Allowed field keys
-            'groups'
-        ]))) {
-
-            throw new BadRequestException('Unable to get organization groups: invalid request');
-
-        }
-
-        if (isset($request['fields']['groups'])) {
-
-            $request['fields']['groups'][] = 'id'; // "id" column is required
-
-            $request['fields']['groups'] = array_unique(array_filter($request['fields']['groups'])); // Remove blank and duplicate values
-
-        }
-
-        $query = new Query($this->pdo);
-
-        $query->table('user_groups')
-            ->select(Arr::get($request, 'fields.groups', ['*']))
-            ->where('organization_id', 'eq', $organization_id)
-            ->limit($request['limit'])
-            ->offset($request['offset'])
-            ->orderBy($request['order_by']);
-
-        foreach ($request['filters'] as $column => $filter) {
-
-            // Do not allow request to filter the organization ID
-
-            if ($column == 'organization_id') {
-                throw new BadRequestException('Unable to get organization groups: invalid request');
-            }
-
-            foreach ($filter as $operator => $value) {
-
-                $query->where($column, $operator, $value);
-
-            }
-
-        }
-
-        return $this->_returnResults($query, $request);
-
-    }
-
-    /**
-     * Get organization permission collection using a query builder.
-     *
-     * @param string $organization_id
-     * @param array $request
-     *
-     * @return array
-     *
-     * @throws BadRequestException
-     * @throws QueryException
-     * @throws InvalidOrganizationException
-     */
-
-    public function getOrganizationPermissionCollection(string $organization_id, array $request): array
-    {
-
-        if (!$this->organizationIdExists($organization_id)) {
-            throw new InvalidOrganizationException('Unable to get organization permissions: organization ID does not exist');
-        }
-
-        if (!empty(Arr::except($request['fields'], [ // Allowed field keys
-            'permissions'
-        ]))) {
-
-            throw new BadRequestException('Unable to get organization permissions: invalid request');
-
-        }
-
-        if (isset($request['fields']['permissions'])) {
-
-            $request['fields']['permissions'][] = 'id'; // "id" column is required
-
-            $request['fields']['permissions'] = array_unique(array_filter($request['fields']['permissions'])); // Remove blank and duplicate values
-
-        }
-
-        // Prefix the table name to the fields and columns for the LEFT JOIN clause
-
-        $fields = Arr::get($request, 'fields.permissions', ['*']);
-
-        foreach ($fields as $k => $field) {
-
-            $fields[$k] = 'user_permissions.' . $field;
-
-        }
-
-        foreach ($request['order_by'] as $k => $col) {
-
-            $request['order_by'][$k] = 'user_permissions.' . $col;
-
-        }
-
-        $query = new Query($this->pdo);
-
-        $query->table('user_permissions')
-            ->leftJoin('user_organization_permissions', 'user_permissions.id', 'user_organization_permissions.permission_id')
-            ->select($fields)
-            ->where('user_organization_permissions.organization_id', 'eq', $organization_id)
-            ->limit($request['limit'])
-            ->offset($request['offset'])
-            ->orderBy($request['order_by']);
-
-        foreach ($request['filters'] as $column => $filter) {
-
-            // Do not allow request to filter the organization ID
-
-            if ($column == 'user_organization_permissions.organization_id') {
-                throw new BadRequestException('Unable to get organization permissions: invalid request');
-            }
-
-            foreach ($filter as $operator => $value) {
-
-                // Prefix the table name to the column for the LEFT JOIN clause
-
-                $query->where('user_permissions.' . $column, $operator, $value);
-
-            }
-
-        }
-
-        return $this->_returnResults($query, $request);
-
-    }
-
-    /**
-     * Get organization role collection using a query builder.
-     *
-     * @param string $organization_id
-     * @param array $request
-     *
-     * @return array
-     *
-     * @throws BadRequestException
-     * @throws QueryException
-     * @throws InvalidOrganizationException
-     */
-
-    public function getOrganizationRoleCollection(string $organization_id, array $request): array
-    {
-
-        if (!$this->organizationIdExists($organization_id)) {
-            throw new InvalidOrganizationException('Unable to get organization roles: organization ID does not exist');
-        }
-
-        if (!empty(Arr::except($request['fields'], [ // Allowed field keys
-            'roles'
-        ]))) {
-
-            throw new BadRequestException('Unable to get organization roles: invalid request');
-
-        }
-
-        if (isset($request['fields']['roles'])) {
-
-            $request['fields']['roles'][] = 'id'; // "id" column is required
-
-            $request['fields']['roles'] = array_unique(array_filter($request['fields']['roles'])); // Remove blank and duplicate values
-
-        }
-
-        $query = new Query($this->pdo);
-
-        $query->table('user_roles')
-            ->select(Arr::get($request, 'fields.roles', ['*']))
-            ->where('organization_id', 'eq', $organization_id)
-            ->limit($request['limit'])
-            ->offset($request['offset'])
-            ->orderBy($request['order_by']);
-
-        foreach ($request['filters'] as $column => $filter) {
-
-            // Do not allow request to filter the organization ID
-
-            if ($column == 'organization_id') {
-                throw new BadRequestException('Unable to get organization roles: invalid request');
-            }
-
-            foreach ($filter as $operator => $value) {
-
-                $query->where($column, $operator, $value);
-
-            }
-
-        }
-
-        return $this->_returnResults($query, $request);
-
-    }
-
-    /**
-     * Get organization user collection using a query builder.
-     *
-     * @param string $organization_id
-     * @param array $request
-     *
-     * @return array
-     *
-     * @throws BadRequestException
-     * @throws QueryException
-     * @throws InvalidOrganizationException
-     */
-
-    public function getOrganizationUserCollection(string $organization_id, array $request): array
-    {
-
-        if (!$this->organizationIdExists($organization_id)) {
-            throw new InvalidOrganizationException('Unable to get organization users: organization ID does not exist');
-        }
-
-        if (!empty(Arr::except($request['fields'], [ // Allowed field keys
-            'users'
-        ]))) {
-
-            throw new BadRequestException('Unable to get organization users: invalid request');
-
-        }
-
-        if (isset($request['fields']['users'])) {
-
-            $request['fields']['users'][] = 'id'; // "id" column is required
-
-            $request['fields']['users'] = array_unique(array_filter($request['fields']['users'])); // Remove blank and duplicate values
-
-        }
-
-        // Prefix the table name to the fields and columns for the LEFT JOIN clause
-
-        $fields = Arr::get($request, 'fields.users', ['*']);
-
-        foreach ($fields as $k => $field) {
-
-            $fields[$k] = 'user_users.' . $field;
-
-        }
-
-        foreach ($request['order_by'] as $k => $col) {
-
-            $request['order_by'][$k] = 'user_users.' . $col;
-
-        }
-
-        $query = new Query($this->pdo);
-
-        $query->table('user_users')
-            ->leftJoin('user_user_organizations', 'user_users.id', 'user_user_organizations.user_id')
-            ->select($fields)
-            ->where('user_user_organizations.organization_id', 'eq', $organization_id)
-            ->limit($request['limit'])
-            ->offset($request['offset'])
-            ->orderBy($request['order_by']);
-
-        foreach ($request['filters'] as $column => $filter) {
-
-            // Do not allow request to filter the organization ID
-
-            if ($column == 'user_user_organizations.organization_id') {
-                throw new BadRequestException('Unable to get organization users: invalid request');
-            }
-
-            foreach ($filter as $operator => $value) {
-
-                // Prefix the table name to the column for the LEFT JOIN clause
-
-                $query->where('user_users.' . $column, $operator, $value);
-
-            }
-
-        }
-
-        return $this->_returnResults($query, $request);
-
-    }
-
-    /*
-     * ############################################################
      * Groups
      * ############################################################
      */
 
     /**
-     * Get group collection using a query builder.
+     * Get all groups using query builder.
      *
      * @param array $request
      *
@@ -494,7 +76,7 @@ class BonesAuth extends Auth
      * @throws BadRequestException
      */
 
-    public function getGroupCollection(array $request): array
+    public function getGroupsCollection(array $request): array
     {
 
         if (!empty(Arr::except($request['fields'], [ // Allowed field keys
@@ -515,11 +97,11 @@ class BonesAuth extends Auth
 
         $query = new Query($this->pdo);
 
-        $query->table('user_groups')
+        $query->table('rbac_groups')
             ->select(Arr::get($request, 'fields.groups', ['*']))
             ->limit($request['limit'])
             ->offset($request['offset'])
-            ->orderBy($request['order_by']);
+            ->orderBy(Arr::get($request, 'order_by', ['name']));
 
         foreach ($request['filters'] as $column => $filter) {
 
@@ -536,80 +118,109 @@ class BonesAuth extends Auth
     }
 
     /**
-     * Get group permission collection using a query builder.
+     * Get all users in group using a query builder.
      *
      * @param string $group_id
      * @param array $request
      *
      * @return array
      *
-     * @throws BadRequestException
-     * @throws InvalidGroupException
      * @throws QueryException
+     * @throws BadRequestException
      */
 
-    public function getGroupPermissionCollection(string $group_id, array $request): array
+    public function getGroupUsersCollection(string $group_id, array $request): array
     {
 
-        if (!$this->groupIdExists($group_id)) {
-            throw new InvalidGroupException('Unable to get group permissions: group ID does not exist');
-        }
-
         if (!empty(Arr::except($request['fields'], [ // Allowed field keys
-            'groups'
+            'users'
         ]))) {
 
-            throw new BadRequestException('Unable to get group permissions: invalid request');
+            throw new BadRequestException('Unable to get group users: invalid request');
 
         }
 
-        if (isset($request['fields']['groups'])) {
+        if (isset($request['fields']['users'])) {
 
-            $request['fields']['groups'][] = 'id'; // "id" column is required
+            $request['fields']['users'][] = 'id'; // "id" column is required
 
-            $request['fields']['groups'] = array_unique(array_filter($request['fields']['groups'])); // Remove blank and duplicate values
-
-        }
-
-        // Prefix the table name to the fields and columns for the LEFT JOIN clause
-
-        $fields = Arr::get($request, 'fields.groups', ['*']);
-
-        foreach ($fields as $k => $field) {
-
-            $fields[$k] = 'user_permissions.' . $field;
-
-        }
-
-        foreach ($request['order_by'] as $k => $col) {
-
-            $request['order_by'][$k] = 'user_permissions.' . $col;
+            $request['fields']['users'] = array_unique(array_filter($request['fields']['users'])); // Remove blank and duplicate values
 
         }
 
         $query = new Query($this->pdo);
 
-        $query->table('user_permissions')
-            ->leftJoin('user_group_permissions', 'user_permissions.id', 'user_group_permissions.permission_id')
-            ->select($fields)
-            ->where('user_group_permissions.group_id', 'eq', $group_id)
+        $query->table('rbac_users')
+            ->leftJoin('rbac_group_users', 'rbac_users.id', 'rbac_group_users.user_id')
+            ->select(Arr::get($request, 'fields.users', ['*']))
             ->limit($request['limit'])
             ->offset($request['offset'])
-            ->orderBy($request['order_by']);
+            ->where('rbac_group_users.group_id', 'eq', $group_id)
+            ->orderBy(Arr::get($request, 'order_by', ['rbac_users.login']));
 
         foreach ($request['filters'] as $column => $filter) {
 
-            // Do not allow request to filter the group ID
+            foreach ($filter as $operator => $value) {
 
-            if ($column == 'user_group_permissions.group_id') {
-                throw new BadRequestException('Unable to get group permissions: invalid request');
+                $query->where($column, $operator, $value);
+
             }
+
+        }
+
+        return $this->_returnResults($query, $request);
+
+    }
+
+    /*
+     * ############################################################
+     * Permissions
+     * ############################################################
+     */
+
+    /**
+     * Get all permissions using query builder.
+     *
+     * @param array $request
+     *
+     * @return array
+     *
+     * @throws QueryException
+     * @throws BadRequestException
+     */
+
+    public function getPermissionsCollection(array $request): array
+    {
+
+        if (!empty(Arr::except($request['fields'], [ // Allowed field keys
+            'permissions'
+        ]))) {
+
+            throw new BadRequestException('Unable to get permissions: invalid request');
+
+        }
+
+        if (isset($request['fields']['permissions'])) {
+
+            $request['fields']['permissions'][] = 'id'; // "id" column is required
+
+            $request['fields']['permissions'] = array_unique(array_filter($request['fields']['permissions'])); // Remove blank and duplicate values
+
+        }
+
+        $query = new Query($this->pdo);
+
+        $query->table('rbac_permissions')
+            ->select(Arr::get($request, 'fields.permissions', ['*']))
+            ->limit($request['limit'])
+            ->offset($request['offset'])
+            ->orderBy(Arr::get($request, 'order_by', ['name']));
+
+        foreach ($request['filters'] as $column => $filter) {
 
             foreach ($filter as $operator => $value) {
 
-                // Prefix the table name to the column for the LEFT JOIN clause
-
-                $query->where('user_permissions.' . $column, $operator, $value);
+                $query->where($column, $operator, $value);
 
             }
 
@@ -625,9 +236,8 @@ class BonesAuth extends Auth
      * ############################################################
      */
 
-
     /**
-     * Get roles.
+     * Get all roles using query builder.
      *
      * @param array $request
      *
@@ -637,7 +247,7 @@ class BonesAuth extends Auth
      * @throws BadRequestException
      */
 
-    public function getRoleCollection(array $request): array
+    public function getRolesCollection(array $request): array
     {
 
         if (!empty(Arr::except($request['fields'], [ // Allowed field keys
@@ -658,11 +268,11 @@ class BonesAuth extends Auth
 
         $query = new Query($this->pdo);
 
-        $query->table('user_roles')
+        $query->table('rbac_roles')
             ->select(Arr::get($request, 'fields.roles', ['*']))
             ->limit($request['limit'])
             ->offset($request['offset'])
-            ->orderBy($request['order_by']);
+            ->orderBy(Arr::get($request, 'order_by', ['name']));
 
         foreach ($request['filters'] as $column => $filter) {
 
@@ -679,80 +289,106 @@ class BonesAuth extends Auth
     }
 
     /**
-     * Get role permission collection.
+     * Get all permissions of role using a query builder.
      *
      * @param string $role_id
      * @param array $request
      *
      * @return array
      *
-     * @throws BadRequestException
-     * @throws InvalidRoleException
      * @throws QueryException
+     * @throws BadRequestException
      */
 
-    public function getRolePermissionCollection(string $role_id, array $request): array
+    public function getRolePermissionsCollection(string $role_id, array $request): array
     {
 
-        if (!$this->roleIdExists($role_id)) {
-            throw new InvalidRoleException('Unable to get role permissions: role ID does not exist');
-        }
-
         if (!empty(Arr::except($request['fields'], [ // Allowed field keys
-            'roles'
+            'permissions'
         ]))) {
 
             throw new BadRequestException('Unable to get role permissions: invalid request');
 
         }
 
-        if (isset($request['fields']['roles'])) {
+        if (isset($request['fields']['permissions'])) {
 
-            $request['fields']['roles'][] = 'id'; // "id" column is required
+            $request['fields']['permissions'][] = 'id'; // "id" column is required
 
-            $request['fields']['roles'] = array_unique(array_filter($request['fields']['roles'])); // Remove blank and duplicate values
-
-        }
-
-        // Prefix the table name to the fields and columns for the LEFT JOIN clause
-
-        $fields = Arr::get($request, 'fields.roles', ['*']);
-
-        foreach ($fields as $k => $field) {
-
-            $fields[$k] = 'user_permissions.' . $field;
-
-        }
-
-        foreach ($request['order_by'] as $k => $col) {
-
-            $request['order_by'][$k] = 'user_permissions.' . $col;
+            $request['fields']['permissions'] = array_unique(array_filter($request['fields']['permissions'])); // Remove blank and duplicate values
 
         }
 
         $query = new Query($this->pdo);
 
-        $query->table('user_permissions')
-            ->leftJoin('user_role_permissions', 'user_permissions.id', 'user_role_permissions.permission_id')
-            ->select($fields)
-            ->where('user_role_permissions.role_id', 'eq', $role_id)
+        $query->table('rbac_permissions')
+            ->leftJoin('rbac_role_permissions', 'rbac_permissions.id', 'rbac_role_permissions.permission_id')
+            ->select(Arr::get($request, 'fields.permissions', ['*']))
             ->limit($request['limit'])
             ->offset($request['offset'])
-            ->orderBy($request['order_by']);
+            ->where('rbac_role_permissions.role_id', 'eq', $role_id)
+            ->orderBy(Arr::get($request, 'order_by', ['rbac_permissions.name']));
 
         foreach ($request['filters'] as $column => $filter) {
 
-            // Do not allow request to filter the group ID
+            foreach ($filter as $operator => $value) {
 
-            if ($column == 'user_role_permissions.role_id') {
-                throw new BadRequestException('Unable to get role permissions: invalid request');
+                $query->where($column, $operator, $value);
+
             }
+
+        }
+
+        return $this->_returnResults($query, $request);
+
+    }
+
+    /**
+     * Get all users with role using a query builder.
+     *
+     * @param string $role_id
+     * @param array $request
+     *
+     * @return array
+     *
+     * @throws QueryException
+     * @throws BadRequestException
+     */
+
+    public function getRoleUsersCollection(string $role_id, array $request): array
+    {
+
+        if (!empty(Arr::except($request['fields'], [ // Allowed field keys
+            'users'
+        ]))) {
+
+            throw new BadRequestException('Unable to get role users: invalid request');
+
+        }
+
+        if (isset($request['fields']['users'])) {
+
+            $request['fields']['users'][] = 'id'; // "id" column is required
+
+            $request['fields']['users'] = array_unique(array_filter($request['fields']['users'])); // Remove blank and duplicate values
+
+        }
+
+        $query = new Query($this->pdo);
+
+        $query->table('rbac_users')
+            ->leftJoin('rbac_role_users', 'rbac_users.id', 'rbac_role_users.user_id')
+            ->select(Arr::get($request, 'fields.users', ['*']))
+            ->limit($request['limit'])
+            ->offset($request['offset'])
+            ->where('rbac_role_users.role_id', 'eq', $role_id)
+            ->orderBy(Arr::get($request, 'order_by', ['rbac_users.login']));
+
+        foreach ($request['filters'] as $column => $filter) {
 
             foreach ($filter as $operator => $value) {
 
-                // Prefix the table name to the column for the LEFT JOIN clause
-
-                $query->where('user_permissions.' . $column, $operator, $value);
+                $query->where($column, $operator, $value);
 
             }
 
@@ -768,19 +404,18 @@ class BonesAuth extends Auth
      * ############################################################
      */
 
-
     /**
-     * Get users.
+     * Get all users using query builder.
      *
      * @param array $request
      *
      * @return array
      *
-     * @throws QueryException
      * @throws BadRequestException
+     * @throws QueryException
      */
 
-    public function getUserCollection(array $request): array
+    public function getUsersCollection(array $request): array
     {
 
         if (!empty(Arr::except($request['fields'], [ // Allowed field keys
@@ -801,11 +436,19 @@ class BonesAuth extends Auth
 
         $query = new Query($this->pdo);
 
-        $query->table('user_users')
-            ->select(Arr::get($request, 'fields.users', ['*']))
+        $query->table('rbac_users')
+            ->select(Arr::get($request, 'fields.users', [
+                'id',
+                'login',
+                'email',
+                'attributes',
+                'enabled',
+                'created_at',
+                'updated_at'
+            ]))
             ->limit($request['limit'])
             ->offset($request['offset'])
-            ->orderBy($request['order_by']);
+            ->orderBy(Arr::get($request, 'order_by', ['login']));
 
         foreach ($request['filters'] as $column => $filter) {
 
@@ -821,11 +464,176 @@ class BonesAuth extends Auth
 
     }
 
-    public function getUserPermissionCollection(string $user_id, array $request): array
+    /**
+     * Get all roles of user using a query builder.
+     *
+     * @param string $user_id
+     * @param array $request
+     *
+     * @return array
+     *
+     * @throws QueryException
+     * @throws BadRequestException
+     */
+
+    public function getUserRolesCollection(string $user_id, array $request): array
     {
 
-        return [];
-        // TODO: How to filter this?
+        if (!empty(Arr::except($request['fields'], [ // Allowed field keys
+            'roles'
+        ]))) {
+
+            throw new BadRequestException('Unable to get user roles: invalid request');
+
+        }
+
+        if (isset($request['fields']['roles'])) {
+
+            $request['fields']['roles'][] = 'id'; // "id" column is required
+
+            $request['fields']['roles'] = array_unique(array_filter($request['fields']['roles'])); // Remove blank and duplicate values
+
+        }
+
+        $query = new Query($this->pdo);
+
+        $query->table('rbac_roles')
+            ->leftJoin('rbac_role_users', 'rbac_roles.id', 'rbac_role_users.role_id')
+            ->select(Arr::get($request, 'fields.roles', ['*']))
+            ->limit($request['limit'])
+            ->offset($request['offset'])
+            ->where('rbac_role_users.user_id', 'eq', $user_id)
+            ->orderBy(Arr::get($request, 'order_by', ['rbac_roles.name']));
+
+        foreach ($request['filters'] as $column => $filter) {
+
+            foreach ($filter as $operator => $value) {
+
+                $query->where($column, $operator, $value);
+
+            }
+
+        }
+
+        return $this->_returnResults($query, $request);
+
+    }
+
+
+    /**
+     * Get all groups of user using a query builder.
+     *
+     * @param string $user_id
+     * @param array $request
+     *
+     * @return array
+     *
+     * @throws QueryException
+     * @throws BadRequestException
+     */
+
+    public function getUserGroupsCollection(string $user_id, array $request): array
+    {
+
+        if (!empty(Arr::except($request['fields'], [ // Allowed field keys
+            'groups'
+        ]))) {
+
+            throw new BadRequestException('Unable to get user groups: invalid request');
+
+        }
+
+        if (isset($request['fields']['groups'])) {
+
+            $request['fields']['groups'][] = 'id'; // "id" column is required
+
+            $request['fields']['groups'] = array_unique(array_filter($request['fields']['groups'])); // Remove blank and duplicate values
+
+        }
+
+        $query = new Query($this->pdo);
+
+        $query->table('rbac_groups')
+            ->leftJoin('rbac_group_users', 'rbac_groups.id', 'rbac_group_users.group_id')
+            ->select(Arr::get($request, 'fields.groups', ['*']))
+            ->limit($request['limit'])
+            ->offset($request['offset'])
+            ->where('rbac_group_users.user_id', 'eq', $user_id)
+            ->orderBy(Arr::get($request, 'order_by', ['rbac_groups.name']));
+
+        foreach ($request['filters'] as $column => $filter) {
+
+            foreach ($filter as $operator => $value) {
+
+                $query->where($column, $operator, $value);
+
+            }
+
+        }
+
+        return $this->_returnResults($query, $request);
+
+    }
+
+
+    /**
+     * Get all user meta using query builder.
+     *
+     * @param string $user_id
+     * @param array $request
+     *
+     * @return array
+     *
+     * @throws QueryException
+     * @throws BadRequestException
+     */
+
+    public function getUserMetaCollection(string $user_id, array $request): array
+    {
+
+        // TODO: All fields need returned, so do not allow field keys
+
+        if (!empty(Arr::except($request['fields'], [ // Allowed field keys
+            'meta'
+        ]))) {
+
+            throw new BadRequestException('Unable to get user meta: invalid request');
+
+        }
+
+        if (isset($request['fields']['meta'])) {
+
+            // TODO: JSON:API requires a unique ID
+
+            //$request['fields']['meta'][] = 'id'; // "id" column is required
+
+            $request['fields']['meta'] = array_unique(array_filter($request['fields']['users'])); // Remove blank and duplicate values
+
+        }
+
+        $query = new Query($this->pdo);
+
+        $query->table('rbac_user_meta')
+            ->select(Arr::get($request, 'fields.meta', [
+                'meta_key',
+                'meta_value'
+            ]))
+            ->where('user_id', 'eq', $user_id)
+            ->limit($request['limit'])
+            ->offset($request['offset'])
+            ->orderBy(Arr::get($request, 'order_by', ['meta_key']));
+
+        foreach ($request['filters'] as $column => $filter) {
+
+            foreach ($filter as $operator => $value) {
+
+                $query->where($column, $operator, $value);
+
+            }
+
+        }
+
+        return $this->_returnResults($query, $request);
 
     }
 
