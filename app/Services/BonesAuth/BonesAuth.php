@@ -315,13 +315,14 @@ class BonesAuth extends Auth
      * Get all users using query builder.
      *
      * @param array $request
+     * @param array|null $valid_groups (Restrict results to users in group(s))
      *
      * @return array
      *
      * @throws QueryException
      */
 
-    public function getUsersCollection(array $request): array
+    public function getUsersCollection(array $request, array $valid_groups = NULL): array
     {
 
         $query = new Query($this->pdo);
@@ -339,6 +340,13 @@ class BonesAuth extends Auth
             ->limit($request['limit'])
             ->offset($request['offset'])
             ->orderBy(Arr::get($request, 'order_by', ['login']));
+
+        if (is_array($valid_groups)) { // Limit results to groups
+
+            $query->leftJoin('rbac_group_users', 'rbac_users.id', 'rbac_group_users.user_id')
+                ->where('rbac_group_users.group_id', 'in', implode(', ', $valid_groups));
+
+        }
 
         foreach ($request['filters'] as $column => $filter) {
 

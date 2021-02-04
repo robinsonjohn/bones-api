@@ -429,11 +429,27 @@ class Users extends ApiController
     {
 
         /*
-         * TODO: Check permissions
-         * Manipulate the $request array according to permissions (eg: WHERE...)
-         *      - Check fields and filters
-         *      - Return 403
+         * Check permissions
          */
+
+        if (!$this->hasAnyPermission([
+            'global.users.read',
+            'group.users.read'
+        ])) {
+
+            abort(403, 'Unable to get users: insufficient permissions');
+            die;
+
+        }
+
+        $valid_groups = NULL;
+
+        if (!$this->hasPermission('global.users.read')
+            && $this->hasPermission('group.users.read')) {
+
+            $valid_groups = $this->user_groups;
+
+        }
 
         /*
          * Get request
@@ -480,7 +496,7 @@ class Users extends ApiController
 
         try {
 
-            $users = $this->auth->getUsersCollection($request);
+            $users = $this->auth->getUsersCollection($request, $valid_groups);
 
         } catch (QueryException|PDOException $e) {
 

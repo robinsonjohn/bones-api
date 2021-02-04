@@ -37,9 +37,9 @@ abstract class ApiController extends Controller
 
     protected $user_id = '';
 
-    protected $groups = []; // Array of group ID's
+    protected $user_groups = []; // Array of group ID's
 
-    protected $permissions = []; // Array of permission names
+    protected $user_permissions = []; // Array of permission names
 
     /**
      * ApiController constructor.
@@ -90,9 +90,9 @@ abstract class ApiController extends Controller
 
             $this->user_id = Arr::get($this->token, 'user_id', '');
 
-            $this->groups = Arr::get($this->token, 'groups', []);
+            $this->user_groups = Arr::get($this->token, 'groups', []);
 
-            $this->permissions = Arr::pluck($this->auth->getUserPermissions($this->user_id), 'name');
+            $this->user_permissions = Arr::pluck($this->auth->getUserPermissions($this->user_id), 'name');
 
         }
 
@@ -141,7 +141,7 @@ abstract class ApiController extends Controller
 
     public function hasPermission($permissions): bool
     {
-        return count(array_intersect((array)$permissions, $this->permissions)) == count((array)$permissions);
+        return count(array_intersect((array)$permissions, $this->user_permissions)) == count((array)$permissions);
     }
 
     /**
@@ -154,7 +154,7 @@ abstract class ApiController extends Controller
 
     public function hasAnyPermission($permissions): bool
     {
-        return !empty(array_intersect((array)$permissions, $this->permissions));
+        return !empty(array_intersect((array)$permissions, $this->user_permissions));
     }
 
     /**
@@ -168,7 +168,7 @@ abstract class ApiController extends Controller
 
         $users = [];
 
-        foreach ($this->groups as $group) {
+        foreach ($this->user_groups as $group) {
 
             $users = array_merge($users, $this->auth->getGroupUsers($group));
 
