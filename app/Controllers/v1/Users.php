@@ -2,7 +2,6 @@
 
 namespace App\Controllers\v1;
 
-use App\Services\BonesAuth\BonesAuth;
 use App\Services\BonesAuth\Schemas\UserCollection;
 use App\Services\BonesAuth\Schemas\UserResource;
 use Bayfront\ArrayHelpers\Arr;
@@ -33,10 +32,6 @@ use PDOException;
 class Users extends ApiController
 {
 
-    /** @var BonesAuth $model */
-
-    protected $model;
-
     /**
      * Groups constructor.
      *
@@ -51,13 +46,7 @@ class Users extends ApiController
 
     public function __construct()
     {
-
         parent::__construct(true);
-
-        // Define default model
-
-        $this->model = $this->container->get('auth');
-
     }
 
     /**
@@ -77,7 +66,16 @@ class Users extends ApiController
     protected function _createUser(): void
     {
 
-        // TODO: Check permissions, return 403
+        /*
+         * Check permissions
+         */
+
+        if (!$this->hasPermission('global.users.create')) {
+
+            abort(403, 'Unable to create user: insufficient permissions');
+            die;
+
+        }
 
         /*
          * Get body
@@ -133,7 +131,7 @@ class Users extends ApiController
 
         try {
 
-            $id = $this->model->createUser($body);
+            $id = $this->auth->createUser($body);
 
         } catch (InvalidKeysException $e) {
 
@@ -165,7 +163,7 @@ class Users extends ApiController
          * Build schema
          */
 
-        $schema = UserResource::create($this->model->getUser($id), [
+        $schema = UserResource::create($this->auth->getUser($id), [
             'object_prefix' => '/users'
         ]);
 
@@ -196,7 +194,18 @@ class Users extends ApiController
     protected function _updateUser(string $id): void
     {
 
-        // TODO: Check permissions, return 403
+        /*
+         * Check permissions
+         */
+
+        if (!$this->hasPermission('global.users.update')
+            && (($this->hasPermission('self.users.update') && $id != $this->user_id)
+                || ($this->hasPermission('group.users.update') && !in_array($id, $this->getGroupedUserIds())))) {
+
+            abort(403, 'Unable to update user: insufficient permissions');
+            die;
+
+        }
 
         /*
          * Get body
@@ -249,7 +258,7 @@ class Users extends ApiController
 
         try {
 
-            $this->model->updateUser($id, $body);
+            $this->auth->updateUser($id, $body);
 
         } catch (InvalidKeysException $e) {
 
@@ -286,7 +295,7 @@ class Users extends ApiController
          * Build schema
          */
 
-        $schema = UserResource::create($this->model->getUser($id), [
+        $schema = UserResource::create($this->auth->getUser($id), [
             'object_prefix' => '/users'
         ]);
 
@@ -314,7 +323,18 @@ class Users extends ApiController
     protected function _getUser(string $id): void
     {
 
-        // TODO: Check permissions, return 403
+        /*
+         * Check permissions
+         */
+
+        if (!$this->hasPermission('global.users.read')
+            && (($this->hasPermission('self.users.read') && $id != $this->user_id)
+                || ($this->hasPermission('group.users.read') && !in_array($id, $this->getGroupedUserIds())))) {
+
+            abort(403, 'Unable to get user: insufficient permissions');
+            die;
+
+        }
 
         /*
          * Get request
@@ -355,7 +375,7 @@ class Users extends ApiController
 
         try {
 
-            $user = $this->model->getUser($id);
+            $user = $this->auth->getUser($id);
 
         } catch (InvalidUserException $e) {
 
@@ -460,7 +480,7 @@ class Users extends ApiController
 
         try {
 
-            $users = $this->model->getUsersCollection($request);
+            $users = $this->auth->getUsersCollection($request);
 
         } catch (QueryException|PDOException $e) {
 
@@ -507,13 +527,24 @@ class Users extends ApiController
     protected function _deleteUser(string $id): void
     {
 
-        // TODO: Check permissions
+        /*
+         * Check permissions
+         */
+
+        if (!$this->hasPermission('global.users.delete')
+            && (($this->hasPermission('self.users.delete') && $id != $this->user_id)
+                || ($this->hasPermission('group.users.delete') && !in_array($id, $this->getGroupedUserIds())))) {
+
+            abort(403, 'Unable to delete user: insufficient permissions');
+            die;
+
+        }
 
         /*
          * Perform action
          */
 
-        $deleted = $this->model->deleteUser($id);
+        $deleted = $this->auth->deleteUser($id);
 
         if ($deleted) {
 

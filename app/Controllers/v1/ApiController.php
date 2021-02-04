@@ -28,11 +28,18 @@ abstract class ApiController extends Controller
 
     protected $auth;
 
-    protected $token; // JWT
+    /*
+     * The following are defined only if the $requires_authentication
+     * constructor parameter is TRUE
+     */
 
-    protected $user_id;
+    protected $token = []; // JWT payload
 
-    protected $permissions; // Array of permission names
+    protected $user_id = '';
+
+    protected $groups = []; // Array of group ID's
+
+    protected $permissions = []; // Array of permission names
 
     /**
      * ApiController constructor.
@@ -71,19 +78,21 @@ abstract class ApiController extends Controller
 
             // All endpoints require authentication
 
-            $this->token = $this->api->authenticateJwt();
+            $this->token = Arr::get($this->api->authenticateJwt(), 'payload');
 
             // Check rate limit
 
-            if (Arr::has($this->token, 'payload.user_id') && Arr::has($this->token, 'payload.rate_limit')) {
+            if (isset($this->token['user_id']) && isset($this->token['rate_limit'])) {
 
-                $this->api->enforceRateLimit($this->token['payload']['user_id'], $this->token['payload']['rate_limit']);
+                $this->api->enforceRateLimit($this->token['user_id'], $this->token['rate_limit']);
 
             }
 
-            $this->user_id = $this->token['payload']['user_id'];
+            $this->user_id = Arr::get($this->token, 'user_id', '');
 
-            $this->permissions = Arr::pluck($this->auth->getUserPermissions(Arr::get($this->token, 'payload.user_id', '')), 'name');
+            $this->groups = Arr::get($this->token, 'groups', []);
+
+            $this->permissions = Arr::pluck($this->auth->getUserPermissions($this->user_id), 'name');
 
         }
 
@@ -123,7 +132,7 @@ abstract class ApiController extends Controller
     }
 
     /**
-     * Does user have permission(s).
+     * Does user have all of the given permission(s).
      *
      * @param string|array $permissions
      *
@@ -133,6 +142,40 @@ abstract class ApiController extends Controller
     public function hasPermission($permissions): bool
     {
         return count(array_intersect((array)$permissions, $this->permissions)) == count((array)$permissions);
+    }
+
+    /**
+     * Does user have at least one of the given permission(s).
+     *
+     * @param string|array $permissions
+     *
+     * @return bool
+     */
+
+    public function hasAnyPermission($permissions): bool
+    {
+        return !empty(array_intersect((array)$permissions, $this->permissions));
+    }
+
+    /**
+     * Get all user ID's that exist in any group the user belongs to.
+     *
+     * @return array
+     */
+
+    public function getGroupedUserIds(): array
+    {
+
+        $users = [];
+
+        foreach ($this->groups as $group) {
+
+            $users = array_merge($users, $this->auth->getGroupUsers($group));
+
+        }
+
+        return array_unique(Arr::pluck($users, 'id'));
+
     }
 
 }

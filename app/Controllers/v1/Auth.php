@@ -16,7 +16,6 @@ use Bayfront\JWT\TokenException;
 use Bayfront\LeakyBucket\AdapterException;
 use Bayfront\LeakyBucket\BucketException;
 use Bayfront\MonologFactory\Exceptions\ChannelNotFoundException;
-use Bayfront\RBAC\Auth as RBACAuth;
 use Bayfront\RBAC\Exceptions\AuthenticationException;
 use Bayfront\RBAC\Exceptions\InvalidMetaException;
 use Bayfront\RBAC\Exceptions\InvalidUserException;
@@ -27,10 +26,6 @@ use Exception;
  */
 class Auth extends ApiController
 {
-
-    /** @var RBACAuth $model */
-
-    protected $model;
 
     /**
      * Auth constructor.
@@ -47,15 +42,11 @@ class Auth extends ApiController
     public function __construct()
     {
 
-        parent::__construct(false);
+        parent::__construct(false); // ApiController
 
         // Check rate limit
 
         $this->api->enforceRateLimit('auth-' . Request::getIp(), get_config('api.rate_limit_auth', 5));
-
-        // Define default model
-
-        $this->model = $this->container->get('auth');
 
     }
 
@@ -166,7 +157,7 @@ class Auth extends ApiController
 
         try {
 
-            $user = $this->model->login($body['login'], $body['password']);
+            $user = $this->auth->login($body['login'], $body['password']);
 
         } catch (AuthenticationException $e) {
 
@@ -198,7 +189,7 @@ class Auth extends ApiController
 
         $refresh_token = create_key();
 
-        $this->model->setUserMeta($user['id'], [
+        $this->auth->setUserMeta($user['id'], [
             '_refresh_token' => json_encode([
                 'token' => $refresh_token,
                 'created_at' => time()
@@ -208,7 +199,7 @@ class Auth extends ApiController
         $data = [
             'user_id' => $user['id'],
             'login' => $user['login'],
-            'groups' => Arr::pluck($this->model->getUserGroups($user['id']), 'id')
+            'groups' => Arr::pluck($this->auth->getUserGroups($user['id']), 'id')
         ];
 
         log_info('Successful login', [
@@ -288,7 +279,7 @@ class Auth extends ApiController
 
         try {
 
-            $refresh_token = $this->model->getUserMeta($token['payload']['user_id'], '_refresh_token');
+            $refresh_token = $this->auth->getUserMeta($token['payload']['user_id'], '_refresh_token');
 
         } catch (InvalidMetaException $e) {
 
@@ -313,7 +304,7 @@ class Auth extends ApiController
 
             // Delete invalid token
 
-            $this->model->deleteUserMeta($token['payload']['user_id'], [
+            $this->auth->deleteUserMeta($token['payload']['user_id'], [
                 '_refresh_token'
             ]);
 
@@ -336,7 +327,7 @@ class Auth extends ApiController
 
                 try {
 
-                    $user = $this->model->getUser($token['payload']['user_id']); // User must exist because meta already fetched
+                    $user = $this->auth->getUser($token['payload']['user_id']); // User must exist because meta already fetched
 
                 } catch (InvalidUserException $e) {
 
@@ -368,7 +359,7 @@ class Auth extends ApiController
 
                 $refresh_token = create_key();
 
-                $this->model->setUserMeta($user['id'], [
+                $this->auth->setUserMeta($user['id'], [
                     '_refresh_token' => json_encode([
                         'token' => $refresh_token,
                         'created_at' => time()
@@ -378,7 +369,7 @@ class Auth extends ApiController
                 $data = [
                     'user_id' => $user['id'],
                     'login' => $user['login'],
-                    'groups' => Arr::pluck($this->model->getUserGroups($user['id']), 'id')
+                    'groups' => Arr::pluck($this->auth->getUserGroups($user['id']), 'id')
                 ];
 
                 log_info('Successful login via refresh token', [
@@ -393,7 +384,7 @@ class Auth extends ApiController
 
             // Delete invalid token
 
-            $this->model->deleteUserMeta($token['payload']['user_id'], [
+            $this->auth->deleteUserMeta($token['payload']['user_id'], [
                 '_refresh_token'
             ]);
 
