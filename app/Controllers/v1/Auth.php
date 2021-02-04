@@ -140,14 +140,14 @@ class Auth extends ApiController
             'password'
         ]);
 
-        if (!empty(Arr::except($body, [ // If invalid keys have been sent
+        if (!empty(Arr::except($body, [ // If invalid members have been sent
             'login',
             'password'
         ]))) {
 
-            log_notice('Unsuccessful login: invalid parameters');
+            log_notice('Unsuccessful login: invalid members');
 
-            abort(400, 'Invalid parameters');
+            abort(400, 'Invalid members');
 
             die;
 
@@ -237,14 +237,14 @@ class Auth extends ApiController
             'refresh_token'
         ]);
 
-        if (!empty(Arr::except($body, [ // If invalid keys have been sent
+        if (!empty(Arr::except($body, [ // If invalid members have been sent
             'access_token',
             'refresh_token'
         ]))) {
 
-            log_notice('Unsuccessful login refresh: invalid parameters');
+            log_notice('Unsuccessful login refresh: invalid members');
 
-            abort(400, 'Invalid parameters');
+            abort(400, 'Invalid members');
 
             die;
 

@@ -91,7 +91,7 @@ class Users extends ApiController
          * Filter what is able to be sent depending on permissions (eg: attributes)
          */
 
-        if (!empty(Arr::except($body, [ // If invalid keys have been sent
+        if (!empty(Arr::except($body, [ // If invalid members have been sent
             'login',
             'password',
             'email',
@@ -99,7 +99,7 @@ class Users extends ApiController
             'enabled'
         ]))) {
 
-            abort(400, 'Unable to create user: request body contains invalid parameters');
+            abort(400, 'Unable to create user: request body contains invalid members');
             die;
 
         }
@@ -135,7 +135,7 @@ class Users extends ApiController
 
         } catch (InvalidKeysException $e) {
 
-            abort(400, 'Unable to create user: invalid parameters');
+            abort(400, 'Unable to create user: invalid members');
             die;
 
         } catch (LoginExistsException $e) {
@@ -218,7 +218,7 @@ class Users extends ApiController
          * Filter what is able to be sent depending on permissions (eg: attributes)
          */
 
-        if (!empty(Arr::except($body, [ // If invalid keys have been sent
+        if (!empty(Arr::except($body, [ // If invalid members have been sent
             'login',
             'password',
             'email',
@@ -226,7 +226,7 @@ class Users extends ApiController
             'enabled'
         ]))) {
 
-            abort(400, 'Unable to update user: request body contains invalid parameters');
+            abort(400, 'Unable to update user: request body contains invalid members');
             die;
 
         }
@@ -262,7 +262,7 @@ class Users extends ApiController
 
         } catch (InvalidKeysException $e) {
 
-            abort(400, 'Unable to create user: invalid parameters');
+            abort(400, 'Unable to create user: invalid members');
             die;
 
         } catch (InvalidUserException $e) {
