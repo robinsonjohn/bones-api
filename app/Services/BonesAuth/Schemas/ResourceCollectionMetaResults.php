@@ -29,7 +29,8 @@ class ResourceCollectionMetaResults implements SchemaInterface
             'page_size',
             'page_number'
         ])) {
-            throw new InvalidSchemaException('Unable to create ResourceCollectionMetaResults schema: missing required keys');
+            $class = str_replace(__NAMESPACE__ . '\\', '', get_called_class());
+            throw new InvalidSchemaException('Unable to create ' . $class . ' schema: missing required keys');
         }
 
         /*

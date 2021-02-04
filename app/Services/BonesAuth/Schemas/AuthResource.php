@@ -21,7 +21,8 @@ class AuthResource implements SchemaInterface
             'refresh_token',
             'expires_in'
         ])) {
-            throw new InvalidSchemaException('Unable to create AuthResource schema: missing required keys');
+            $class = str_replace(__NAMESPACE__ . '\\', '', get_called_class());
+            throw new InvalidSchemaException('Unable to create ' . $class . ' schema: missing required keys');
         }
 
         return [

@@ -27,21 +27,22 @@ class UserCollection implements SchemaInterface
             'results',
             'meta'
         ])) {
-            throw new InvalidSchemaException('Unable to create UserCollection schema: missing required keys');
+            $class = str_replace(__NAMESPACE__ . '\\', '', get_called_class());
+            throw new InvalidSchemaException('Unable to create ' . $class . ' schema: missing required keys');
         }
 
-        $users = [];
+        $data = [];
 
         foreach ($array['results'] as $k => $v) {
 
-            $users[] = UserObject::create($v, $config);
+            $data[] = UserObject::create($v, $config);
 
         }
 
         $meta_results = ResourceCollectionMetaResults::create($array['meta']);
 
         return [
-            'data' => $users,
+            'data' => $data,
             'meta' => [
                 'results' => $meta_results
             ],
