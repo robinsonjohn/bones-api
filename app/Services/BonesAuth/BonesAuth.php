@@ -15,6 +15,12 @@ use Bayfront\PDO\Query;
 use Bayfront\RBAC\Auth;
 use PDO;
 
+/*
+ * TODO:
+ * If all this does is fetch from the database, it should be a model.
+ * However, Authenticators should be added, which would make it a service.
+ */
+
 class BonesAuth extends Auth
 {
 
@@ -31,6 +37,10 @@ class BonesAuth extends Auth
 
     /**
      * Return results in a standardized format.
+     *
+     * // TODO
+     * This may need to be moved to the ApiController, or as
+     * part of the BonesApi service- it is not specific to Auth...
      *
      * @param Query $query
      * @param array $request
