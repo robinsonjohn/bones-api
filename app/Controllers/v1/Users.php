@@ -86,16 +86,12 @@ class Users extends ApiController
             'password'
         ]); // Required keys
 
-        /*
-         * TODO
-         * Filter what is able to be sent depending on permissions (eg: attributes)
-         */
-
         if (!empty(Arr::except($body, [ // If invalid members have been sent
             'login',
             'password',
             'email',
-            'attributes',
+            'firstName',
+            'lastName',
             'enabled'
         ]))) {
 
@@ -113,8 +109,9 @@ class Users extends ApiController
             Validate::as($body, [
                 'login' => 'string',
                 'password' => 'string',
-                'email' => 'email',
-                'attributes' => 'array', // TODO: Need to validate array||null
+                'email' => 'email', // TODO: Need to validate or null
+                'firstName' => 'string', // TODO: Need to validate string||null
+                'lastName' => 'string',
                 'enabled' => 'boolean'
             ]);
 
@@ -122,6 +119,26 @@ class Users extends ApiController
 
             abort(400, $e->getMessage());
             die;
+
+        }
+
+        /*
+         * Standardize body
+         */
+
+        $attributes = Arr::only($body, [
+            'firstName',
+            'lastName'
+        ]);
+
+        if (!empty($attributes)) {
+
+            $body = Arr::except($body, [
+                'firstName',
+                'lastName'
+            ]);
+
+            $body['attributes'] = $attributes;
 
         }
 
@@ -213,16 +230,12 @@ class Users extends ApiController
 
         $body = $this->api->getBody();
 
-        /*
-         * TODO
-         * Filter what is able to be sent depending on permissions (eg: attributes)
-         */
-
         if (!empty(Arr::except($body, [ // If invalid members have been sent
             'login',
             'password',
             'email',
-            'attributes',
+            'firstName',
+            'lastName',
             'enabled'
         ]))) {
 
@@ -240,8 +253,9 @@ class Users extends ApiController
             Validate::as($body, [
                 'login' => 'string',
                 'password' => 'string',
-                'email' => 'email',
-                'attributes' => 'array', // TODO: Need to validate array||null
+                'email' => 'email', // TODO: Need to validate or null
+                'firstName' => 'string', // TODO: Need to validate string||null
+                'lastName' => 'string',
                 'enabled' => 'boolean'
             ]);
 
@@ -249,6 +263,26 @@ class Users extends ApiController
 
             abort(400, $e->getMessage());
             die;
+
+        }
+
+        /*
+         * Standardize body
+         */
+
+        $attributes = Arr::only($body, [
+            'firstName',
+            'lastName'
+        ]);
+
+        if (!empty($attributes)) {
+
+            $body = Arr::except($body, [
+                'firstName',
+                'lastName'
+            ]);
+
+            $body['attributes'] = $attributes;
 
         }
 
@@ -509,10 +543,7 @@ class Users extends ApiController
          * Build schema
          */
 
-        $schema = UserCollection::create([
-            'results' => $users['results'],
-            'meta' => $users['meta']
-        ], [
+        $schema = UserCollection::create($users, [
             'object_prefix' => '/users',
             'collection_prefix' => '/users'
         ]);

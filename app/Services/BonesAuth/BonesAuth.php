@@ -48,12 +48,24 @@ class BonesAuth extends Auth
      * @return array
      */
 
-    protected function _returnResults(Query $query, array $request): array
+    protected function _getResults(Query $query, array $request): array
     {
 
         $results = $query->get();
 
         $total = $query->getTotalRows();
+
+        // json_decode attributes column
+
+        foreach ($results as $k => $v) {
+
+            if (isset($v['attributes']) && NULL !== $v['attributes']) {
+
+                $results[$k]['attributes'] = json_decode($v['attributes'], true);
+
+            }
+
+        }
 
         return [
             'results' => $results,
@@ -105,7 +117,7 @@ class BonesAuth extends Auth
 
         }
 
-        return $this->_returnResults($query, $request);
+        return $this->_getResults($query, $request);
 
     }
 
@@ -143,7 +155,7 @@ class BonesAuth extends Auth
 
         }
 
-        return $this->_returnResults($query, $request);
+        return $this->_getResults($query, $request);
 
     }
 
@@ -184,7 +196,7 @@ class BonesAuth extends Auth
 
         }
 
-        return $this->_returnResults($query, $request);
+        return $this->_getResults($query, $request);
 
     }
 
@@ -225,7 +237,7 @@ class BonesAuth extends Auth
 
         }
 
-        return $this->_returnResults($query, $request);
+        return $this->_getResults($query, $request);
 
     }
 
@@ -263,7 +275,7 @@ class BonesAuth extends Auth
 
         }
 
-        return $this->_returnResults($query, $request);
+        return $this->_getResults($query, $request);
 
     }
 
@@ -301,7 +313,7 @@ class BonesAuth extends Auth
 
         }
 
-        return $this->_returnResults($query, $request);
+        return $this->_getResults($query, $request);
 
     }
 
@@ -358,7 +370,7 @@ class BonesAuth extends Auth
 
         }
 
-        return $this->_returnResults($query, $request);
+        return $this->_getResults($query, $request);
 
     }
 
@@ -396,7 +408,7 @@ class BonesAuth extends Auth
 
         }
 
-        return $this->_returnResults($query, $request);
+        return $this->_getResults($query, $request);
 
     }
 
@@ -435,7 +447,7 @@ class BonesAuth extends Auth
 
         }
 
-        return $this->_returnResults($query, $request);
+        return $this->_getResults($query, $request);
 
     }
 
@@ -476,7 +488,7 @@ class BonesAuth extends Auth
 
         }
 
-        return $this->_returnResults($query, $request);
+        return $this->_getResults($query, $request);
 
     }
 
