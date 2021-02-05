@@ -139,9 +139,9 @@ abstract class ApiController extends Controller
      * @return bool
      */
 
-    public function hasPermission($permissions): bool
+    public function hasPermissions($permissions): bool
     {
-        return count(array_intersect((array)$permissions, $this->user_permissions)) == count((array)$permissions);
+        return Arr::hasAllValues($this->user_permissions, (array)$permissions);
     }
 
     /**
@@ -152,9 +152,9 @@ abstract class ApiController extends Controller
      * @return bool
      */
 
-    public function hasAnyPermission($permissions): bool
+    public function hasAnyPermissions($permissions): bool
     {
-        return !empty(array_intersect((array)$permissions, $this->user_permissions));
+        return Arr::hasAnyValues($this->user_permissions, (array)$permissions);
     }
 
     /**

@@ -70,7 +70,10 @@ class Users extends ApiController
          * Check permissions
          */
 
-        if (!$this->hasPermission('global.users.create')) {
+        if (!$this->hasAnyPermissions([
+            'global.users.create',
+            'group.users.create'
+        ])) {
 
             abort(403, 'Unable to create user: insufficient permissions');
             die;
@@ -93,7 +96,8 @@ class Users extends ApiController
             'lastName',
             'companyName',
             'email',
-            'enabled'
+            'enabled',
+            'groups'
         ]))) {
 
             abort(400, 'Unable to create user: request body contains invalid members');
@@ -114,12 +118,39 @@ class Users extends ApiController
                 'lastName' => 'string|null',
                 'companyName' => 'string|null',
                 'email' => 'email|null',
-                'enabled' => 'boolean'
+                'enabled' => 'boolean',
+                'groups' => 'array'
             ]);
 
         } catch (ValidationException $e) {
 
             abort(400, $e->getMessage());
+            die;
+
+        }
+
+        /*
+         * Adjust for permissions
+         *
+         * TODO:
+         * This may need to be adjusted by allowing someone with group permissions
+         * to add users to their groups if they have the ID.
+         * The ID can be captured at time of creation (here).
+         */
+
+        $groups = Arr::get($body, 'groups'); // Save groups
+
+        Arr::forget($body, 'groups'); // Remove from body
+
+        /*
+         * If user only has permission group.users.create,
+         * ensure groups are defined and user belongs to the groups.
+         */
+
+        if (!$this->hasPermissions('global.users.create')
+            && (NULL === $groups || !Arr::hasAllValues($this->user_groups, $groups))) {
+
+            abort(403, 'Unable to create user: user must be assigned groups to which you belong');
             die;
 
         }
@@ -141,6 +172,12 @@ class Users extends ApiController
 
             abort(409, 'Unable to create user: login already exists');
             die;
+
+        }
+
+        if (NULL !== $groups) { // Assign user to specified groups
+
+            $this->auth->grantUserGroups($id, $groups);
 
         }
 
@@ -197,9 +234,9 @@ class Users extends ApiController
          * Check permissions
          */
 
-        if (!$this->hasPermission('global.users.update')
-            && (($this->hasPermission('self.users.update') && $id != $this->user_id)
-                || ($this->hasPermission('group.users.update') && !in_array($id, $this->getGroupedUserIds())))) {
+        if (!$this->hasPermissions('global.users.update')
+            && (($this->hasPermissions('self.users.update') && $id != $this->user_id)
+                || ($this->hasPermissions('group.users.update') && !in_array($id, $this->getGroupedUserIds())))) {
 
             abort(403, 'Unable to update user: insufficient permissions');
             die;
@@ -260,7 +297,7 @@ class Users extends ApiController
 
         } catch (InvalidKeysException $e) {
 
-            abort(400, 'Unable to create user: invalid members');
+            abort(400, 'Unable to update user: invalid members');
             die;
 
         } catch (InvalidUserException $e) {
@@ -325,9 +362,9 @@ class Users extends ApiController
          * Check permissions
          */
 
-        if (!$this->hasPermission('global.users.read')
-            && (($this->hasPermission('self.users.read') && $id != $this->user_id)
-                || ($this->hasPermission('group.users.read') && !in_array($id, $this->getGroupedUserIds())))) {
+        if (!$this->hasPermissions('global.users.read')
+            && (($this->hasPermissions('self.users.read') && $id != $this->user_id)
+                || ($this->hasPermissions('group.users.read') && !in_array($id, $this->getGroupedUserIds())))) {
 
             abort(403, 'Unable to get user: insufficient permissions');
             die;
@@ -433,7 +470,7 @@ class Users extends ApiController
          * Check permissions
          */
 
-        if (!$this->hasAnyPermission([
+        if (!$this->hasAnyPermissions([
             'global.users.read',
             'group.users.read'
         ])) {
@@ -445,10 +482,10 @@ class Users extends ApiController
 
         $valid_groups = NULL;
 
-        if (!$this->hasPermission('global.users.read')
-            && $this->hasPermission('group.users.read')) {
+        if (!$this->hasPermissions('global.users.read')
+            && $this->hasPermissions('group.users.read')) {
 
-            $valid_groups = $this->user_groups;
+            $valid_groups = $this->user_groups; // Limit users to user's groups
 
         }
 
@@ -548,9 +585,9 @@ class Users extends ApiController
          * Check permissions
          */
 
-        if (!$this->hasPermission('global.users.delete')
-            && (($this->hasPermission('self.users.delete') && $id != $this->user_id)
-                || ($this->hasPermission('group.users.delete') && !in_array($id, $this->getGroupedUserIds())))) {
+        if (!$this->hasPermissions('global.users.delete')
+            && (($this->hasPermissions('self.users.delete') && $id != $this->user_id)
+                || ($this->hasPermissions('group.users.delete') && !in_array($id, $this->getGroupedUserIds())))) {
 
             abort(403, 'Unable to delete user: insufficient permissions');
             die;
