@@ -38,6 +38,18 @@ class UserObject implements SchemaInterface
             Arr::set($return, 'attributes.login', $array['login']);
         }
 
+        if (array_key_exists('firstName', $array)) {
+            Arr::set($return, 'attributes.firstName', $array['firstName']);
+        }
+
+        if (array_key_exists('lastName', $array)) {
+            Arr::set($return, 'attributes.lastName', $array['lastName']);
+        }
+
+        if (array_key_exists('companyName', $array)) {
+            Arr::set($return, 'attributes.companyName', $array['companyName']);
+        }
+
         if (array_key_exists('email', $array)) {
             Arr::set($return, 'attributes.email', $array['email']);
         }
@@ -46,12 +58,12 @@ class UserObject implements SchemaInterface
             Arr::set($return, 'attributes.enabled', (bool)$array['enabled']);
         }
 
-        if (array_key_exists('created_at', $array)) {
-            Arr::set($return, 'attributes.created_at', date('c', strtotime($array['created_at'])));
+        if (array_key_exists('createdAt', $array)) {
+            Arr::set($return, 'attributes.createdAt', date('c', strtotime($array['createdAt'])));
         }
 
-        if (array_key_exists('updated_at', $array)) {
-            Arr::set($return, 'attributes.updated_at', date('c', strtotime($array['updated_at'])));
+        if (array_key_exists('updatedAt', $array)) {
+            Arr::set($return, 'attributes.updatedAt', date('c', strtotime($array['updatedAt'])));
         }
 
         $return ['links'] = [

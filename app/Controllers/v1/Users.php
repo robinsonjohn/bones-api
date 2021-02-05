@@ -89,9 +89,10 @@ class Users extends ApiController
         if (!empty(Arr::except($body, [ // If invalid members have been sent
             'login',
             'password',
-            'email',
             'firstName',
             'lastName',
+            'companyName',
+            'email',
             'enabled'
         ]))) {
 
@@ -109,9 +110,10 @@ class Users extends ApiController
             Validate::as($body, [
                 'login' => 'string',
                 'password' => 'string',
-                'email' => 'email', // TODO: Need to validate or null
-                'firstName' => 'string', // TODO: Need to validate string||null
-                'lastName' => 'string',
+                'firstName' => 'string|null',
+                'lastName' => 'string|null',
+                'companyName' => 'string|null',
+                'email' => 'email|null',
                 'enabled' => 'boolean'
             ]);
 
@@ -119,26 +121,6 @@ class Users extends ApiController
 
             abort(400, $e->getMessage());
             die;
-
-        }
-
-        /*
-         * Standardize body
-         */
-
-        $attributes = Arr::only($body, [
-            'firstName',
-            'lastName'
-        ]);
-
-        if (!empty($attributes)) {
-
-            $body = Arr::except($body, [
-                'firstName',
-                'lastName'
-            ]);
-
-            $body['attributes'] = $attributes;
 
         }
 
@@ -233,9 +215,10 @@ class Users extends ApiController
         if (!empty(Arr::except($body, [ // If invalid members have been sent
             'login',
             'password',
-            'email',
             'firstName',
             'lastName',
+            'companyName',
+            'email',
             'enabled'
         ]))) {
 
@@ -253,9 +236,10 @@ class Users extends ApiController
             Validate::as($body, [
                 'login' => 'string',
                 'password' => 'string',
-                'email' => 'email', // TODO: Need to validate or null
-                'firstName' => 'string', // TODO: Need to validate string||null
-                'lastName' => 'string',
+                'firstName' => 'string|null',
+                'lastName' => 'string|null',
+                'companyName' => 'string|null',
+                'email' => 'email|null',
                 'enabled' => 'boolean'
             ]);
 
@@ -263,26 +247,6 @@ class Users extends ApiController
 
             abort(400, $e->getMessage());
             die;
-
-        }
-
-        /*
-         * Standardize body
-         */
-
-        $attributes = Arr::only($body, [
-            'firstName',
-            'lastName'
-        ]);
-
-        if (!empty($attributes)) {
-
-            $body = Arr::except($body, [
-                'firstName',
-                'lastName'
-            ]);
-
-            $body['attributes'] = $attributes;
 
         }
 
@@ -392,10 +356,13 @@ class Users extends ApiController
             ])) || !empty(Arr::except(array_flip(Arr::get($request['fields'], 'users', [])), [ // Valid fields
                 'id',
                 'login',
+                'firstName',
+                'lastName',
+                'companyName',
                 'email',
                 'enabled',
-                'created_at',
-                'updated_at'
+                'createdAt',
+                'updatedAt'
             ]))) {
 
             abort(400, 'Unable to get user: query string contains invalid fields');
@@ -507,10 +474,13 @@ class Users extends ApiController
             ])) || !empty(Arr::except(array_flip(Arr::get($request['fields'], 'users', [])), [ // Valid fields
                 'id',
                 'login',
+                'firstName',
+                'lastName',
+                'companyName',
                 'email',
                 'enabled',
-                'created_at',
-                'updated_at'
+                'createdAt',
+                'updatedAt'
             ]))) {
 
             abort(400, 'Unable to get users: query string contains invalid fields');

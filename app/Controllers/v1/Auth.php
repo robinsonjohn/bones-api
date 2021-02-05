@@ -100,9 +100,9 @@ class Auth extends ApiController
         // Build schema
 
         $schema = AuthResource::create([
-            'access_token' => $token,
-            'refresh_token' => $refresh_token,
-            'expires_in' => get_config('api.access_token_lifetime')
+            'accessToken' => $token,
+            'refreshToken' => $refresh_token,
+            'expiresIn' => get_config('api.access_token_lifetime')
         ]);
 
         // Respond
@@ -157,7 +157,7 @@ class Auth extends ApiController
 
         try {
 
-            $user = $this->auth->login($body['login'], $body['password']);
+            $user = $this->auth->authenticate($body['login'], $body['password']);
 
         } catch (AuthenticationException $e) {
 

@@ -138,12 +138,12 @@ class BonesAuth extends Auth
         $query = new Query($this->pdo);
 
         $query->table('rbac_users')
-            ->leftJoin('rbac_group_users', 'rbac_users.id', 'rbac_group_users.user_id')
+            ->leftJoin('rbac_group_users', 'rbac_users.id', 'rbac_group_users.userId')
             ->select(Arr::get($request, 'fields.users', ['*']))
             ->limit($request['limit'])
             ->offset($request['offset'])
-            ->where('rbac_group_users.group_id', 'eq', $group_id)
-            ->orderBy(Arr::get($request, 'order_by', ['rbac_users.login']));
+            ->where('rbac_group_users.groupId', 'eq', $group_id)
+            ->orderBy(Arr::get($request, 'order_by', ['rbac_users.createdAt']));
 
         foreach ($request['filters'] as $column => $filter) {
 
@@ -258,11 +258,11 @@ class BonesAuth extends Auth
         $query = new Query($this->pdo);
 
         $query->table('rbac_permissions')
-            ->leftJoin('rbac_role_permissions', 'rbac_permissions.id', 'rbac_role_permissions.permission_id')
+            ->leftJoin('rbac_role_permissions', 'rbac_permissions.id', 'rbac_role_permissions.permissionId')
             ->select(Arr::get($request, 'fields.permissions', ['*']))
             ->limit($request['limit'])
             ->offset($request['offset'])
-            ->where('rbac_role_permissions.role_id', 'eq', $role_id)
+            ->where('rbac_role_permissions.roleId', 'eq', $role_id)
             ->orderBy(Arr::get($request, 'order_by', ['rbac_permissions.name']));
 
         foreach ($request['filters'] as $column => $filter) {
@@ -296,12 +296,12 @@ class BonesAuth extends Auth
         $query = new Query($this->pdo);
 
         $query->table('rbac_users')
-            ->leftJoin('rbac_role_users', 'rbac_users.id', 'rbac_role_users.user_id')
+            ->leftJoin('rbac_role_users', 'rbac_users.id', 'rbac_role_users.userId')
             ->select(Arr::get($request, 'fields.users', ['*']))
             ->limit($request['limit'])
             ->offset($request['offset'])
-            ->where('rbac_role_users.role_id', 'eq', $role_id)
-            ->orderBy(Arr::get($request, 'order_by', ['rbac_users.login']));
+            ->where('rbac_role_users.roleId', 'eq', $role_id)
+            ->orderBy(Arr::get($request, 'order_by', ['rbac_users.createdAt']));
 
         foreach ($request['filters'] as $column => $filter) {
 
@@ -343,20 +343,23 @@ class BonesAuth extends Auth
             ->select(Arr::get($request, 'fields.users', [
                 'id',
                 'login',
+                'firstName',
+                'lastName',
+                'companyName',
                 'email',
                 'attributes',
                 'enabled',
-                'created_at',
-                'updated_at'
+                'createdAt',
+                'updatedAt'
             ]))
             ->limit($request['limit'])
             ->offset($request['offset'])
-            ->orderBy(Arr::get($request, 'order_by', ['login']));
+            ->orderBy(Arr::get($request, 'order_by', ['createdAt']));
 
         if (is_array($valid_groups)) { // Limit results to groups
 
-            $query->leftJoin('rbac_group_users', 'rbac_users.id', 'rbac_group_users.user_id')
-                ->where('rbac_group_users.group_id', 'in', implode(', ', $valid_groups));
+            $query->leftJoin('rbac_group_users', 'rbac_users.id', 'rbac_group_users.userId')
+                ->where('rbac_group_users.groupId', 'in', implode(', ', $valid_groups));
 
         }
 
@@ -391,11 +394,11 @@ class BonesAuth extends Auth
         $query = new Query($this->pdo);
 
         $query->table('rbac_roles')
-            ->leftJoin('rbac_role_users', 'rbac_roles.id', 'rbac_role_users.role_id')
+            ->leftJoin('rbac_role_users', 'rbac_roles.id', 'rbac_role_users.roleId')
             ->select(Arr::get($request, 'fields.roles', ['*']))
             ->limit($request['limit'])
             ->offset($request['offset'])
-            ->where('rbac_role_users.user_id', 'eq', $user_id)
+            ->where('rbac_role_users.userId', 'eq', $user_id)
             ->orderBy(Arr::get($request, 'order_by', ['rbac_roles.name']));
 
         foreach ($request['filters'] as $column => $filter) {
@@ -430,11 +433,11 @@ class BonesAuth extends Auth
         $query = new Query($this->pdo);
 
         $query->table('rbac_groups')
-            ->leftJoin('rbac_group_users', 'rbac_groups.id', 'rbac_group_users.group_id')
+            ->leftJoin('rbac_group_users', 'rbac_groups.id', 'rbac_group_users.groupId')
             ->select(Arr::get($request, 'fields.groups', ['*']))
             ->limit($request['limit'])
             ->offset($request['offset'])
-            ->where('rbac_group_users.user_id', 'eq', $user_id)
+            ->where('rbac_group_users.userId', 'eq', $user_id)
             ->orderBy(Arr::get($request, 'order_by', ['rbac_groups.name']));
 
         foreach ($request['filters'] as $column => $filter) {
@@ -470,13 +473,13 @@ class BonesAuth extends Auth
 
         $query->table('rbac_user_meta')
             ->select(Arr::get($request, 'fields.meta', [
-                'meta_key',
-                'meta_value'
+                'metaKey',
+                'metaValue'
             ]))
-            ->where('user_id', 'eq', $user_id)
+            ->where('userId', 'eq', $user_id)
             ->limit($request['limit'])
             ->offset($request['offset'])
-            ->orderBy(Arr::get($request, 'order_by', ['meta_key']));
+            ->orderBy(Arr::get($request, 'order_by', ['metaKey']));
 
         foreach ($request['filters'] as $column => $filter) {
 
