@@ -303,7 +303,7 @@ class Permissions extends ApiController
                 'global.permissions.read',
                 'self.permissions.read'
             ]) || (!$this->hasPermissions('global.permissions.read')
-                && !in_array($id, $this->user_permissions))) {
+                && !in_array($id, $this->user_permission_names))) {
 
             abort(403, 'Unable to get permission: insufficient permissions');
             die;
@@ -413,14 +413,6 @@ class Permissions extends ApiController
 
         }
 
-        $valid_permissions = NULL;
-
-        if (!$this->hasPermissions('global.permissions.read')) {
-
-            $valid_permissions = $this->user_permissions; // Limit users to user's permissions
-
-        }
-
         /*
          * Get request
          */
@@ -463,7 +455,15 @@ class Permissions extends ApiController
 
         try {
 
-            $permissions = $this->auth->getPermissionsCollection($request, $valid_permissions);
+            if (!$this->hasPermissions('global.permissions.read')) {
+
+                $permissions = $this->auth->getPermissionsCollection($request, $this->user_permission_names); // Limit to user's permissions
+
+            } else {
+
+                $permissions = $this->auth->getPermissionsCollection($request); // Get all permissions
+
+            }
 
         } catch (QueryException|PDOException $e) {
 

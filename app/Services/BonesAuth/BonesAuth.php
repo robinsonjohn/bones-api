@@ -169,14 +169,14 @@ class BonesAuth extends Auth
      * Get all permissions using query builder.
      *
      * @param array $request
-     * @param array|null $valid_permissions (Restrict results to permission ID(s))
+     * @param array|null $valid_permission_names (Restrict results to permission names(s))
      *
      * @return array
      *
      * @throws QueryException
      */
 
-    public function getPermissionsCollection(array $request, array $valid_permissions = NULL): array
+    public function getPermissionsCollection(array $request, array $valid_permission_names = NULL): array
     {
 
         $query = new Query($this->pdo);
@@ -187,9 +187,9 @@ class BonesAuth extends Auth
             ->offset($request['offset'])
             ->orderBy(Arr::get($request, 'order_by', ['name']));
 
-        if (is_array($valid_permissions)) { // Limit results to permission names
+        if (is_array($valid_permission_names)) { // Restrict results to permission names
 
-            $query->where('name', 'in', implode(',', $valid_permissions));
+            $query->where('name', 'in', implode(',', $valid_permission_names));
 
         }
 
@@ -334,14 +334,14 @@ class BonesAuth extends Auth
      * Get all users using query builder.
      *
      * @param array $request
-     * @param array|null $valid_groups (Restrict results to users in group(s))
+     * @param array|null $valid_group_ids (Restrict results to users in group(s))
      *
      * @return array
      *
      * @throws QueryException
      */
 
-    public function getUsersCollection(array $request, array $valid_groups = NULL): array
+    public function getUsersCollection(array $request, array $valid_group_ids = NULL): array
     {
 
         $query = new Query($this->pdo);
@@ -363,10 +363,10 @@ class BonesAuth extends Auth
             ->offset($request['offset'])
             ->orderBy(Arr::get($request, 'order_by', ['createdAt']));
 
-        if (is_array($valid_groups)) { // Limit results to groups
+        if (is_array($valid_group_ids)) { // Restrict results to users in groups
 
             $query->leftJoin('rbac_group_users', 'rbac_users.id', 'rbac_group_users.userId')
-                ->where('rbac_group_users.groupId', 'in', implode(', ', $valid_groups));
+                ->where('rbac_group_users.groupId', 'in', implode(', ', $valid_group_ids));
 
         }
 

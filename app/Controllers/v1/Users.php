@@ -28,9 +28,6 @@ use PDOException;
  * Users controller.
  *
  * This controller allows rate limited authenticated access to endpoints.
- *
- * TODO:
- * Work with permission levels, they need tweaking.
  */
 class Users extends ApiController
 {
@@ -205,13 +202,13 @@ class Users extends ApiController
                 'group.users.update',
                 'self.users.update'
             ])
-            || (!$this->hasPermissions([ // If only self and not self
+            || (!$this->hasPermissions([ // If only self does not match
                     'global.users.update',
                     'group.users.update'
                 ]) && $id != $this->user_id)
-            || (!$this->hasPermissions('global.users.update') // If max permissions are group and not in group
+            || (!$this->hasPermissions('global.users.update') // If only group and not in group
                 && $this->hasPermissions('group.users.update')
-            && !in_array($id, $this->getGroupedUserIds()))) {
+                && !in_array($id, $this->getGroupedUserIds()))) {
 
             abort(403, 'Unable to update user: insufficient permissions');
             die;
@@ -342,11 +339,11 @@ class Users extends ApiController
                 'group.users.read',
                 'self.users.read'
             ])
-            || (!$this->hasPermissions([ // If only self and not self
+            || (!$this->hasPermissions([ // If only self does not match
                     'global.users.read',
                     'group.users.read'
                 ]) && $id != $this->user_id)
-            || (!$this->hasPermissions('global.users.read') // If max permissions are group and not in group
+            || (!$this->hasPermissions('global.users.read') // If only group and not in group
                 && $this->hasPermissions('group.users.read')
                 && !in_array($id, $this->getGroupedUserIds()))) {
 
@@ -464,15 +461,6 @@ class Users extends ApiController
 
         }
 
-        $valid_groups = NULL;
-
-        if (!$this->hasPermissions('global.users.read')
-            && $this->hasPermissions('group.users.read')) {
-
-            $valid_groups = $this->user_groups; // Limit users to user's groups
-
-        }
-
         /*
          * Get request
          */
@@ -521,7 +509,15 @@ class Users extends ApiController
 
         try {
 
-            $users = $this->auth->getUsersCollection($request, $valid_groups);
+            if (!$this->hasPermissions('global.users.read')) {
+
+                $users = $this->auth->getUsersCollection($request, $this->user_group_ids); // Limit users to user's groups
+
+            } else {
+
+                $users = $this->auth->getUsersCollection($request); // Get all users
+
+            }
 
         } catch (QueryException|PDOException $e) {
 
@@ -574,11 +570,11 @@ class Users extends ApiController
                 'group.users.delete',
                 'self.users.delete'
             ])
-            || (!$this->hasPermissions([ // If only self and not self
+            || (!$this->hasPermissions([ // If only self does not match
                     'global.users.delete',
                     'group.users.delete'
                 ]) && $id != $this->user_id)
-            || (!$this->hasPermissions('global.users.delete') // If max permissions are group and not in group
+            || (!$this->hasPermissions('global.users.delete') // If only group and not in group
                 && $this->hasPermissions('group.users.delete')
                 && !in_array($id, $this->getGroupedUserIds()))) {
 
