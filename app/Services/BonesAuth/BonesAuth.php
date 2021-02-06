@@ -168,6 +168,8 @@ class BonesAuth extends Auth
     /**
      * Get all permissions using query builder.
      *
+     * TODO: Done
+     *
      * @param array $request
      * @param array|null $valid_permission_names (Restrict results to permission names(s))
      *
@@ -332,6 +334,8 @@ class BonesAuth extends Auth
 
     /**
      * Get all users using query builder.
+     *
+     * TODO: Done
      *
      * @param array $request
      * @param array|null $valid_group_ids (Restrict results to users in group(s))
