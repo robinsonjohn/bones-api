@@ -169,13 +169,14 @@ class BonesAuth extends Auth
      * Get all permissions using query builder.
      *
      * @param array $request
+     * @param array|null $valid_permissions (Restrict results to permission ID(s))
      *
      * @return array
      *
      * @throws QueryException
      */
 
-    public function getPermissionsCollection(array $request): array
+    public function getPermissionsCollection(array $request, array $valid_permissions = NULL): array
     {
 
         $query = new Query($this->pdo);
@@ -185,6 +186,12 @@ class BonesAuth extends Auth
             ->limit($request['limit'])
             ->offset($request['offset'])
             ->orderBy(Arr::get($request, 'order_by', ['name']));
+
+        if (is_array($valid_permissions)) { // Limit results to permission names
+
+            $query->where('name', 'in', implode(',', $valid_permissions));
+
+        }
 
         foreach ($request['filters'] as $column => $filter) {
 
@@ -494,5 +501,18 @@ class BonesAuth extends Auth
         return $this->_getResults($query, $request);
 
     }
+
+    /*
+     * TODO:
+     * Add different authenticators:
+     * - username/password
+     * - jwt/refresh token
+     * - api key/secret
+     * - session id/user id?
+     *
+     * There should be no reason for the controller to access/use the JWT directly.
+     * Simply authenticate using different methods.
+     */
+
 
 }

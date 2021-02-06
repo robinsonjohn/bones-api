@@ -2,8 +2,8 @@
 
 namespace App\Controllers\v1;
 
-use App\Schemas\UserCollection;
-use App\Schemas\UserResource;
+use App\Schemas\PermissionCollection;
+use App\Schemas\PermissionResource;
 use Bayfront\ArrayHelpers\Arr;
 use Bayfront\ArraySchema\InvalidSchemaException;
 use Bayfront\Bones\Exceptions\ControllerException;
@@ -14,22 +14,21 @@ use Bayfront\LeakyBucket\AdapterException;
 use Bayfront\LeakyBucket\BucketException;
 use Bayfront\MonologFactory\Exceptions\ChannelNotFoundException;
 use Bayfront\RBAC\Exceptions\InvalidKeysException;
-use Bayfront\RBAC\Exceptions\InvalidUserException;
-use Bayfront\RBAC\Exceptions\LoginExistsException;
+use Bayfront\RBAC\Exceptions\InvalidPermissionException;
+use Bayfront\RBAC\Exceptions\NameExistsException;
 use Bayfront\Validator\ValidationException;
 use Bayfront\HttpRequest\Request;
 use Bayfront\HttpResponse\InvalidStatusCodeException;
 use Bayfront\PDO\Exceptions\QueryException;
 use Bayfront\Validator\Validate;
-use Exception;
 use PDOException;
 
 /**
- * Users controller.
+ * Permissions controller.
  *
  * This controller allows rate limited authenticated access to endpoints.
  */
-class Users extends ApiController
+class Permissions extends ApiController
 {
 
     /**
@@ -50,32 +49,28 @@ class Users extends ApiController
     }
 
     /**
-     * Create new user.
+     * Create new permission.
      *
      * @return void
      *
      * @throws ChannelNotFoundException
      * @throws HttpException
-     * @throws InvalidSchemaException
+     * @throws InvalidPermissionException
      * @throws InvalidStatusCodeException
-     * @throws InvalidUserException
      * @throws NotFoundException
-     * @throws Exception
+     * @throws InvalidSchemaException
      */
 
-    protected function _createUser(): void
+    protected function _createPermission(): void
     {
 
         /*
          * Check permissions
          */
 
-        if (!$this->hasAnyPermissions([
-            'global.users.create',
-            'group.users.create'
-        ])) {
+        if (!$this->hasPermissions('global.permissions.create')) {
 
-            abort(403, 'Unable to create user: insufficient permissions');
+            abort(403, 'Unable to create permission: insufficient permissions');
             die;
 
         }
@@ -85,22 +80,15 @@ class Users extends ApiController
          */
 
         $body = $this->api->getBody([
-            'login',
-            'password'
+            'name'
         ]); // Required keys
 
         if (!empty(Arr::except($body, [ // If invalid members have been sent
-            'login',
-            'password',
-            'firstName',
-            'lastName',
-            'companyName',
-            'email',
-            'enabled',
-            'groups'
+            'name',
+            'description'
         ]))) {
 
-            abort(400, 'Unable to create user: request body contains invalid members');
+            abort(400, 'Unable to create permission: request body contains invalid members');
             die;
 
         }
@@ -112,14 +100,8 @@ class Users extends ApiController
         try {
 
             Validate::as($body, [
-                'login' => 'string',
-                'password' => 'string',
-                'firstName' => 'string|null',
-                'lastName' => 'string|null',
-                'companyName' => 'string|null',
-                'email' => 'email|null',
-                'enabled' => 'boolean',
-                'groups' => 'array'
+                'name' => 'string',
+                'description' => 'string'
             ]);
 
         } catch (ValidationException $e) {
@@ -130,54 +112,22 @@ class Users extends ApiController
         }
 
         /*
-         * Adjust for permissions
-         *
-         * TODO:
-         * This may need to be adjusted by allowing someone with group permissions
-         * to add users to their groups if they have the ID.
-         * The ID can be captured at time of creation (here).
-         */
-
-        $groups = Arr::get($body, 'groups'); // Save groups
-
-        Arr::forget($body, 'groups'); // Remove from body
-
-        /*
-         * If user only has permission group.users.create,
-         * ensure groups are defined and user belongs to the groups.
-         */
-
-        if (!$this->hasPermissions('global.users.create')
-            && (NULL === $groups || !Arr::hasAllValues($this->user_groups, $groups))) {
-
-            abort(403, 'Unable to create user: user must be assigned groups to which you belong');
-            die;
-
-        }
-
-        /*
          * Perform action
          */
 
         try {
 
-            $id = $this->auth->createUser($body);
+            $id = $this->auth->createPermission($body);
 
         } catch (InvalidKeysException $e) {
 
-            abort(400, 'Unable to create user: invalid members');
+            abort(400, 'Unable to create permission: invalid members');
             die;
 
-        } catch (LoginExistsException $e) {
+        } catch (NameExistsException $e) {
 
-            abort(409, 'Unable to create user: login already exists');
+            abort(409, 'Unable to create permission: name already exists');
             die;
-
-        }
-
-        if (NULL !== $groups) { // Assign user to specified groups
-
-            $this->auth->grantUserGroups($id, $groups);
 
         }
 
@@ -185,7 +135,7 @@ class Users extends ApiController
          * Log action
          */
 
-        log_info('User created', [
+        log_info('Permission created', [
             'id' => $id
         ]);
 
@@ -193,14 +143,14 @@ class Users extends ApiController
          * Do event
          */
 
-        do_event('user.create', $id);
+        do_event('permission.create', $id);
 
         /*
          * Build schema
          */
 
-        $schema = UserResource::create($this->auth->getUser($id), [
-            'object_prefix' => '/users'
+        $schema = PermissionResource::create($this->auth->getPermission($id), [
+            'object_prefix' => '/permissions'
         ]);
 
         /*
@@ -212,7 +162,7 @@ class Users extends ApiController
     }
 
     /**
-     * Update user.
+     * Update permission.
      *
      * @param string $id
      *
@@ -220,30 +170,22 @@ class Users extends ApiController
      *
      * @throws ChannelNotFoundException
      * @throws HttpException
+     * @throws InvalidPermissionException
      * @throws InvalidSchemaException
      * @throws InvalidStatusCodeException
-     * @throws InvalidUserException
      * @throws NotFoundException
-     * @throws Exception
      */
 
-    protected function _updateUser(string $id): void
+    protected function _updatePermission(string $id): void
     {
 
         /*
          * Check permissions
          */
 
-        /*
-         * TODO:
-         * Check these better. This is not good.
-         */
+        if (!$this->hasPermissions('global.permissions.update')) {
 
-        if (!$this->hasPermissions('global.users.update')
-            && (($this->hasPermissions('self.users.update') && $id != $this->user_id)
-                || ($this->hasPermissions('group.users.update') && !in_array($id, $this->getGroupedUserIds())))) {
-
-            abort(403, 'Unable to update user: insufficient permissions');
+            abort(403, 'Unable to update permissions: insufficient permissions');
             die;
 
         }
@@ -255,16 +197,11 @@ class Users extends ApiController
         $body = $this->api->getBody();
 
         if (!empty(Arr::except($body, [ // If invalid members have been sent
-            'login',
-            'password',
-            'firstName',
-            'lastName',
-            'companyName',
-            'email',
-            'enabled'
+            'name',
+            'description'
         ]))) {
 
-            abort(400, 'Unable to update user: request body contains invalid members');
+            abort(400, 'Unable to update permissions: request body contains invalid members');
             die;
 
         }
@@ -276,13 +213,8 @@ class Users extends ApiController
         try {
 
             Validate::as($body, [
-                'login' => 'string',
-                'password' => 'string',
-                'firstName' => 'string|null',
-                'lastName' => 'string|null',
-                'companyName' => 'string|null',
-                'email' => 'email|null',
-                'enabled' => 'boolean'
+                'name' => 'string',
+                'description' => 'string'
             ]);
 
         } catch (ValidationException $e) {
@@ -298,21 +230,21 @@ class Users extends ApiController
 
         try {
 
-            $this->auth->updateUser($id, $body);
+            $this->auth->updatePermission($id, $body);
 
         } catch (InvalidKeysException $e) {
 
             abort(400, 'Unable to update user: invalid members');
             die;
 
-        } catch (InvalidUserException $e) {
+        } catch (InvalidPermissionException $e) {
 
-            abort(404, 'Unable to update user: user ID does not exist');
+            abort(404, 'Unable to update permission: permission ID does not exist');
             die;
 
-        } catch (LoginExistsException $e) {
+        } catch (NameExistsException $e) {
 
-            abort(409, 'Unable to update user: login already exists');
+            abort(409, 'Unable to update permission: name already exists');
             die;
 
         }
@@ -321,7 +253,7 @@ class Users extends ApiController
          * Log action
          */
 
-        log_info('User updated', [
+        log_info('Permission updated', [
             'id' => $id
         ]);
 
@@ -329,14 +261,14 @@ class Users extends ApiController
          * Do event
          */
 
-        do_event('user.update', $id);
+        do_event('permission.update', $id);
 
         /*
          * Build schema
          */
 
-        $schema = UserResource::create($this->auth->getUser($id), [
-            'object_prefix' => '/users'
+        $schema = PermissionResource::create($this->auth->getPermission($id), [
+            'object_prefix' => '/permissions'
         ]);
 
         /*
@@ -348,7 +280,7 @@ class Users extends ApiController
     }
 
     /**
-     * Get single user.
+     * Get single permission.
      *
      * @param string $id
      *
@@ -360,18 +292,20 @@ class Users extends ApiController
      * @throws NotFoundException
      */
 
-    protected function _getUser(string $id): void
+    protected function _getPermission(string $id): void
     {
 
         /*
          * Check permissions
          */
 
-        if (!$this->hasPermissions('global.users.read')
-            && (($this->hasPermissions('self.users.read') && $id != $this->user_id)
-                || ($this->hasPermissions('group.users.read') && !in_array($id, $this->getGroupedUserIds())))) {
+        if (!$this->hasAnyPermissions([
+                'global.permissions.read',
+                'self.permissions.read'
+            ]) || (!$this->hasPermissions('global.permissions.read')
+                && !in_array($id, $this->user_permissions))) {
 
-            abort(403, 'Unable to get user: insufficient permissions');
+            abort(403, 'Unable to get permission: insufficient permissions');
             die;
 
         }
@@ -394,20 +328,14 @@ class Users extends ApiController
          */
 
         if (!empty(Arr::except($request['fields'], [ // Valid field types
-                'users'
-            ])) || !empty(Arr::except(array_flip(Arr::get($request['fields'], 'users', [])), [ // Valid fields
+                'permissions'
+            ])) || !empty(Arr::except(array_flip(Arr::get($request['fields'], 'permissions', [])), [ // Valid fields
                 'id',
-                'login',
-                'firstName',
-                'lastName',
-                'companyName',
-                'email',
-                'enabled',
-                'createdAt',
-                'updatedAt'
+                'name',
+                'description'
             ]))) {
 
-            abort(400, 'Unable to get user: query string contains invalid fields');
+            abort(400, 'Unable to get permission: query string contains invalid fields');
             die;
 
         }
@@ -418,11 +346,11 @@ class Users extends ApiController
 
         try {
 
-            $user = $this->auth->getUser($id);
+            $user = $this->auth->getPermission($id);
 
-        } catch (InvalidUserException $e) {
+        } catch (InvalidPermissionException $e) {
 
-            abort(404, 'Unable to get user: user ID does not exist');
+            abort(404, 'Unable to get permission: permission ID does not exist');
             die;
 
         }
@@ -431,11 +359,11 @@ class Users extends ApiController
          * Filter fields
          */
 
-        if (isset($request['fields']['users'])) {
+        if (isset($request['fields']['permissions'])) {
 
-            $request = $this->requireValues($request, 'fields.users', 'id');
+            $request = $this->requireValues($request, 'fields.permissions', 'id');
 
-            $user = Arr::only($user, $request['fields']['users']);
+            $user = Arr::only($user, $request['fields']['permissions']);
 
         }
 
@@ -443,8 +371,8 @@ class Users extends ApiController
          * Build schema
          */
 
-        $schema = UserResource::create($user, [
-            'object_prefix' => '/users'
+        $schema = PermissionResource::create($user, [
+            'object_prefix' => '/permissions'
         ]);
 
         /*
@@ -458,7 +386,7 @@ class Users extends ApiController
     }
 
     /**
-     * Get users.
+     * Get permissions.
      *
      * @return void
      *
@@ -468,7 +396,7 @@ class Users extends ApiController
      * @throws NotFoundException
      */
 
-    protected function _getUsers(): void
+    protected function _getPermissions(): void
     {
 
         /*
@@ -476,21 +404,20 @@ class Users extends ApiController
          */
 
         if (!$this->hasAnyPermissions([
-            'global.users.read',
-            'group.users.read'
+            'global.permissions.read',
+            'self.permissions.read'
         ])) {
 
-            abort(403, 'Unable to get users: insufficient permissions');
+            abort(403, 'Unable to get permissions: insufficient permissions');
             die;
 
         }
 
-        $valid_groups = NULL;
+        $valid_permissions = NULL;
 
-        if (!$this->hasPermissions('global.users.read')
-            && $this->hasPermissions('group.users.read')) {
+        if (!$this->hasPermissions('global.permissions.read')) {
 
-            $valid_groups = $this->user_groups; // Limit users to user's groups
+            $valid_permissions = $this->user_permissions; // Limit users to user's permissions
 
         }
 
@@ -512,20 +439,14 @@ class Users extends ApiController
          */
 
         if (!empty(Arr::except($request['fields'], [ // Valid field types
-                'users'
-            ])) || !empty(Arr::except(array_flip(Arr::get($request['fields'], 'users', [])), [ // Valid fields
+                'permissions'
+            ])) || !empty(Arr::except(array_flip(Arr::get($request['fields'], 'permissions', [])), [ // Valid fields
                 'id',
-                'login',
-                'firstName',
-                'lastName',
-                'companyName',
-                'email',
-                'enabled',
-                'createdAt',
-                'updatedAt'
+                'name',
+                'description'
             ]))) {
 
-            abort(400, 'Unable to get users: query string contains invalid fields');
+            abort(400, 'Unable to get permissions: query string contains invalid fields');
             die;
 
         }
@@ -534,7 +455,7 @@ class Users extends ApiController
          * Filter fields
          */
 
-        $request = $this->requireValues($request, 'fields.users', 'id');
+        $request = $this->requireValues($request, 'fields.permissions', 'id');
 
         /*
          * Get data
@@ -542,11 +463,11 @@ class Users extends ApiController
 
         try {
 
-            $users = $this->auth->getUsersCollection($request, $valid_groups);
+            $permissions = $this->auth->getPermissionsCollection($request, $valid_permissions);
 
         } catch (QueryException|PDOException $e) {
 
-            abort(400, 'Unable to get users: invalid request');
+            abort(400, 'Unable to get permissions: invalid request');
             die;
 
         }
@@ -555,9 +476,9 @@ class Users extends ApiController
          * Build schema
          */
 
-        $schema = UserCollection::create($users, [
-            'object_prefix' => '/users',
-            'collection_prefix' => '/users'
+        $schema = PermissionCollection::create($permissions, [
+            'object_prefix' => '/permissions',
+            'collection_prefix' => '/permissions'
         ]);
 
         /*
@@ -571,7 +492,7 @@ class Users extends ApiController
     }
 
     /**
-     * Delete user.
+     * Delete permission.
      *
      * @param string $id
      *
@@ -583,18 +504,16 @@ class Users extends ApiController
      * @throws NotFoundException
      */
 
-    protected function _deleteUser(string $id): void
+    protected function _deletePermission(string $id): void
     {
 
         /*
          * Check permissions
          */
 
-        if (!$this->hasPermissions('global.users.delete')
-            && (($this->hasPermissions('self.users.delete') && $id != $this->user_id)
-                || ($this->hasPermissions('group.users.delete') && !in_array($id, $this->getGroupedUserIds())))) {
+        if (!$this->hasPermissions('global.permissions.delete')) {
 
-            abort(403, 'Unable to delete user: insufficient permissions');
+            abort(403, 'Unable to delete permission: insufficient permissions');
             die;
 
         }
@@ -603,7 +522,7 @@ class Users extends ApiController
          * Perform action
          */
 
-        $deleted = $this->auth->deleteUser($id);
+        $deleted = $this->auth->deletePermission($id);
 
         if ($deleted) {
 
@@ -611,7 +530,7 @@ class Users extends ApiController
              * Log action
              */
 
-            log_info('User deleted', [
+            log_info('Permission deleted', [
                 'id' => $id
             ]);
 
@@ -619,7 +538,7 @@ class Users extends ApiController
              * Do event
              */
 
-            do_event('user.delete', $id);
+            do_event('permission.delete', $id);
 
             /*
              * Send response
@@ -629,7 +548,7 @@ class Users extends ApiController
 
         } else {
 
-            abort(404, 'Unable to delete user: user ID does not exist');
+            abort(404, 'Unable to delete permission: permission ID does not exist');
             die;
 
         }
@@ -651,9 +570,9 @@ class Users extends ApiController
      *
      * @throws ChannelNotFoundException
      * @throws HttpException
+     * @throws InvalidPermissionException
      * @throws InvalidSchemaException
      * @throws InvalidStatusCodeException
-     * @throws InvalidUserException
      * @throws NotFoundException
      */
 
@@ -674,17 +593,17 @@ class Users extends ApiController
                 die;
             }
 
-            $this->_createUser();
+            $this->_createPermission();
 
         } else if (Request::isGet()) {
 
             if (isset($params['id'])) { // Single user
 
-                $this->_getUser($params['id']);
+                $this->_getPermission($params['id']);
 
             } else { // Get all users
 
-                $this->_getUsers();
+                $this->_getPermissions();
 
             }
 
@@ -695,7 +614,7 @@ class Users extends ApiController
                 die;
             }
 
-            $this->_updateUser($params['id']);
+            $this->_updatePermission($params['id']);
 
         } else { // Delete
 
@@ -704,7 +623,7 @@ class Users extends ApiController
                 die;
             }
 
-            $this->_deleteUser($params['id']);
+            $this->_deletePermission($params['id']);
 
         }
 
