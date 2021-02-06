@@ -70,10 +70,7 @@ class Users extends ApiController
          * Check permissions
          */
 
-        if (!$this->hasAnyPermissions([
-            'global.users.create',
-            'group.users.create'
-        ])) {
+        if (!$this->hasPermissions('global.users.create')) {
 
             abort(403, 'Unable to create user: insufficient permissions');
             die;
@@ -96,8 +93,7 @@ class Users extends ApiController
             'lastName',
             'companyName',
             'email',
-            'enabled',
-            'groups'
+            'enabled'
         ]))) {
 
             abort(400, 'Unable to create user: request body contains invalid members');
@@ -118,39 +114,12 @@ class Users extends ApiController
                 'lastName' => 'string|null',
                 'companyName' => 'string|null',
                 'email' => 'email|null',
-                'enabled' => 'boolean',
-                'groups' => 'array'
+                'enabled' => 'boolean'
             ]);
 
         } catch (ValidationException $e) {
 
             abort(400, $e->getMessage());
-            die;
-
-        }
-
-        /*
-         * Adjust for permissions
-         *
-         * TODO:
-         * This may need to be adjusted by allowing someone with group permissions
-         * to add users to their groups if they have the ID.
-         * The ID can be captured at time of creation (here).
-         */
-
-        $groups = Arr::get($body, 'groups'); // Save groups
-
-        Arr::forget($body, 'groups'); // Remove from body
-
-        /*
-         * If user only has permission group.users.create,
-         * ensure groups are defined and user belongs to the groups.
-         */
-
-        if (!$this->hasPermissions('global.users.create')
-            && (NULL === $groups || !Arr::hasAllValues($this->user_groups, $groups))) {
-
-            abort(403, 'Unable to create user: user must be assigned groups to which you belong');
             die;
 
         }
@@ -172,12 +141,6 @@ class Users extends ApiController
 
             abort(409, 'Unable to create user: login already exists');
             die;
-
-        }
-
-        if (NULL !== $groups) { // Assign user to specified groups
-
-            $this->auth->grantUserGroups($id, $groups);
 
         }
 
