@@ -2,7 +2,7 @@
 
 namespace App\Controllers\v1;
 
-use App\Services\BonesAuth\Schemas\StatusResource;
+use App\Schemas\StatusResource;
 use Bayfront\ArraySchema\InvalidSchemaException;
 use Bayfront\Bones\Services\BonesApi;
 use Bayfront\Bones\Controller;

@@ -1,19 +1,12 @@
 <?php
 
-/**
- * @package bones-api
- * @link https://github.com/bayfrontmedia/bones-api
- * @author John Robinson <john@bayfrontmedia.com>
- * @copyright 2021 Bayfront Media
- */
-
-namespace App\Services\BonesAuth\Schemas;
+namespace App\Schemas;
 
 use Bayfront\ArrayHelpers\Arr;
 use Bayfront\ArraySchema\InvalidSchemaException;
 use Bayfront\ArraySchema\SchemaInterface;
 
-class StatusResource implements SchemaInterface
+class AuthResource implements SchemaInterface
 {
 
     /**
@@ -24,8 +17,9 @@ class StatusResource implements SchemaInterface
     {
 
         if (Arr::isMissing($array, [
-            'status',
-            'version'
+            'accessToken',
+            'refreshToken',
+            'expiresIn'
         ])) {
             $class = str_replace(__NAMESPACE__ . '\\', '', get_called_class());
             throw new InvalidSchemaException('Unable to create ' . $class . ' schema: missing required keys');
@@ -33,11 +27,13 @@ class StatusResource implements SchemaInterface
 
         return [
             'data' => [
-                'type' => 'status',
+                'type' => 'token',
                 'id' => date('c'),
                 'attributes' => [
-                    'status' => $array['status'],
-                    'version' => $array['version']
+                    'accessToken' => $array['accessToken'],
+                    'refreshToken' => $array['refreshToken'],
+                    'type' => 'Bearer',
+                    'expiresIn' => $array['expiresIn'] // TODO: expires as timestamp or expiresIn as seconds?
                 ]
             ]
         ];

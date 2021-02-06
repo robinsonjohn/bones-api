@@ -7,7 +7,7 @@
  * @copyright 2021 Bayfront Media
  */
 
-namespace App\Services\BonesAuth\Schemas;
+namespace App\Schemas;
 
 use Bayfront\ArraySchema\SchemaInterface;
 

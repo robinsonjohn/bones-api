@@ -2,8 +2,8 @@
 
 namespace App\Controllers\v1;
 
-use App\Services\BonesAuth\Schemas\UserCollection;
-use App\Services\BonesAuth\Schemas\UserResource;
+use App\Schemas\UserCollection;
+use App\Schemas\UserResource;
 use Bayfront\ArrayHelpers\Arr;
 use Bayfront\ArraySchema\InvalidSchemaException;
 use Bayfront\Bones\Exceptions\ControllerException;

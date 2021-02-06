@@ -2,7 +2,7 @@
 
 namespace App\Controllers\v1;
 
-use App\Services\BonesAuth\Schemas\AuthResource;
+use App\Schemas\AuthResource;
 use Bayfront\ArrayHelpers\Arr;
 use Bayfront\ArraySchema\InvalidSchemaException;
 use Bayfront\Bones\Exceptions\ControllerException;
