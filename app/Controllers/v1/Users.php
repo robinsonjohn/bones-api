@@ -28,6 +28,9 @@ use PDOException;
  * Users controller.
  *
  * This controller allows rate limited authenticated access to endpoints.
+ *
+ * TODO:
+ * Work with permission levels, they need tweaking.
  */
 class Users extends ApiController
 {
@@ -197,14 +200,18 @@ class Users extends ApiController
          * Check permissions
          */
 
-        /*
-         * TODO:
-         * Check these better. This is not good.
-         */
-
-        if (!$this->hasPermissions('global.users.update')
-            && (($this->hasPermissions('self.users.update') && $id != $this->user_id)
-                || ($this->hasPermissions('group.users.update') && !in_array($id, $this->getGroupedUserIds())))) {
+        if (!$this->hasAnyPermissions([ // If no applicable permissions
+                'global.users.update',
+                'group.users.update',
+                'self.users.update'
+            ])
+            || (!$this->hasPermissions([ // If only self and not self
+                    'global.users.update',
+                    'group.users.update'
+                ]) && $id != $this->user_id)
+            || (!$this->hasPermissions('global.users.update') // If max permissions are group and not in group
+                && $this->hasPermissions('group.users.update')
+            && !in_array($id, $this->getGroupedUserIds()))) {
 
             abort(403, 'Unable to update user: insufficient permissions');
             die;
@@ -330,9 +337,18 @@ class Users extends ApiController
          * Check permissions
          */
 
-        if (!$this->hasPermissions('global.users.read')
-            && (($this->hasPermissions('self.users.read') && $id != $this->user_id)
-                || ($this->hasPermissions('group.users.read') && !in_array($id, $this->getGroupedUserIds())))) {
+        if (!$this->hasAnyPermissions([ // If no applicable permissions
+                'global.users.read',
+                'group.users.read',
+                'self.users.read'
+            ])
+            || (!$this->hasPermissions([ // If only self and not self
+                    'global.users.read',
+                    'group.users.read'
+                ]) && $id != $this->user_id)
+            || (!$this->hasPermissions('global.users.read') // If max permissions are group and not in group
+                && $this->hasPermissions('group.users.read')
+                && !in_array($id, $this->getGroupedUserIds()))) {
 
             abort(403, 'Unable to get user: insufficient permissions');
             die;
@@ -553,9 +569,18 @@ class Users extends ApiController
          * Check permissions
          */
 
-        if (!$this->hasPermissions('global.users.delete')
-            && (($this->hasPermissions('self.users.delete') && $id != $this->user_id)
-                || ($this->hasPermissions('group.users.delete') && !in_array($id, $this->getGroupedUserIds())))) {
+        if (!$this->hasAnyPermissions([ // If no applicable permissions
+                'global.users.delete',
+                'group.users.delete',
+                'self.users.delete'
+            ])
+            || (!$this->hasPermissions([ // If only self and not self
+                    'global.users.delete',
+                    'group.users.delete'
+                ]) && $id != $this->user_id)
+            || (!$this->hasPermissions('global.users.delete') // If max permissions are group and not in group
+                && $this->hasPermissions('group.users.delete')
+                && !in_array($id, $this->getGroupedUserIds()))) {
 
             abort(403, 'Unable to delete user: insufficient permissions');
             die;
