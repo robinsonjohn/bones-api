@@ -202,7 +202,7 @@ class Users extends ApiController
                 'group.users.update',
                 'self.users.update'
             ])
-            || (!$this->hasPermissions([ // If only self does not match
+            || (!$this->hasAnyPermissions([ // If only self does not match
                     'global.users.update',
                     'group.users.update'
                 ]) && $id != $this->user_id)
@@ -339,7 +339,7 @@ class Users extends ApiController
                 'group.users.read',
                 'self.users.read'
             ])
-            || (!$this->hasPermissions([ // If only self does not match
+            || (!$this->hasAnyPermissions([ // If only self does not match
                     'global.users.read',
                     'group.users.read'
                 ]) && $id != $this->user_id)
@@ -570,7 +570,7 @@ class Users extends ApiController
                 'group.users.delete',
                 'self.users.delete'
             ])
-            || (!$this->hasPermissions([ // If only self does not match
+            || (!$this->hasAnyPermissions([ // If only self does not match
                     'global.users.delete',
                     'group.users.delete'
                 ]) && $id != $this->user_id)
