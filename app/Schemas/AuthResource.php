@@ -19,7 +19,8 @@ class AuthResource implements SchemaInterface
         if (Arr::isMissing($array, [
             'accessToken',
             'refreshToken',
-            'expiresIn'
+            'expiresIn',
+            'expiresAt'
         ])) {
             $class = str_replace(__NAMESPACE__ . '\\', '', get_called_class());
             throw new InvalidSchemaException('Unable to create ' . $class . ' schema: missing required keys');
@@ -33,7 +34,8 @@ class AuthResource implements SchemaInterface
                     'accessToken' => $array['accessToken'],
                     'refreshToken' => $array['refreshToken'],
                     'type' => 'Bearer',
-                    'expiresIn' => $array['expiresIn'] // TODO: expires as timestamp or expiresIn as seconds?
+                    'expiresIn' => $array['expiresIn'],
+                    'expiresAt' => $array['expiresAt']
                 ]
             ]
         ];

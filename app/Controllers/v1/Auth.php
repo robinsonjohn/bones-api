@@ -89,12 +89,14 @@ class Auth extends ApiController
 
         $time = time();
 
+        $expiration = $time + get_config('api.access_token_lifetime');
+
         $token = $jwt
             ->iss(Request::getRequest('protocol') . Request::getRequest('host')) // Issuer
             ->sub($data['login'])
             ->iat($time)
             ->nbf($time)
-            ->exp($time + get_config('api.access_token_lifetime'))
+            ->exp($expiration)
             ->encode($payload);
 
         // Build schema
@@ -102,7 +104,8 @@ class Auth extends ApiController
         $schema = AuthResource::create([
             'accessToken' => $token,
             'refreshToken' => $refresh_token,
-            'expiresIn' => get_config('api.access_token_lifetime')
+            'expiresIn' => (string)get_config('api.access_token_lifetime'),
+            'expiresAt' => (string)$expiration
         ]);
 
         // Respond
