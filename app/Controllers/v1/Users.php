@@ -511,7 +511,7 @@ class Users extends ApiController
 
             if (!$this->hasPermissions('global.users.read')) {
 
-                $users = $this->auth->getUsersCollection($request, $this->user_group_ids); // Limit users to user's groups
+                $users = $this->auth->getUsersCollection($request, $this->user_groups); // Limit users to user's groups
 
             } else {
 

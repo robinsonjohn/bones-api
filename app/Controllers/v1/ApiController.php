@@ -2,13 +2,13 @@
 
 namespace App\Controllers\v1;
 
-use App\Services\BonesAuth\BonesAuth;
 use Bayfront\ArrayHelpers\Arr;
 use Bayfront\Bones\Controller;
 use Bayfront\Bones\Exceptions\ControllerException;
 use Bayfront\Bones\Exceptions\HttpException;
 use Bayfront\Bones\Exceptions\ServiceException;
 use Bayfront\Bones\Services\BonesApi;
+use Bayfront\Bones\Services\BonesAuth;
 use Bayfront\Container\NotFoundException;
 use Bayfront\HttpResponse\InvalidStatusCodeException;
 use Bayfront\LeakyBucket\AdapterException;
@@ -37,9 +37,9 @@ abstract class ApiController extends Controller
 
     protected $user_id = '';
 
-    protected $user_group_ids = []; // Array of group ID's
+    protected $user_groups = []; // Array of group ID's
 
-    protected $user_permission_names = []; // Array of permission names
+    protected $user_permissions = []; // Array of permissions
 
     /**
      * ApiController constructor.
@@ -60,7 +60,7 @@ abstract class ApiController extends Controller
 
         parent::__construct(); // Bones controller
 
-        // Get the Bones API service from the container
+        // Get the BonesApi service from the container
 
         /** @var BonesApi $api */
 
@@ -70,9 +70,9 @@ abstract class ApiController extends Controller
 
         $this->api->start();
 
-        // Get the Auth class from the container
+        // Get the BonesAuth service from the container
 
-        $this->auth = $this->container->get('auth');
+        $this->auth = get_service('BonesAuth');
 
         if (true === $requires_authentication) {
 
@@ -90,9 +90,11 @@ abstract class ApiController extends Controller
 
             $this->user_id = Arr::get($this->token, 'user_id', '');
 
-            $this->user_group_ids = Arr::get($this->token, 'groups', []);
+            $this->user_groups = Arr::get($this->token, 'groups', []);
 
-            $this->user_permission_names = Arr::pluck($this->auth->getUserPermissions($this->user_id), 'name');
+            $this->user_permissions = $this->auth->getUserPermissions($this->user_id);
+
+            do_event('jwt.authenticated', $this->token);
 
         }
 
@@ -141,7 +143,7 @@ abstract class ApiController extends Controller
 
     public function hasPermissions($permissions): bool
     {
-        return Arr::hasAllValues($this->user_permission_names, (array)$permissions);
+        return Arr::hasAllValues(Arr::pluck($this->user_permissions, 'name'), (array)$permissions);
     }
 
     /**
@@ -154,7 +156,7 @@ abstract class ApiController extends Controller
 
     public function hasAnyPermissions($permissions): bool
     {
-        return Arr::hasAnyValues($this->user_permission_names, (array)$permissions);
+        return Arr::hasAnyValues(Arr::pluck($this->user_permissions, 'name'), (array)$permissions);
     }
 
     /**
@@ -168,7 +170,7 @@ abstract class ApiController extends Controller
 
         $users = [];
 
-        foreach ($this->user_group_ids as $group) {
+        foreach (Arr::get($this->token, 'groups', []) as $group) {
 
             $users = array_merge($users, $this->auth->getGroupUsers($group));
 

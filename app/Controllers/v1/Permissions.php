@@ -303,7 +303,7 @@ class Permissions extends ApiController
                 'global.permissions.read',
                 'self.permissions.read'
             ]) || (!$this->hasPermissions('global.permissions.read')
-                && !in_array($id, $this->user_permission_names))) {
+                && !in_array($id, Arr::pluck($this->user_permissions, 'id')))) {
 
             abort(403, 'Unable to get permission: insufficient permissions');
             die;
@@ -457,7 +457,7 @@ class Permissions extends ApiController
 
             if (!$this->hasPermissions('global.permissions.read')) {
 
-                $permissions = $this->auth->getPermissionsCollection($request, $this->user_permission_names); // Limit to user's permissions
+                $permissions = $this->auth->getPermissionsCollection($request, Arr::pluck($this->user_permissions, 'id')); // Limit to user's permissions
 
             } else {
 

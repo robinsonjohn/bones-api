@@ -1,6 +1,5 @@
 <?php /** @noinspection PhpUnhandledExceptionInspection */
 
-use App\Services\BonesAuth\BonesAuth;
 use Bayfront\PDO\Db;
 
 /*
@@ -23,11 +22,7 @@ get_service('BonesApi', [
 
 $db = get_from_container('db');
 
-/** @var BonesAuth $auth */
-
-$auth = get_service('BonesAuth\\BonesAuth', [
+get_service('BonesAuth', [
     'pdo' => $db->get('primary'), // PDO instance
     'pepper' => get_config('app.key', '')
 ]);
-
-put_in_container('auth', $auth);
