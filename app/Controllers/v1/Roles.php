@@ -1,38 +1,45 @@
 <?php
 
+/**
+ * @package bones-api
+ * @link https://github.com/bayfrontmedia/bones-api
+ * @author John Robinson <john@bayfrontmedia.com>
+ * @copyright 2021 Bayfront Media
+ */
+
 namespace App\Controllers\v1;
 
-use App\Schemas\PermissionCollection;
-use App\Schemas\PermissionResource;
+use App\Schemas\RoleCollection;
+use App\Schemas\RoleResource;
 use Bayfront\ArrayHelpers\Arr;
 use Bayfront\ArraySchema\InvalidSchemaException;
 use Bayfront\Bones\Exceptions\ControllerException;
 use Bayfront\Bones\Exceptions\HttpException;
 use Bayfront\Bones\Exceptions\ServiceException;
 use Bayfront\Container\NotFoundException;
+use Bayfront\HttpRequest\Request;
+use Bayfront\HttpResponse\InvalidStatusCodeException;
 use Bayfront\LeakyBucket\AdapterException;
 use Bayfront\LeakyBucket\BucketException;
 use Bayfront\MonologFactory\Exceptions\ChannelNotFoundException;
-use Bayfront\RBAC\Exceptions\InvalidKeysException;
-use Bayfront\RBAC\Exceptions\InvalidPermissionException;
-use Bayfront\RBAC\Exceptions\NameExistsException;
-use Bayfront\Validator\ValidationException;
-use Bayfront\HttpRequest\Request;
-use Bayfront\HttpResponse\InvalidStatusCodeException;
 use Bayfront\PDO\Exceptions\QueryException;
+use Bayfront\RBAC\Exceptions\InvalidKeysException;
+use Bayfront\RBAC\Exceptions\InvalidRoleException;
+use Bayfront\RBAC\Exceptions\NameExistsException;
 use Bayfront\Validator\Validate;
+use Bayfront\Validator\ValidationException;
 use PDOException;
 
 /**
- * Permissions controller.
+ * Roles controller.
  *
  * This controller allows rate limited authenticated access to endpoints.
  */
-class Permissions extends ApiController
+class Roles extends ApiController
 {
 
     /**
-     * Permissions constructor.
+     * Roles constructor.
      *
      * @throws ControllerException
      * @throws HttpException
@@ -49,28 +56,28 @@ class Permissions extends ApiController
     }
 
     /**
-     * Create new permission.
+     * Create new role.
      *
      * @return void
      *
      * @throws ChannelNotFoundException
      * @throws HttpException
-     * @throws InvalidPermissionException
+     * @throws InvalidRoleException
+     * @throws InvalidSchemaException
      * @throws InvalidStatusCodeException
      * @throws NotFoundException
-     * @throws InvalidSchemaException
      */
 
-    protected function _createPermission(): void
+    protected function _createRole(): void
     {
 
         /*
          * Check permissions
          */
 
-        if (!$this->hasPermissions('global.permissions.create')) {
+        if (!$this->hasPermissions('global.roles.create')) {
 
-            abort(403, 'Unable to create permission: insufficient permissions');
+            abort(403, 'Unable to create role: insufficient permissions');
             die;
 
         }
@@ -85,10 +92,10 @@ class Permissions extends ApiController
 
         if (!empty(Arr::except($body, [ // If invalid members have been sent
             'name',
-            'description'
+            'enabled'
         ]))) {
 
-            abort(400, 'Unable to create permission: request body contains invalid members');
+            abort(400, 'Unable to create role: request body contains invalid members');
             die;
 
         }
@@ -101,7 +108,7 @@ class Permissions extends ApiController
 
             Validate::as($body, [
                 'name' => 'string',
-                'description' => 'string'
+                'enabled' => 'boolean'
             ]);
 
         } catch (ValidationException $e) {
@@ -117,16 +124,16 @@ class Permissions extends ApiController
 
         try {
 
-            $id = $this->auth->createPermission($body);
+            $id = $this->auth->createRole($body);
 
         } catch (InvalidKeysException $e) {
 
-            abort(400, 'Unable to create permission: invalid members');
+            abort(400, 'Unable to create role: invalid members');
             die;
 
         } catch (NameExistsException $e) {
 
-            abort(409, 'Unable to create permission: name already exists');
+            abort(409, 'Unable to create role: name already exists');
             die;
 
         }
@@ -135,7 +142,7 @@ class Permissions extends ApiController
          * Log action
          */
 
-        log_info('Permission created', [
+        log_info('Role created', [
             'id' => $id
         ]);
 
@@ -143,14 +150,14 @@ class Permissions extends ApiController
          * Do event
          */
 
-        do_event('permission.create', $id);
+        do_event('role.create', $id);
 
         /*
          * Build schema
          */
 
-        $schema = PermissionResource::create($this->auth->getPermission($id), [
-            'object_prefix' => '/permissions'
+        $schema = RoleResource::create($this->auth->getRole($id), [
+            'object_prefix' => '/roles'
         ]);
 
         /*
@@ -162,7 +169,7 @@ class Permissions extends ApiController
     }
 
     /**
-     * Update permission.
+     * Update role.
      *
      * @param string $id
      *
@@ -170,22 +177,22 @@ class Permissions extends ApiController
      *
      * @throws ChannelNotFoundException
      * @throws HttpException
-     * @throws InvalidPermissionException
+     * @throws InvalidRoleException
      * @throws InvalidSchemaException
      * @throws InvalidStatusCodeException
      * @throws NotFoundException
      */
 
-    protected function _updatePermission(string $id): void
+    protected function _updateRole(string $id): void
     {
 
         /*
          * Check permissions
          */
 
-        if (!$this->hasPermissions('global.permissions.update')) {
+        if (!$this->hasPermissions('global.roles.update')) {
 
-            abort(403, 'Unable to update permission: insufficient permissions');
+            abort(403, 'Unable to update role: insufficient permissions');
             die;
 
         }
@@ -198,10 +205,10 @@ class Permissions extends ApiController
 
         if (!empty(Arr::except($body, [ // If invalid members have been sent
             'name',
-            'description'
+            'enabled'
         ]))) {
 
-            abort(400, 'Unable to update permission: request body contains invalid members');
+            abort(400, 'Unable to update role: request body contains invalid members');
             die;
 
         }
@@ -214,7 +221,7 @@ class Permissions extends ApiController
 
             Validate::as($body, [
                 'name' => 'string',
-                'description' => 'string'
+                'enabled' => 'boolean'
             ]);
 
         } catch (ValidationException $e) {
@@ -230,21 +237,21 @@ class Permissions extends ApiController
 
         try {
 
-            $this->auth->updatePermission($id, $body);
+            $this->auth->updateRole($id, $body);
 
         } catch (InvalidKeysException $e) {
 
-            abort(400, 'Unable to update permission: invalid members');
+            abort(400, 'Unable to update role: invalid members');
             die;
 
-        } catch (InvalidPermissionException $e) {
+        } catch (InvalidRoleException $e) {
 
-            abort(404, 'Unable to update permission: permission ID does not exist');
+            abort(404, 'Unable to update role: role ID does not exist');
             die;
 
         } catch (NameExistsException $e) {
 
-            abort(409, 'Unable to update permission: name already exists');
+            abort(409, 'Unable to update role: name already exists');
             die;
 
         }
@@ -253,7 +260,7 @@ class Permissions extends ApiController
          * Log action
          */
 
-        log_info('Permission updated', [
+        log_info('Role updated', [
             'id' => $id
         ]);
 
@@ -261,14 +268,14 @@ class Permissions extends ApiController
          * Do event
          */
 
-        do_event('permission.update', $id);
+        do_event('role.update', $id);
 
         /*
          * Build schema
          */
 
-        $schema = PermissionResource::create($this->auth->getPermission($id), [
-            'object_prefix' => '/permissions'
+        $schema = RoleResource::create($this->auth->getRole($id), [
+            'object_prefix' => '/roles'
         ]);
 
         /*
@@ -280,7 +287,7 @@ class Permissions extends ApiController
     }
 
     /**
-     * Get single permission.
+     * Get single role.
      *
      * @param string $id
      *
@@ -292,7 +299,7 @@ class Permissions extends ApiController
      * @throws NotFoundException
      */
 
-    protected function _getPermission(string $id): void
+    protected function _getRole(string $id): void
     {
 
         /*
@@ -300,12 +307,12 @@ class Permissions extends ApiController
          */
 
         if (!$this->hasAnyPermissions([
-                'global.permissions.read',
-                'self.permissions.read'
-            ]) || (!$this->hasPermissions('global.permissions.read')
-                && !in_array($id, Arr::pluck($this->user_permissions, 'id')))) {
+                'global.roles.read',
+                'self.roles.read'
+            ]) || (!$this->hasPermissions('global.roles.read')
+                && !in_array($id, Arr::pluck($this->auth->getUserRoles($this->user_id), 'id')))) {
 
-            abort(403, 'Unable to get permission: insufficient permissions');
+            abort(403, 'Unable to get role: insufficient permissions');
             die;
 
         }
@@ -328,14 +335,16 @@ class Permissions extends ApiController
          */
 
         if (!empty(Arr::except($request['fields'], [ // Valid field types
-                'permissions'
-            ])) || !empty(Arr::except(array_flip(Arr::get($request['fields'], 'permissions', [])), [ // Valid fields
+                'roles'
+            ])) || !empty(Arr::except(array_flip(Arr::get($request['fields'], 'roles', [])), [ // Valid fields
                 'id',
                 'name',
-                'description'
+                'enabled',
+                'createdAt',
+                'updatedAt'
             ]))) {
 
-            abort(400, 'Unable to get permission: query string contains invalid fields');
+            abort(400, 'Unable to get role: query string contains invalid fields');
             die;
 
         }
@@ -346,11 +355,11 @@ class Permissions extends ApiController
 
         try {
 
-            $user = $this->auth->getPermission($id);
+            $role = $this->auth->getRole($id);
 
-        } catch (InvalidPermissionException $e) {
+        } catch (InvalidRoleException $e) {
 
-            abort(404, 'Unable to get permission: permission ID does not exist');
+            abort(404, 'Unable to get role: role ID does not exist');
             die;
 
         }
@@ -359,11 +368,11 @@ class Permissions extends ApiController
          * Filter fields
          */
 
-        if (isset($request['fields']['permissions'])) {
+        if (isset($request['fields']['roles'])) {
 
-            $request = $this->requireValues($request, 'fields.permissions', 'id');
+            $request = $this->requireValues($request, 'fields.roles', 'id');
 
-            $user = Arr::only($user, $request['fields']['permissions']);
+            $role = Arr::only($role, $request['fields']['roles']);
 
         }
 
@@ -371,8 +380,8 @@ class Permissions extends ApiController
          * Build schema
          */
 
-        $schema = PermissionResource::create($user, [
-            'object_prefix' => '/permissions'
+        $schema = RoleResource::create($role, [
+            'object_prefix' => '/roles'
         ]);
 
         /*
@@ -386,7 +395,7 @@ class Permissions extends ApiController
     }
 
     /**
-     * Get permissions.
+     * Get roles.
      *
      * @return void
      *
@@ -396,7 +405,7 @@ class Permissions extends ApiController
      * @throws NotFoundException
      */
 
-    protected function _getPermissions(): void
+    protected function _getRoles(): void
     {
 
         /*
@@ -404,11 +413,11 @@ class Permissions extends ApiController
          */
 
         if (!$this->hasAnyPermissions([
-            'global.permissions.read',
-            'self.permissions.read'
+            'global.roles.read',
+            'self.roles.read'
         ])) {
 
-            abort(403, 'Unable to get permissions: insufficient permissions');
+            abort(403, 'Unable to get roles: insufficient permissions');
             die;
 
         }
@@ -431,14 +440,16 @@ class Permissions extends ApiController
          */
 
         if (!empty(Arr::except($request['fields'], [ // Valid field types
-                'permissions'
-            ])) || !empty(Arr::except(array_flip(Arr::get($request['fields'], 'permissions', [])), [ // Valid fields
+                'roles'
+            ])) || !empty(Arr::except(array_flip(Arr::get($request['fields'], 'roles', [])), [ // Valid fields
                 'id',
                 'name',
-                'description'
+                'enabled',
+                'createdAt',
+                'updatedAt'
             ]))) {
 
-            abort(400, 'Unable to get permissions: query string contains invalid fields');
+            abort(400, 'Unable to get roles: query string contains invalid fields');
             die;
 
         }
@@ -447,7 +458,7 @@ class Permissions extends ApiController
          * Filter fields
          */
 
-        $request = $this->requireValues($request, 'fields.permissions', 'id');
+        $request = $this->requireValues($request, 'fields.roles', 'id');
 
         /*
          * Get data
@@ -455,19 +466,19 @@ class Permissions extends ApiController
 
         try {
 
-            if (!$this->hasPermissions('global.permissions.read')) {
+            if (!$this->hasPermissions('global.roles.read')) {
 
-                $permissions = $this->auth->getPermissionsCollection($request, Arr::pluck($this->user_permissions, 'id')); // Limit to user's permissions
+                $roles = $this->auth->getRolesCollection($request, Arr::pluck($this->auth->getUserRoles($this->user_id), 'id')); // Limit to user's roles
 
             } else {
 
-                $permissions = $this->auth->getPermissionsCollection($request); // Get all permissions
+                $roles = $this->auth->getRolesCollection($request); // Get all roles
 
             }
 
         } catch (QueryException|PDOException $e) {
 
-            abort(400, 'Unable to get permissions: invalid request');
+            abort(400, 'Unable to get roles: invalid request');
             die;
 
         }
@@ -476,9 +487,9 @@ class Permissions extends ApiController
          * Build schema
          */
 
-        $schema = PermissionCollection::create($permissions, [
-            'object_prefix' => '/permissions',
-            'collection_prefix' => '/permissions'
+        $schema = RoleCollection::create($roles, [
+            'object_prefix' => '/roles',
+            'collection_prefix' => '/roles'
         ]);
 
         /*
@@ -492,7 +503,7 @@ class Permissions extends ApiController
     }
 
     /**
-     * Delete permission.
+     * Delete role.
      *
      * @param string $id
      *
@@ -504,16 +515,16 @@ class Permissions extends ApiController
      * @throws NotFoundException
      */
 
-    protected function _deletePermission(string $id): void
+    protected function _deleteRole(string $id): void
     {
 
         /*
          * Check permissions
          */
 
-        if (!$this->hasPermissions('global.permissions.delete')) {
+        if (!$this->hasPermissions('global.roles.delete')) {
 
-            abort(403, 'Unable to delete permission: insufficient permissions');
+            abort(403, 'Unable to delete role: insufficient permissions');
             die;
 
         }
@@ -522,7 +533,7 @@ class Permissions extends ApiController
          * Perform action
          */
 
-        $deleted = $this->auth->deletePermission($id);
+        $deleted = $this->auth->deleteRole($id);
 
         if ($deleted) {
 
@@ -530,7 +541,7 @@ class Permissions extends ApiController
              * Log action
              */
 
-            log_info('Permission deleted', [
+            log_info('Role deleted', [
                 'id' => $id
             ]);
 
@@ -538,7 +549,7 @@ class Permissions extends ApiController
              * Do event
              */
 
-            do_event('permission.delete', $id);
+            do_event('role.delete', $id);
 
             /*
              * Send response
@@ -548,7 +559,7 @@ class Permissions extends ApiController
 
         } else {
 
-            abort(404, 'Unable to delete permission: permission ID does not exist');
+            abort(404, 'Unable to delete role: role ID does not exist');
             die;
 
         }
@@ -570,7 +581,7 @@ class Permissions extends ApiController
      *
      * @throws ChannelNotFoundException
      * @throws HttpException
-     * @throws InvalidPermissionException
+     * @throws InvalidRoleException
      * @throws InvalidSchemaException
      * @throws InvalidStatusCodeException
      * @throws NotFoundException
@@ -593,17 +604,17 @@ class Permissions extends ApiController
                 die;
             }
 
-            $this->_createPermission();
+            $this->_createRole();
 
         } else if (Request::isGet()) {
 
-            if (isset($params['id'])) { // Single permission
+            if (isset($params['id'])) { // Single role
 
-                $this->_getPermission($params['id']);
+                $this->_getRole($params['id']);
 
-            } else { // Get all permissions
+            } else { // Get all roles
 
-                $this->_getPermissions();
+                $this->_getRoles();
 
             }
 
@@ -614,7 +625,7 @@ class Permissions extends ApiController
                 die;
             }
 
-            $this->_updatePermission($params['id']);
+            $this->_updateRole($params['id']);
 
         } else { // Delete
 
@@ -623,7 +634,7 @@ class Permissions extends ApiController
                 die;
             }
 
-            $this->_deletePermission($params['id']);
+            $this->_deleteRole($params['id']);
 
         }
 
