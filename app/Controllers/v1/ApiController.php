@@ -8,7 +8,7 @@ use Bayfront\Bones\Exceptions\ControllerException;
 use Bayfront\Bones\Exceptions\HttpException;
 use Bayfront\Bones\Exceptions\ServiceException;
 use Bayfront\Bones\Services\BonesApi;
-use Bayfront\Bones\Services\BonesAuth;
+use Bayfront\Bones\Services\BonesAuth\BonesAuth;
 use Bayfront\Container\NotFoundException;
 use Bayfront\HttpResponse\InvalidStatusCodeException;
 use Bayfront\LeakyBucket\AdapterException;
@@ -72,7 +72,7 @@ abstract class ApiController extends Controller
 
         // Get the BonesAuth service from the container
 
-        $this->auth = get_service('BonesAuth');
+        $this->auth = get_service('BonesAuth\\BonesAuth');
 
         if (true === $requires_authentication) {
 

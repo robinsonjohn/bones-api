@@ -22,7 +22,7 @@ get_service('BonesApi', [
 
 $db = get_from_container('db');
 
-get_service('BonesAuth', [
+get_service('BonesAuth\\BonesAuth', [
     'pdo' => $db->get('primary'), // PDO instance
     'pepper' => get_config('app.key', '')
 ]);
