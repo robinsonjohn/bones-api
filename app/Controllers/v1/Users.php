@@ -2,6 +2,7 @@
 
 namespace App\Controllers\v1;
 
+use App\Schemas\GroupCollection;
 use App\Schemas\PermissionCollection;
 use App\Schemas\RoleCollection;
 use App\Schemas\UserCollection;
@@ -859,15 +860,6 @@ class Users extends ApiController
 
     }
 
-
-
-
-
-
-
-
-
-
     /**
      * Grant role to user.
      *
@@ -1223,6 +1215,495 @@ class Users extends ApiController
     }
 
 
+    /**
+     * Get user groups.
+     *
+     * @param string $user_id
+     *
+     * @throws HttpException
+     * @throws InvalidSchemaException
+     * @throws InvalidStatusCodeException
+     * @throws NotFoundException
+     */
+
+    protected function _getUserGroups(string $user_id): void
+    {
+
+        /*
+         * Check permissions
+         */
+
+        if (!$this->hasAnyPermissions([ // If no applicable permissions
+                'global.users.groups.read',
+                'group.users.groups.read',
+                'self.users.groups.read'
+            ])
+            || (!$this->hasAnyPermissions([ // If only self does not match
+                    'global.users.groups.read',
+                    'group.users.groups.read',
+                ]) && $user_id != $this->user_id)
+            || (!$this->hasPermissions('global.users.groups.read') // If only group and not in group
+                && $this->hasPermissions('group.users.groups.read')
+                && !in_array($user_id, $this->getGroupedUserIds()))) {
+
+            abort(403, 'Unable to get user groups: insufficient permissions');
+            die;
+
+        }
+
+        /*
+         * Get request
+         */
+
+        $request = $this->api->parseQuery(
+            Request::getQuery(),
+            Arr::get(Request::getQuery(), 'page.size', get_config('api.default_page_size', 10)),
+            get_config('api.max_page_size', 100)
+        );
+
+        /*
+         * Validate field types and fields
+         *
+         * Valid fields should match what is available to be
+         * returned in the schema.
+         */
+
+        if (!empty(Arr::except($request['fields'], [ // Valid field types
+                'groups'
+            ])) || !empty(Arr::except(array_flip(Arr::get($request['fields'], 'groups', [])), [ // Valid fields
+                'id',
+                'name',
+                'createdAt',
+                'updatedAt'
+            ]))) {
+
+            abort(400, 'Unable to get user groups: query string contains invalid fields');
+            die;
+
+        }
+
+        /*
+         * Check exists
+         */
+
+        if (!$this->auth->userIdExists($user_id)) {
+
+            abort(404, 'Unable to get user groups: user ID does not exist');
+            die;
+
+        }
+
+        /*
+         * Filter fields
+         */
+
+        $request = $this->requireValues($request, 'fields.groups', 'id');
+
+        /*
+         * Get data
+         */
+
+        try {
+
+            $groups = $this->auth->getUserGroupsCollection($request, $user_id);
+
+        } catch (QueryException|PDOException $e) {
+
+            abort(400, 'Unable to get user groups: invalid request');
+            die;
+
+        }
+
+        /*
+         * Build schema
+         */
+
+        $schema = GroupCollection::create($groups, [
+            'object_prefix' => '/groups',
+            'collection_prefix' => '/users/' . $user_id . '/groups'
+        ]);
+
+        /*
+         * Send response
+         */
+
+        $this->response->setHeaders([
+            'Cache-Control' => 'max-age=3600' // 1 hour
+        ])->sendJson($schema);
+
+    }
+
+    /**
+     * Add user to group.
+     *
+     * @param string $user_id
+     * @param string $group_id
+     *
+     * @throws ChannelNotFoundException
+     * @throws HttpException
+     * @throws InvalidStatusCodeException
+     * @throws NotFoundException
+     */
+
+    protected function _grantUserGroup(string $user_id, string $group_id): void
+    {
+
+        /*
+         * Check permissions
+         */
+
+        if (!$this->hasAnyPermissions([
+                'global.users.groups.grant',
+                'self.users.groups.grant'
+            ])
+            || (!$this->hasPermissions('global.users.groups.grant') && $user_id != $this->user_id)) {
+
+            abort(403, 'Unable to add user to group: insufficient permissions');
+            die;
+
+        }
+
+        /*
+         * Check exists
+         */
+
+        if (!$this->auth->userIdExists($user_id)) {
+
+            abort(404, 'Unable to add user to group: user ID does not exist');
+            die;
+
+        }
+
+        /*
+         * Perform action
+         */
+
+        try {
+
+            $this->auth->grantUserGroups($user_id, $group_id);
+
+        } catch (InvalidGrantException $e) {
+
+            abort(400, 'Unable to add user to group: group ID does not exist');
+            die;
+
+        }
+
+        /*
+         * Log action
+         */
+
+        log_info('Added user to group', [
+            'user_id' => $user_id,
+            'groups' => [
+                $group_id
+            ]
+        ]);
+
+        /*
+         * Do event
+         */
+
+        do_event('user.groups.grant', $user_id, [
+            $group_id
+        ]);
+
+        /*
+         * Send response
+         */
+
+        $this->response->setStatusCode(204)->send();
+
+    }
+
+    /**
+     * Add user to groups. (batch)
+     *
+     * @param string $user_id
+     *
+     * @throws ChannelNotFoundException
+     * @throws HttpException
+     * @throws InvalidStatusCodeException
+     * @throws NotFoundException
+     */
+
+    protected function _grantUserGroups(string $user_id): void
+    {
+
+        /*
+         * Check permissions
+         */
+
+        if (!$this->hasAnyPermissions([
+                'global.users.groups.grant',
+                'self.users.groups.grant'
+            ])
+            || (!$this->hasPermissions('global.users.groups.grant') && $user_id != $this->user_id)) {
+
+            abort(403, 'Unable to add user to groups: insufficient permissions');
+            die;
+
+        }
+
+        /*
+         * Get body
+         */
+
+        $body = $this->api->getBody();
+
+        if (!empty(Arr::except($body, [ // If invalid members have been sent
+            'groups'
+        ]))) {
+
+            abort(400, 'Unable to add user to groups: request body contains invalid members');
+            die;
+
+        }
+
+        /*
+         * Validate body
+         */
+
+        try {
+
+            Validate::as($body, [
+                'groups' => 'array'
+            ]);
+
+        } catch (ValidationException $e) {
+
+            abort(400, $e->getMessage());
+            die;
+
+        }
+
+        /*
+         * Check exists
+         */
+
+        if (!$this->auth->userIdExists($user_id)) {
+
+            abort(404, 'Unable to add user to groups: user ID does not exist');
+            die;
+
+        }
+
+        /*
+         * Perform action
+         */
+
+        try {
+
+            $this->auth->grantUserGroups($user_id, $body['groups']);
+
+        } catch (InvalidGrantException $e) {
+
+            abort(400, 'Unable to add user to groups: group ID does not exist');
+            die;
+
+        }
+
+        /*
+         * Log action
+         */
+
+        log_info('Added user to groups', [
+            'user_id' => $user_id,
+            'groups' => $body['groups']
+        ]);
+
+        /*
+         * Do event
+         */
+
+        do_event('user.groups.grant', $user_id, $body['groups']);
+
+        /*
+         * Send response
+         */
+
+        $this->response->setStatusCode(204)->send();
+
+    }
+
+    /**
+     * Remove user from group.
+     *
+     * @param string $user_id
+     * @param string $group_id
+     *
+     * @throws ChannelNotFoundException
+     * @throws HttpException
+     * @throws InvalidStatusCodeException
+     * @throws NotFoundException
+     * @throws Exception
+     */
+
+    protected function _revokeUserGroup(string $user_id, string $group_id): void
+    {
+
+        /*
+         * Check permissions
+         */
+
+        if (!$this->hasAnyPermissions([
+                'global.users.groups.revoke',
+                'self.users.groups.revoke'
+            ])
+            || (!$this->hasPermissions('global.users.groups.revoke') && $user_id != $this->user_id)) {
+
+            abort(403, 'Unable to remove user from group: insufficient permissions');
+            die;
+
+        }
+
+        /*
+         * Check exists
+         */
+
+        if (!$this->auth->userIdExists($user_id)) {
+
+            abort(404, 'Unable to remove user from group: user ID does not exist');
+            die;
+
+        }
+
+        /*
+         * Perform action
+         */
+
+        $this->auth->revokeUserGroups($user_id, $group_id);
+
+        /*
+         * Log action
+         */
+
+        log_info('Removed user from group', [
+            'user_id' => $user_id,
+            'groups' => [
+                $group_id
+            ]
+        ]);
+
+        /*
+         * Do event
+         */
+
+        do_event('user.groups.revoke', $user_id, [
+            $group_id
+        ]);
+
+        /*
+         * Send response
+         */
+
+        $this->response->setStatusCode(204)->send();
+
+    }
+
+    /**
+     * Remove user from groups. (batch)
+     *
+     * @param string $user_id
+     *
+     * @throws ChannelNotFoundException
+     * @throws HttpException
+     * @throws InvalidStatusCodeException
+     * @throws NotFoundException
+     * @throws Exception
+     */
+
+    protected function _revokeUserGroups(string $user_id): void
+    {
+
+        /*
+         * Check permissions
+         */
+
+        if (!$this->hasAnyPermissions([
+                'global.users.groups.revoke',
+                'self.users.groups.revoke'
+            ])
+            || (!$this->hasPermissions('global.users.groups.revoke') && $user_id != $this->user_id)) {
+
+            abort(403, 'Unable to remove user from groups: insufficient permissions');
+            die;
+
+        }
+
+        /*
+         * Get body
+         */
+
+        $body = $this->api->getBody();
+
+        if (!empty(Arr::except($body, [ // If invalid members have been sent
+            'groups'
+        ]))) {
+
+            abort(400, 'Unable to remove user from groups: request body contains invalid members');
+            die;
+
+        }
+
+        /*
+         * Validate body
+         */
+
+        try {
+
+            Validate::as($body, [
+                'groups' => 'array'
+            ]);
+
+        } catch (ValidationException $e) {
+
+            abort(400, $e->getMessage());
+            die;
+
+        }
+
+        /*
+         * Check exists
+         */
+
+        if (!$this->auth->userIdExists($user_id)) {
+
+            abort(404, 'Unable to remove user from groups: user ID does not exist');
+            die;
+
+        }
+
+        /*
+         * Perform action
+         */
+
+        $this->auth->revokeUserGroups($user_id, $body['groups']);
+
+        /*
+         * Log action
+         */
+
+        log_info('Removed user from groups', [
+            'user_id' => $user_id,
+            'groups' => $body['groups']
+        ]);
+
+        /*
+         * Do event
+         */
+
+        do_event('user.groups.revoke', $user_id, $body['groups']);
+
+        /*
+         * Send response
+         */
+
+        $this->response->setStatusCode(204)->send();
+
+    }
+
+
     /*
      * ############################################################
      * Public methods
@@ -1379,6 +1860,66 @@ class Users extends ApiController
             } else { // Multiple roles
 
                 $this->_revokeUserRoles($params['user_id']);
+
+            }
+
+        }
+
+    }
+
+    /**
+     * Router destination.
+     *
+     * @param array $params
+     *
+     * @return void
+     *
+     * @throws ChannelNotFoundException
+     * @throws HttpException
+     * @throws InvalidSchemaException
+     * @throws InvalidStatusCodeException
+     * @throws NotFoundException
+     */
+
+    public function groups(array $params): void
+    {
+
+        $this->api->allowedMethods([
+            'GET',
+            'PUT',
+            'DELETE'
+        ]);
+
+        if (!isset($params['user_id'])) {
+            abort(400);
+            die;
+        }
+
+        if (Request::isGet()) {
+
+            $this->_getUserGroups($params['user_id']);
+
+        } else if (Request::isPut()) {
+
+            if (isset($params['group_id'])) { // Single group
+
+                $this->_grantUserGroup($params['user_id'], $params['group_id']);
+
+            } else { // Multiple groups
+
+                $this->_grantUserGroups($params['user_id']);
+
+            }
+
+        } else { // Delete
+
+            if (isset($params['group_id'])) { // Single group
+
+                $this->_revokeUserGroup($params['user_id'], $params['group_id']);
+
+            } else { // Multiple groups
+
+                $this->_revokeUserGroups($params['user_id']);
 
             }
 
