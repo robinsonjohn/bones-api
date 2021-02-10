@@ -9,8 +9,10 @@
 
 namespace App\Controllers\v1;
 
+use App\Schemas\PermissionCollection;
 use App\Schemas\RoleCollection;
 use App\Schemas\RoleResource;
+use App\Schemas\UserCollection;
 use Bayfront\ArrayHelpers\Arr;
 use Bayfront\ArraySchema\InvalidSchemaException;
 use Bayfront\Bones\Exceptions\ControllerException;
@@ -23,11 +25,13 @@ use Bayfront\LeakyBucket\AdapterException;
 use Bayfront\LeakyBucket\BucketException;
 use Bayfront\MonologFactory\Exceptions\ChannelNotFoundException;
 use Bayfront\PDO\Exceptions\QueryException;
+use Bayfront\RBAC\Exceptions\InvalidGrantException;
 use Bayfront\RBAC\Exceptions\InvalidKeysException;
 use Bayfront\RBAC\Exceptions\InvalidRoleException;
 use Bayfront\RBAC\Exceptions\NameExistsException;
 use Bayfront\Validator\Validate;
 use Bayfront\Validator\ValidationException;
+use Exception;
 use PDOException;
 
 /**
@@ -566,6 +570,895 @@ class Roles extends ApiController
 
     }
 
+    /**
+     * Get permissions of role.
+     *
+     * @param string $role_id
+     *
+     * @throws HttpException
+     * @throws InvalidSchemaException
+     * @throws InvalidStatusCodeException
+     * @throws NotFoundException
+     */
+
+    protected function _getRolePermissions(string $role_id): void
+    {
+
+        /*
+         * Check permissions
+         */
+
+        if (!$this->hasAnyPermissions([
+                'global.roles.permissions.read',
+                'self.roles.permissions.read'
+            ])
+            || (!$this->hasPermissions('global.roles.permissions.read')
+                && !in_array($role_id, Arr::pluck($this->auth->getUserRoles($this->user_id), 'id')))) {
+
+            abort(403, 'Unable to get permissions of role: insufficient permissions');
+            die;
+
+        }
+
+        /*
+         * Get request
+         */
+
+        $request = $this->api->parseQuery(
+            Request::getQuery(),
+            Arr::get(Request::getQuery(), 'page.size', get_config('api.default_page_size', 10)),
+            get_config('api.max_page_size', 100)
+        );
+
+        /*
+         * Validate field types and fields
+         *
+         * Valid fields should match what is available to be
+         * returned in the schema.
+         */
+
+        if (!empty(Arr::except($request['fields'], [ // Valid field types
+                'permissions'
+            ])) || !empty(Arr::except(array_flip(Arr::get($request['fields'], 'permissions', [])), [ // Valid fields
+                'id',
+                'name',
+                'description'
+            ]))) {
+
+            abort(400, 'Unable to get permissions of role: query string contains invalid fields');
+            die;
+
+        }
+
+        /*
+         * Check exists
+         */
+
+        if (!$this->auth->roleIdExists($role_id)) {
+
+            abort(404, 'Unable to get permissions of role: role ID does not exist');
+            die;
+
+        }
+
+        /*
+         * Filter fields
+         */
+
+        $request = $this->requireValues($request, 'fields.permissions', 'id');
+
+        /*
+         * Get data
+         */
+
+        try {
+
+            $permissions = $this->auth->getRolePermissionsCollection($request, $role_id);
+
+        } catch (QueryException|PDOException $e) {
+
+            abort(400, 'Unable to get permissions of role: invalid request');
+            die;
+
+        }
+
+        /*
+         * Build schema
+         */
+
+        $schema = PermissionCollection::create($permissions, [
+            'object_prefix' => '/permissions',
+            'collection_prefix' => '/roles/' . $role_id . '/permissions'
+        ]);
+
+        /*
+         * Send response
+         */
+
+        $this->response->setHeaders([
+            'Cache-Control' => 'max-age=3600' // 1 hour
+        ])->sendJson($schema);
+
+    }
+
+
+    /**
+     * Add permission to role.
+     *
+     * @param string $role_id
+     * @param string $permission_id
+     *
+     * @throws ChannelNotFoundException
+     * @throws HttpException
+     * @throws InvalidStatusCodeException
+     * @throws NotFoundException
+     */
+
+    protected function _grantRolePermission(string $role_id, string $permission_id): void
+    {
+
+        /*
+         * Check permissions
+         */
+
+        if (!$this->hasPermissions('global.roles.permissions.grant')) {
+
+            abort(403, 'Unable to add permission to role: insufficient permissions');
+            die;
+
+        }
+
+        /*
+         * Check exists
+         */
+
+        if (!$this->auth->roleIdExists($role_id)) {
+
+            abort(404, 'Unable to add permission to role: role ID does not exist');
+            die;
+
+        }
+
+        /*
+         * Perform action
+         */
+
+        try {
+
+            $this->auth->grantRolePermissions($role_id, $permission_id);
+
+        } catch (InvalidGrantException $e) {
+
+            abort(400, 'Unable to add permission to role: permission ID does not exist');
+            die;
+
+        }
+
+        /*
+         * Log action
+         */
+
+        log_info('Added permission to role', [
+            'role_id' => $role_id,
+            'permissions' => [
+                $permission_id
+            ]
+        ]);
+
+        /*
+         * Do event
+         */
+
+        do_event('role.permissions.grant', $role_id, [
+            $permission_id
+        ]);
+
+        /*
+         * Send response
+         */
+
+        $this->response->setStatusCode(204)->send();
+
+    }
+
+    /**
+     * Add permissions to role. (batch)
+     *
+     * @param string $role_id
+     *
+     * @throws ChannelNotFoundException
+     * @throws HttpException
+     * @throws InvalidStatusCodeException
+     * @throws NotFoundException
+     */
+
+    protected function _grantRolePermissions(string $role_id): void
+    {
+
+        /*
+         * Check permissions
+         */
+
+        if (!$this->hasPermissions('global.roles.permissions.grant')) {
+
+            abort(403, 'Unable to add permissions to role: insufficient permissions');
+            die;
+
+        }
+
+        /*
+         * Get body
+         */
+
+        $body = $this->api->getBody();
+
+        if (!empty(Arr::except($body, [ // If invalid members have been sent
+            'permissions'
+        ]))) {
+
+            abort(400, 'Unable to add permissions to role: request body contains invalid members');
+            die;
+
+        }
+
+        /*
+         * Validate body
+         */
+
+        try {
+
+            Validate::as($body, [
+                'permissions' => 'array'
+            ]);
+
+        } catch (ValidationException $e) {
+
+            abort(400, $e->getMessage());
+            die;
+
+        }
+
+        /*
+         * Check exists
+         */
+
+        if (!$this->auth->roleIdExists($role_id)) {
+
+            abort(404, 'Unable to add permissions to role: role ID does not exist');
+            die;
+
+        }
+
+        /*
+         * Perform action
+         */
+
+        try {
+
+            $this->auth->grantRolePermissions($role_id, $body['permissions']);
+
+        } catch (InvalidGrantException $e) {
+
+            abort(400, 'Unable to add permissions to role: permission ID does not exist');
+            die;
+
+        }
+
+        /*
+         * Log action
+         */
+
+        log_info('Added permissions to role', [
+            'role_id' => $role_id,
+            'permissions' => $body['permissions']
+        ]);
+
+        /*
+         * Do event
+         */
+
+        do_event('role.permissions.grant', $role_id, $body['permissions']);
+
+        /*
+         * Send response
+         */
+
+        $this->response->setStatusCode(204)->send();
+
+    }
+
+    /**
+     * Remove permission from role
+     *
+     * @param string $role_id
+     * @param string $permission_id
+     *
+     * @throws ChannelNotFoundException
+     * @throws HttpException
+     * @throws InvalidStatusCodeException
+     * @throws NotFoundException
+     * @throws Exception
+     */
+
+    protected function _revokeRolePermission(string $role_id, string $permission_id): void
+    {
+
+        /*
+         * Check permissions
+         */
+
+        if (!$this->hasPermissions('global.roles.permissions.revoke')) {
+
+            abort(403, 'Unable to remove permission from role: insufficient permissions');
+            die;
+
+        }
+
+        /*
+         * Perform action
+         */
+
+        $this->auth->revokeRolePermissions($role_id, $permission_id);
+
+        /*
+         * Log action
+         */
+
+        log_info('Removed permission from role', [
+            'role_id' => $role_id,
+            'permissions' => [
+                $permission_id
+            ]
+        ]);
+
+        /*
+         * Do event
+         */
+
+        do_event('role.permissions.revoke', $role_id, [
+            $permission_id
+        ]);
+
+        /*
+         * Send response
+         */
+
+        $this->response->setStatusCode(204)->send();
+
+    }
+
+    /**
+     * Remove permissions from role. (batch)
+     *
+     * @param string $role_id
+     *
+     * @throws ChannelNotFoundException
+     * @throws HttpException
+     * @throws InvalidStatusCodeException
+     * @throws NotFoundException
+     * @throws Exception
+     */
+
+    protected function _revokeRolePermissions(string $role_id): void
+    {
+
+        /*
+         * Check permissions
+         */
+
+        if (!$this->hasPermissions('global.roles.permissions.revoke')) {
+
+            abort(403, 'Unable to remove permissions from role: insufficient permissions');
+            die;
+
+        }
+
+        /*
+         * Get body
+         */
+
+        $body = $this->api->getBody();
+
+        if (!empty(Arr::except($body, [ // If invalid members have been sent
+            'permissions'
+        ]))) {
+
+            abort(400, 'Unable to remove permissions from role: request body contains invalid members');
+            die;
+
+        }
+
+        /*
+         * Validate body
+         */
+
+        try {
+
+            Validate::as($body, [
+                'permissions' => 'array'
+            ]);
+
+        } catch (ValidationException $e) {
+
+            abort(400, $e->getMessage());
+            die;
+
+        }
+
+        /*
+         * Perform action
+         */
+
+        $this->auth->revokeRolePermissions($role_id, $body['permissions']);
+
+        /*
+         * Log action
+         */
+
+        log_info('Removed permissions from role', [
+            'role_id' => $role_id,
+            'permissions' => $body['permissions']
+        ]);
+
+        /*
+         * Do event
+         */
+
+        do_event('role.permissions.revoke', $role_id, $body['permissions']);
+
+        /*
+         * Send response
+         */
+
+        $this->response->setStatusCode(204)->send();
+
+    }
+
+    /**
+     * Get users with role.
+     *
+     * @param string $role_id
+     *
+     * @throws HttpException
+     * @throws InvalidSchemaException
+     * @throws InvalidStatusCodeException
+     * @throws NotFoundException
+     */
+
+    protected function _getRoleUsers(string $role_id): void
+    {
+
+        /*
+         * Check permissions
+         */
+
+        if (!$this->hasPermissions('global.roles.users.read')) {
+
+            abort(403, 'Unable to get users with role: insufficient permissions');
+            die;
+
+        }
+
+        /*
+         * Get request
+         */
+
+        $request = $this->api->parseQuery(
+            Request::getQuery(),
+            Arr::get(Request::getQuery(), 'page.size', get_config('api.default_page_size', 10)),
+            get_config('api.max_page_size', 100)
+        );
+
+        /*
+         * Validate field types and fields
+         *
+         * Valid fields should match what is available to be
+         * returned in the schema.
+         */
+
+        if (!empty(Arr::except($request['fields'], [ // Valid field types
+                'users'
+            ])) || !empty(Arr::except(array_flip(Arr::get($request['fields'], 'users', [])), [ // Valid fields
+                'id',
+                'login',
+                'firstName',
+                'lastName',
+                'companyName',
+                'email',
+                'enabled',
+                'createdAt',
+                'updatedAt'
+            ]))) {
+
+            abort(400, 'Unable to get users with role: query string contains invalid fields');
+            die;
+
+        }
+
+        /*
+         * Check exists
+         */
+
+        if (!$this->auth->roleIdExists($role_id)) {
+
+            abort(404, 'Unable to get users with role: role ID does not exist');
+            die;
+
+        }
+
+        /*
+         * Filter fields
+         */
+
+        $request = $this->requireValues($request, 'fields.users', 'id');
+
+        /*
+         * Get data
+         */
+
+        try {
+
+            $users = $this->auth->getRoleUsersCollection($request, $role_id);
+
+        } catch (QueryException|PDOException $e) {
+
+            abort(400, 'Unable to get users with role: invalid request');
+            die;
+
+        }
+
+        /*
+         * Build schema
+         */
+
+        $schema = UserCollection::create($users, [
+            'object_prefix' => '/users',
+            'collection_prefix' => '/roles/' . $role_id . '/users'
+        ]);
+
+        /*
+         * Send response
+         */
+
+        $this->response->setHeaders([
+            'Cache-Control' => 'max-age=3600' // 1 hour
+        ])->sendJson($schema);
+
+    }
+
+
+    /**
+     * Grant role to user.
+     *
+     * @param string $role_id
+     * @param string $user_id
+     *
+     * @throws ChannelNotFoundException
+     * @throws HttpException
+     * @throws InvalidStatusCodeException
+     * @throws NotFoundException
+     */
+
+    protected function _grantRoleUser(string $role_id, string $user_id): void
+    {
+
+        /*
+         * Check permissions
+         */
+
+        if (!$this->hasPermissions('global.roles.users.grant')) {
+
+            abort(403, 'Unable to grant role to user: insufficient permissions');
+            die;
+
+        }
+
+        /*
+         * Check exists
+         */
+
+        if (!$this->auth->roleIdExists($role_id)) {
+
+            abort(404, 'Unable to grant role to user: role ID does not exist');
+            die;
+
+        }
+
+        /*
+         * Perform action
+         */
+
+        try {
+
+            $this->auth->grantRoleUsers($role_id, $user_id);
+
+        } catch (InvalidGrantException $e) {
+
+            abort(400, 'Unable to grant role to user: user ID does not exist');
+            die;
+
+        }
+
+        /*
+         * Log action
+         */
+
+        log_info('Granted role to user', [
+            'role_id' => $role_id,
+            'users' => [
+                $user_id
+            ]
+        ]);
+
+        /*
+         * Do event
+         */
+
+        do_event('role.users.grant', $role_id, [
+            $user_id
+        ]);
+
+        /*
+         * Send response
+         */
+
+        $this->response->setStatusCode(204)->send();
+
+    }
+
+    /**
+     * Grant role to users. (batch)
+     *
+     * @param string $role_id
+     *
+     * @throws ChannelNotFoundException
+     * @throws HttpException
+     * @throws InvalidStatusCodeException
+     * @throws NotFoundException
+     */
+
+    protected function _grantRoleUsers(string $role_id): void
+    {
+
+        /*
+         * Check permissions
+         */
+
+        if (!$this->hasPermissions('global.roles.users.grant')) {
+
+            abort(403, 'Unable to grant role to users: insufficient permissions');
+            die;
+
+        }
+
+        /*
+         * Get body
+         */
+
+        $body = $this->api->getBody();
+
+        if (!empty(Arr::except($body, [ // If invalid members have been sent
+            'users'
+        ]))) {
+
+            abort(400, 'Unable to grant role to users: request body contains invalid members');
+            die;
+
+        }
+
+        /*
+         * Validate body
+         */
+
+        try {
+
+            Validate::as($body, [
+                'users' => 'array'
+            ]);
+
+        } catch (ValidationException $e) {
+
+            abort(400, $e->getMessage());
+            die;
+
+        }
+
+        /*
+         * Check exists
+         */
+
+        if (!$this->auth->roleIdExists($role_id)) {
+
+            abort(404, 'Unable to grant role to users: role ID does not exist');
+            die;
+
+        }
+
+        /*
+         * Perform action
+         */
+
+        try {
+
+            $this->auth->grantRoleUsers($role_id, $body['users']);
+
+        } catch (InvalidGrantException $e) {
+
+            abort(400, 'Unable to grant role to users: user ID does not exist');
+            die;
+
+        }
+
+        /*
+         * Log action
+         */
+
+        log_info('Granted role to users', [
+            'role_id' => $role_id,
+            'users' => $body['users']
+        ]);
+
+        /*
+         * Do event
+         */
+
+        do_event('role.users.grant', $role_id, $body['users']);
+
+        /*
+         * Send response
+         */
+
+        $this->response->setStatusCode(204)->send();
+
+    }
+
+    /**
+     * Revoke role from user.
+     *
+     * @param string $role_id
+     * @param string $user_id
+     *
+     * @throws ChannelNotFoundException
+     * @throws HttpException
+     * @throws InvalidStatusCodeException
+     * @throws NotFoundException
+     * @throws Exception
+     */
+
+    protected function _revokeRoleUser(string $role_id, string $user_id): void
+    {
+
+        /*
+         * Check permissions
+         */
+
+        if (!$this->hasPermissions('global.roles.users.revoke')) {
+
+            abort(403, 'Unable to revoke role from user: insufficient permissions');
+            die;
+
+        }
+
+        /*
+         * Perform action
+         */
+
+        $this->auth->revokeRoleUsers($role_id, $user_id);
+
+        /*
+         * Log action
+         */
+
+        log_info('Revoked role from user', [
+            'role_id' => $role_id,
+            'users' => [
+                $user_id
+            ]
+        ]);
+
+        /*
+         * Do event
+         */
+
+        do_event('role.users.revoke', $role_id, [
+            $user_id
+        ]);
+
+        /*
+         * Send response
+         */
+
+        $this->response->setStatusCode(204)->send();
+
+    }
+
+    /**
+     * Revoke role from users. (batch)
+     *
+     * @param string $role_id
+     *
+     * @throws ChannelNotFoundException
+     * @throws HttpException
+     * @throws InvalidStatusCodeException
+     * @throws NotFoundException
+     * @throws Exception
+     */
+
+    protected function _revokeRoleUsers(string $role_id): void
+    {
+
+        /*
+         * Check permissions
+         */
+
+        if (!$this->hasPermissions('global.roles.users.revoke')) {
+
+            abort(403, 'Unable to revoke role from users: insufficient permissions');
+            die;
+
+        }
+
+        /*
+         * Get body
+         */
+
+        $body = $this->api->getBody();
+
+        if (!empty(Arr::except($body, [ // If invalid members have been sent
+            'users'
+        ]))) {
+
+            abort(400, 'Unable to revoke role from users: request body contains invalid members');
+            die;
+
+        }
+
+        /*
+         * Validate body
+         */
+
+        try {
+
+            Validate::as($body, [
+                'users' => 'array'
+            ]);
+
+        } catch (ValidationException $e) {
+
+            abort(400, $e->getMessage());
+            die;
+
+        }
+
+        /*
+         * Perform action
+         */
+
+        $this->auth->revokeRoleUsers($role_id, $body['users']);
+
+        /*
+         * Log action
+         */
+
+        log_info('Revoked role from users', [
+            'role_id' => $role_id,
+            'users' => $body['users']
+        ]);
+
+        /*
+         * Do event
+         */
+
+        do_event('role.users.revoke', $role_id, $body['users']);
+
+        /*
+         * Send response
+         */
+
+        $this->response->setStatusCode(204)->send();
+
+    }
+
     /*
      * ############################################################
      * Public methods
@@ -635,6 +1528,126 @@ class Roles extends ApiController
             }
 
             $this->_deleteRole($params['id']);
+
+        }
+
+    }
+
+    /**
+     * Router destination.
+     *
+     * @param array $params
+     *
+     * @return void
+     *
+     * @throws ChannelNotFoundException
+     * @throws HttpException
+     * @throws InvalidSchemaException
+     * @throws InvalidStatusCodeException
+     * @throws NotFoundException
+     */
+
+    public function permissions(array $params): void
+    {
+
+        $this->api->allowedMethods([
+            'GET',
+            'PUT',
+            'DELETE'
+        ]);
+
+        if (!isset($params['role_id'])) {
+            abort(400);
+            die;
+        }
+
+        if (Request::isGet()) {
+
+            $this->_getRolePermissions($params['role_id']);
+
+        } else if (Request::isPut()) {
+
+            if (isset($params['permission_id'])) { // Single permission
+
+                $this->_grantRolePermission($params['role_id'], $params['permission_id']);
+
+            } else { // Multiple permissions
+
+                $this->_grantRolePermissions($params['role_id']);
+
+            }
+
+        } else { // Delete
+
+            if (isset($params['permission_id'])) { // Single permission
+
+                $this->_revokeRolePermission($params['role_id'], $params['permission_id']);
+
+            } else { // Multiple permissions
+
+                $this->_revokeRolePermissions($params['role_id']);
+
+            }
+
+        }
+
+    }
+
+    /**
+     * Router destination.
+     *
+     * @param array $params
+     *
+     * @return void
+     *
+     * @throws ChannelNotFoundException
+     * @throws HttpException
+     * @throws InvalidSchemaException
+     * @throws InvalidStatusCodeException
+     * @throws NotFoundException
+     */
+
+    public function users(array $params): void
+    {
+
+        $this->api->allowedMethods([
+            'GET',
+            'PUT',
+            'DELETE'
+        ]);
+
+        if (!isset($params['role_id'])) {
+            abort(400);
+            die;
+        }
+
+        if (Request::isGet()) {
+
+            $this->_getRoleUsers($params['role_id']);
+
+        } else if (Request::isPut()) {
+
+            if (isset($params['user_id'])) { // Single user
+
+                $this->_grantRoleUser($params['role_id'], $params['user_id']);
+
+            } else { // Multiple permissions
+
+                $this->_grantRoleUsers($params['role_id']);
+
+            }
+
+        } else { // Delete
+
+            if (isset($params['user_id'])) { // Single user
+
+                $this->_revokeRoleUser($params['role_id'], $params['user_id']);
+
+            } else { // Multiple users
+
+                $this->_revokeRoleUsers($params['role_id']);
+
+            }
 
         }
 

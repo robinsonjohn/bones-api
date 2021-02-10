@@ -563,7 +563,6 @@ class Groups extends ApiController
 
     }
 
-
     /**
      * Get users in group.
      *
@@ -680,7 +679,6 @@ class Groups extends ApiController
 
     }
 
-
     /**
      * Add user to group.
      *
@@ -763,7 +761,6 @@ class Groups extends ApiController
         $this->response->setStatusCode(204)->send();
 
     }
-
 
     /**
      * Add users to group. (batch)
