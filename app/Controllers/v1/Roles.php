@@ -587,7 +587,7 @@ class Roles extends ApiController
      * @throws NotFoundException
      */
 
-    public function index(array $params)
+    public function index(array $params): void
     {
 
         $this->api->allowedMethods([

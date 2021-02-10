@@ -616,10 +616,21 @@ class Permissions extends ApiController
         }
 
         /*
+         * Check exists
+         */
+
+        if (!$this->auth->permissionIdExists($permission_id)) {
+
+            abort(404, 'Unable to get roles with permission: permission ID does not exist');
+            die;
+
+        }
+
+        /*
          * Filter fields
          */
 
-        $request = $this->requireValues($request, 'fields.permissions', 'id');
+        $request = $this->requireValues($request, 'fields.roles', 'id');
 
         /*
          * Get data
@@ -841,7 +852,6 @@ class Permissions extends ApiController
 
     }
 
-
     /**
      * Revoke permission from role.
      *
@@ -865,17 +875,6 @@ class Permissions extends ApiController
         if (!$this->hasPermissions('global.permissions.roles.revoke')) {
 
             abort(403, 'Unable to revoke permission from role: insufficient permissions');
-            die;
-
-        }
-
-        /*
-         * Check exists
-         */
-
-        if (!$this->auth->permissionIdExists($permission_id)) {
-
-            abort(404, 'Unable to revoke permission from role: permission ID does not exist');
             die;
 
         }
@@ -972,17 +971,6 @@ class Permissions extends ApiController
         }
 
         /*
-         * Check exists
-         */
-
-        if (!$this->auth->permissionIdExists($permission_id)) {
-
-            abort(404, 'Unable to revoke permission from roles: permission ID does not exist');
-            die;
-
-        }
-
-        /*
          * Perform action
          */
 
@@ -1032,7 +1020,7 @@ class Permissions extends ApiController
      * @throws NotFoundException
      */
 
-    public function index(array $params)
+    public function index(array $params): void
     {
 
         $this->api->allowedMethods([
@@ -1090,6 +1078,8 @@ class Permissions extends ApiController
      *
      * @param array $params
      *
+     * @return void
+     *
      * @throws ChannelNotFoundException
      * @throws HttpException
      * @throws InvalidSchemaException
@@ -1097,7 +1087,7 @@ class Permissions extends ApiController
      * @throws NotFoundException
      */
 
-    public function roles(array $params)
+    public function roles(array $params): void
     {
 
         $this->api->allowedMethods([
