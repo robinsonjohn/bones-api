@@ -904,6 +904,17 @@ class Groups extends ApiController
         }
 
         /*
+         * Check exists
+         */
+
+        if (!$this->auth->groupIdExists($group_id)) {
+
+            abort(404, 'Unable to remove user from group: group ID does not exist');
+            die;
+
+        }
+
+        /*
          * Perform action
          */
 
@@ -994,6 +1005,17 @@ class Groups extends ApiController
         } catch (ValidationException $e) {
 
             abort(400, $e->getMessage());
+            die;
+
+        }
+
+        /*
+         * Check exists
+         */
+
+        if (!$this->auth->groupIdExists($group_id)) {
+
+            abort(404, 'Unable to remove users from group: group ID does not exist');
             die;
 
         }

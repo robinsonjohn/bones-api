@@ -681,7 +681,6 @@ class Roles extends ApiController
 
     }
 
-
     /**
      * Add permission to role.
      *
@@ -895,6 +894,17 @@ class Roles extends ApiController
         }
 
         /*
+         * Check exists
+         */
+
+        if (!$this->auth->roleIdExists($role_id)) {
+
+            abort(404, 'Unable to remove permission from role: role ID does not exist');
+            die;
+
+        }
+
+        /*
          * Perform action
          */
 
@@ -981,6 +991,17 @@ class Roles extends ApiController
         } catch (ValidationException $e) {
 
             abort(400, $e->getMessage());
+            die;
+
+        }
+
+        /*
+         * Check exists
+         */
+
+        if (!$this->auth->roleIdExists($role_id)) {
+
+            abort(404, 'Unable to remove permissions from role: role ID does not exist');
             die;
 
         }
@@ -1340,6 +1361,17 @@ class Roles extends ApiController
         }
 
         /*
+         * Check exists
+         */
+
+        if (!$this->auth->roleIdExists($role_id)) {
+
+            abort(404, 'Unable to revoke role from user: role ID does not exist');
+            die;
+
+        }
+
+        /*
          * Perform action
          */
 
@@ -1426,6 +1458,17 @@ class Roles extends ApiController
         } catch (ValidationException $e) {
 
             abort(400, $e->getMessage());
+            die;
+
+        }
+
+        /*
+         * Check exists
+         */
+
+        if (!$this->auth->roleIdExists($role_id)) {
+
+            abort(404, 'Unable to revoke role from users: role ID does not exist');
             die;
 
         }

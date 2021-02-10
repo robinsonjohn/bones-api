@@ -880,6 +880,17 @@ class Permissions extends ApiController
         }
 
         /*
+         * Check exists
+         */
+
+        if (!$this->auth->permissionIdExists($permission_id)) {
+
+            abort(404, 'Unable to revoke permission from role: permission ID does not exist');
+            die;
+
+        }
+
+        /*
          * Perform action
          */
 
@@ -966,6 +977,17 @@ class Permissions extends ApiController
         } catch (ValidationException $e) {
 
             abort(400, $e->getMessage());
+            die;
+
+        }
+
+        /*
+         * Check exists
+         */
+
+        if (!$this->auth->permissionIdExists($permission_id)) {
+
+            abort(404, 'Unable to revoke permission from roles: permission ID does not exist');
             die;
 
         }
