@@ -6,6 +6,8 @@ use App\Schemas\GroupCollection;
 use App\Schemas\PermissionCollection;
 use App\Schemas\RoleCollection;
 use App\Schemas\UserCollection;
+use App\Schemas\UserMetaCollection;
+use App\Schemas\UserMetaResource;
 use App\Schemas\UserResource;
 use Bayfront\ArrayHelpers\Arr;
 use Bayfront\ArraySchema\InvalidSchemaException;
@@ -18,6 +20,7 @@ use Bayfront\LeakyBucket\BucketException;
 use Bayfront\MonologFactory\Exceptions\ChannelNotFoundException;
 use Bayfront\RBAC\Exceptions\InvalidGrantException;
 use Bayfront\RBAC\Exceptions\InvalidKeysException;
+use Bayfront\RBAC\Exceptions\InvalidMetaException;
 use Bayfront\RBAC\Exceptions\InvalidUserException;
 use Bayfront\RBAC\Exceptions\LoginExistsException;
 use Bayfront\Validator\ValidationException;
@@ -1214,7 +1217,6 @@ class Users extends ApiController
 
     }
 
-
     /**
      * Get user groups.
      *
@@ -1703,6 +1705,295 @@ class Users extends ApiController
 
     }
 
+    /**
+     * Get single user meta.
+     *
+     * @param string $user_id
+     * @param string $meta_key
+     *
+     * @return void
+     *
+     * @throws HttpException
+     * @throws InvalidSchemaException
+     * @throws InvalidStatusCodeException
+     * @throws NotFoundException
+     */
+
+    protected function _getUserMeta(string $user_id, string $meta_key): void
+    {
+
+        /*
+         * Check permissions
+         */
+
+        if (!$this->hasAnyPermissions([ // If no applicable permissions
+                'global.users.meta.read',
+                'group.users.meta.read',
+                'self.users.meta.read'
+            ])
+            || (!$this->hasAnyPermissions([ // If only self does not match
+                    'global.users.meta.read',
+                    'group.users.meta.read',
+                ]) && $user_id != $this->user_id)
+            || (!$this->hasPermissions('global.users.meta.read') // If only group and not in group
+                && $this->hasPermissions('group.users.meta.read')
+                && !in_array($user_id, $this->getGroupedUserIds()))) {
+
+            abort(403, 'Unable to get user meta: insufficient permissions');
+            die;
+
+        }
+
+        /*
+         * Get request
+         */
+
+        $request = $this->api->parseQuery(
+            Request::getQuery(),
+            Arr::get(Request::getQuery(), 'page.size', get_config('api.default_page_size', 10)),
+            get_config('api.max_page_size', 100)
+        );
+
+        /*
+         * Validate field types and fields
+         *
+         * Valid fields should match what is available to be
+         * returned in the schema.
+         */
+
+        if (!empty(Arr::except($request['fields'], [ // Valid field types
+                'meta'
+            ])) || !empty(Arr::except(array_flip(Arr::get($request['fields'], 'meta', [])), [ // Valid fields
+                'id',
+                'value'
+            ]))) {
+
+            abort(400, 'Unable to get user meta: query string contains invalid fields');
+            die;
+
+        }
+
+        /*
+         * Get data
+         */
+
+        try {
+
+            $meta = $this->auth->getUserMeta($user_id, $meta_key);
+
+        } catch (InvalidMetaException $e) {
+
+            abort(404, 'Unable to get user meta: meta ID does not exist for user');
+            die;
+
+        }
+
+        /*
+         * Filter fields
+         */
+
+        if (isset($request['fields']['meta'])) {
+
+            $request = $this->requireValues($request, 'fields.meta', 'id');
+
+            $meta = Arr::only($meta, $request['fields']['meta']);
+
+        }
+
+        /*
+         * Build schema
+         */
+
+        $schema = UserMetaResource::create([
+            'metaKey' => $meta_key,
+            'metaValue' => $meta
+        ], [
+            'object_prefix' => '/users/' . $user_id . '/meta',
+            'collection_prefix' => '/users/' . $user_id . '/meta'
+        ]);
+
+
+        /*
+         * Send response
+         */
+
+        $this->response->setHeaders([
+            'Cache-Control' => 'max-age=3600' // 1 hour
+        ])->sendJson($schema);
+
+    }
+
+    /**
+     * Get all user meta.
+     *
+     * @param string $user_id
+     *
+     * @return void
+     *
+     * @throws HttpException
+     * @throws InvalidSchemaException
+     * @throws InvalidStatusCodeException
+     * @throws NotFoundException
+     */
+
+    protected function _getAllUserMeta(string $user_id): void
+    {
+
+        /*
+         * Check permissions
+         */
+
+        if (!$this->hasAnyPermissions([ // If no applicable permissions
+                'global.users.meta.read',
+                'group.users.meta.read',
+                'self.users.meta.read'
+            ])
+            || (!$this->hasAnyPermissions([ // If only self does not match
+                    'global.users.meta.read',
+                    'group.users.meta.read',
+                ]) && $user_id != $this->user_id)
+            || (!$this->hasPermissions('global.users.meta.read') // If only group and not in group
+                && $this->hasPermissions('group.users.meta.read')
+                && !in_array($user_id, $this->getGroupedUserIds()))) {
+
+            abort(403, 'Unable to get user meta: insufficient permissions');
+            die;
+
+        }
+
+        /*
+         * Get request
+         */
+
+        $request = $this->api->parseQuery(
+            Request::getQuery(),
+            Arr::get(Request::getQuery(), 'page.size', get_config('api.default_page_size', 10)),
+            get_config('api.max_page_size', 100)
+        );
+
+        /*
+         * Validate field types and fields
+         *
+         * Valid fields should match what is available to be
+         * returned in the schema.
+         */
+
+        if (!empty(Arr::except($request['fields'], [ // Valid field types
+                'meta'
+            ])) || !empty(Arr::except(array_flip(Arr::get($request['fields'], 'meta', [])), [ // Valid fields
+                'id',
+                'value'
+            ]))) {
+
+            abort(400, 'Unable to get user meta: query string contains invalid fields');
+            die;
+
+        }
+
+        /*
+         * Check exists
+         */
+
+        if (!$this->auth->userIdExists($user_id)) {
+
+            abort(404, 'Unable to get user meta: user ID does not exist');
+            die;
+
+        }
+
+        /*
+         * Filter fields
+         */
+
+        $request = $this->requireValues($request, 'fields.meta', 'id');
+
+        /*
+         * Convert keys
+         *
+         * Externally, the "metaKey" and "metaValue" columns are referenced by "id" and "value", respectively.
+         * So they must be renamed before being handled by the query builder.
+         */
+
+        $replacements = [
+            'id' => 'metaKey',
+            'value' => 'metaValue'
+        ];
+
+        /*
+         * Fields
+         */
+
+        foreach (Arr::get($request, 'fields.meta', []) as $k => $col) {
+
+            if (array_key_exists($col, $replacements)) {
+
+                $request['fields']['meta'][$k] = $replacements[$col];
+
+            }
+
+        }
+
+        // Filters
+
+        foreach (Arr::get($request, 'filters', []) as $col => $v) {
+
+            if (array_key_exists($col, $replacements)) {
+
+                $request['filters'][$replacements[$col]] = $v;
+
+                unset($request['filters'][$col]);
+
+            }
+
+        }
+
+        // Order by
+
+        foreach (Arr::get($request, 'order_by', []) as $k => $col) {
+
+            $trimmed = ltrim($col, '-');
+
+            if (array_key_exists($trimmed, $replacements)) {
+
+                $request['order_by'][$k] = str_replace($trimmed, $replacements[$trimmed], $col);
+
+            }
+
+        }
+
+        /*
+         * Get data
+         */
+
+        try {
+
+            $meta = $this->auth->getUserMetaCollection($request, $user_id);
+
+        } catch (QueryException|PDOException $e) {
+
+            abort(400, 'Unable to get user meta: invalid request');
+            die;
+
+        }
+
+        /*
+         * Build schema
+         */
+
+        $schema = UserMetaCollection::create($meta, [
+            'object_prefix' => '/users/' . $user_id . '/meta',
+            'collection_prefix' => '/users/' . $user_id . '/meta'
+        ]);
+
+        /*
+         * Send response
+         */
+
+        $this->response->setHeaders([
+            'Cache-Control' => 'max-age=3600' // 1 hour
+        ])->sendJson($schema);
+
+    }
 
     /*
      * ############################################################
@@ -1920,6 +2211,74 @@ class Users extends ApiController
             } else { // Multiple groups
 
                 $this->_revokeUserGroups($params['user_id']);
+
+            }
+
+        }
+
+    }
+
+    /**
+     * Router destination.
+     *
+     * @param array $params
+     *
+     * @return void
+     *
+     * @throws ChannelNotFoundException
+     * @throws HttpException
+     * @throws InvalidSchemaException
+     * @throws InvalidStatusCodeException
+     * @throws NotFoundException
+     */
+
+    public function meta(array $params): void
+    {
+
+        $this->api->allowedMethods([
+            'GET',
+            'PUT',
+            'DELETE'
+        ]);
+
+        if (!isset($params['user_id'])) {
+            abort(400);
+            die;
+        }
+
+        if (Request::isGet()) {
+
+            if (isset($params['meta_key'])) { // Single key
+
+                $this->_getUserMeta($params['user_id'], $params['meta_key']);
+
+            } else { // All keys
+
+                $this->_getAllUserMeta($params['user_id']);
+
+            }
+
+        } else if (Request::isPut()) {
+
+            if (isset($params['meta_key'])) { // Single key
+
+                $this->_setUserMeta($params['user_id'], $params['meta_key']);
+
+            } else { // Multiple keys
+
+                $this->_setUserMetas($params['user_id']);
+
+            }
+
+        } else { // Delete
+
+            if (isset($params['meta_key'])) { // Single key
+
+                $this->_deleteUserMeta($params['user_id'], $params['meta_key']);
+
+            } else { // Multiple keys
+
+                $this->_deleteUserMetas($params['user_id']);
 
             }
 
