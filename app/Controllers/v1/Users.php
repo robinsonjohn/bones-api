@@ -2031,6 +2031,117 @@ class Users extends ApiController
 
     }
 
+    /**
+     * Update user meta.
+     *
+     * @param string $user_id
+     * @param string $meta_key
+     *
+     * @throws ChannelNotFoundException
+     * @throws HttpException
+     * @throws InvalidStatusCodeException
+     * @throws NotFoundException
+     */
+
+    protected function _updateUserMeta(string $user_id, string $meta_key): void
+    {
+
+        /*
+         * Check permissions
+         */
+
+        if (!$this->hasAnyPermissions([ // If no applicable permissions
+                'global.users.meta.update',
+                'group.users.meta.update',
+                'self.users.meta.update'
+            ])
+            || (!$this->hasAnyPermissions([ // If only self does not match
+                    'global.users.meta.update',
+                    'group.users.meta.update',
+                ]) && $user_id != $this->user_id)
+            || (!$this->hasPermissions('global.users.meta.update') // If only group and not in group
+                && $this->hasPermissions('group.users.meta.update')
+                && !in_array($user_id, $this->getGroupedUserIds()))) {
+
+            abort(403, 'Unable to update user meta: insufficient permissions');
+            die;
+
+        }
+
+        /*
+         * Get body
+         */
+
+        $body = $this->api->getBody();
+
+        if (!empty(Arr::except($body, [ // If invalid members have been sent
+            'value'
+        ]))) {
+
+            abort(400, 'Unable to update user meta: request body contains invalid members');
+            die;
+
+        }
+
+        /*
+         * Validate body
+         *
+         * No need, as meta value can be a variety of types.
+         */
+
+        /*
+         * Sanitize body
+         */
+
+        if (Validate::array($body['value'])) {
+
+            $body['value'] = json_encode($body['value']);
+
+        }
+
+        /*
+         * Perform action
+         */
+
+        try {
+
+            $this->auth->setUserMeta($user_id, [
+                $meta_key => $body['value']
+            ]);
+
+        } catch (InvalidUserException $e) {
+
+            abort(404, 'Unable to update user meta: user ID does not exist');
+            die;
+
+        }
+
+        /*
+         * Log action
+         */
+
+        log_info('Updated user meta', [
+            'user_id' => $user_id,
+            'meta' => [
+                $meta_key => $body['value']
+            ]
+        ]);
+
+        /*
+         * Do event
+         */
+
+        do_event('user.meta.update', $user_id, [
+            $meta_key => $body['value']
+        ]);
+
+        /*
+         * Send response
+         */
+
+        $this->response->setStatusCode(204)->send();
+
+    }
 
     /**
      * Set user meta. (batch)
@@ -2043,7 +2154,7 @@ class Users extends ApiController
      * @throws NotFoundException
      */
 
-    protected function _updateUserMeta(string $user_id): void
+    protected function _updateUserMetas(string $user_id): void
     {
 
         /*
@@ -2612,12 +2723,11 @@ class Users extends ApiController
 
             if (isset($params['meta_key'])) { // Single key
 
-                // TODO: Remove endpoint?
-                //$this->_setUserMeta($params['user_id'], $params['meta_key']);
+                $this->_updateUserMeta($params['user_id'], $params['meta_key']);
 
             } else { // Multiple keys
 
-                $this->_updateUserMeta($params['user_id']);
+                $this->_updateUserMetas($params['user_id']);
 
             }
 
