@@ -1779,7 +1779,10 @@ class Users extends ApiController
 
         try {
 
-            $meta = $this->auth->getUserMeta($user_id, $meta_key);
+            $meta = [
+                'id' => $meta_key,
+                'value' => $this->auth->getUserMeta($user_id, $meta_key)
+            ];
 
         } catch (InvalidMetaException $e) {
 
@@ -1801,13 +1804,32 @@ class Users extends ApiController
         }
 
         /*
+         * Sanitize fields
+         */
+
+        if (isset($meta['value']) && Validate::json($meta['value'])) {
+            $meta['value'] = json_decode($meta['value'], true);
+        }
+
+        foreach ($meta as $k => $v) {
+
+            if ($k == 'id') {
+                $meta['metaKey'] = $v;
+                unset($meta[$k]);
+            }
+
+            if ($k == 'value') {
+                $meta['metaValue'] = $v;
+                unset($meta[$k]);
+            }
+
+        }
+
+        /*
          * Build schema
          */
 
-        $schema = UserMetaResource::create([
-            'metaKey' => $meta_key,
-            'metaValue' => $meta
-        ], [
+        $schema = UserMetaResource::create($meta, [
             'object_prefix' => '/users/' . $user_id . '/meta',
             'collection_prefix' => '/users/' . $user_id . '/meta'
         ]);
@@ -1977,6 +1999,20 @@ class Users extends ApiController
         }
 
         /*
+         * Sanitize fields
+         */
+
+        foreach ($meta['results'] as $k => $v) {
+
+            if (isset($v['metaValue']) && Validate::json($v['metaValue'])) {
+
+                $meta['results'][$k]['metaValue'] = json_decode($v['metaValue'], true);
+
+            }
+
+        }
+
+        /*
          * Build schema
          */
 
@@ -1992,6 +2028,320 @@ class Users extends ApiController
         $this->response->setHeaders([
             'Cache-Control' => 'max-age=3600' // 1 hour
         ])->sendJson($schema);
+
+    }
+
+
+    /**
+     * Set user meta. (batch)
+     *
+     * @param string $user_id
+     *
+     * @throws ChannelNotFoundException
+     * @throws HttpException
+     * @throws InvalidStatusCodeException
+     * @throws NotFoundException
+     */
+
+    protected function _updateUserMeta(string $user_id): void
+    {
+
+        /*
+         * Check permissions
+         */
+
+        if (!$this->hasAnyPermissions([ // If no applicable permissions
+                'global.users.meta.update',
+                'group.users.meta.update',
+                'self.users.meta.update'
+            ])
+            || (!$this->hasAnyPermissions([ // If only self does not match
+                    'global.users.meta.update',
+                    'group.users.meta.update',
+                ]) && $user_id != $this->user_id)
+            || (!$this->hasPermissions('global.users.meta.update') // If only group and not in group
+                && $this->hasPermissions('group.users.meta.update')
+                && !in_array($user_id, $this->getGroupedUserIds()))) {
+
+            abort(403, 'Unable to update user meta: insufficient permissions');
+            die;
+
+        }
+
+        /*
+         * Get body
+         */
+
+        $body = $this->api->getBody();
+
+        if (!empty(Arr::except($body, [ // If invalid members have been sent
+            'meta'
+        ]))) {
+
+            abort(400, 'Unable to update user meta: request body contains invalid members');
+            die;
+
+        }
+
+        /*
+         * Validate body
+         */
+
+        try {
+
+            Validate::as($body, [
+                'meta' => 'array'
+            ]);
+
+        } catch (ValidationException $e) {
+
+            abort(400, $e->getMessage());
+            die;
+
+        }
+
+        /*
+         * Sanitize body
+         */
+
+        foreach ($body['meta'] as $k => $v) {
+
+            if (Validate::array($v)) {
+
+                $body['meta'][$k] = json_encode($v);
+
+            }
+
+        }
+
+        /*
+         * Perform action
+         */
+
+        try {
+
+            $this->auth->setUserMeta($user_id, $body['meta']);
+
+        } catch (InvalidUserException $e) {
+
+            abort(404, 'Unable to update user meta: user ID does not exist');
+            die;
+
+        }
+
+        /*
+         * Log action
+         */
+
+        log_info('Updated user meta', [
+            'user_id' => $user_id,
+            'meta' => $body['meta']
+        ]);
+
+        /*
+         * Do event
+         */
+
+        do_event('user.meta.update', $user_id, $body['meta']);
+
+        /*
+         * Send response
+         */
+
+        $this->response->setStatusCode(204)->send();
+
+    }
+
+    /**
+     * Delete user meta.
+     *
+     * @param string $user_id
+     * @param string $meta_key
+     *
+     * @throws ChannelNotFoundException
+     * @throws HttpException
+     * @throws InvalidStatusCodeException
+     * @throws NotFoundException
+     * @throws Exception
+     */
+
+    protected function _deleteUserMeta(string $user_id, string $meta_key): void
+    {
+
+        /*
+         * Check permissions
+         */
+
+        if (!$this->hasAnyPermissions([ // If no applicable permissions
+                'global.users.meta.delete',
+                'group.users.meta.delete',
+                'self.users.meta.delete'
+            ])
+            || (!$this->hasAnyPermissions([ // If only self does not match
+                    'global.users.meta.delete',
+                    'group.users.meta.delete',
+                ]) && $user_id != $this->user_id)
+            || (!$this->hasPermissions('global.users.meta.delete') // If only group and not in group
+                && $this->hasPermissions('group.users.meta.delete')
+                && !in_array($user_id, $this->getGroupedUserIds()))) {
+
+            abort(403, 'Unable to delete user meta: insufficient permissions');
+            die;
+
+        }
+
+        /*
+         * Check exists
+         */
+
+        if (!$this->auth->userIdExists($user_id)) {
+
+            abort(404, 'Unable to delete user meta: user ID does not exist');
+            die;
+
+        }
+
+        /*
+         * Perform action
+         */
+
+        $this->auth->deleteUserMeta($user_id, [
+            $meta_key
+        ]);
+
+        /*
+         * Log action
+         */
+
+        log_info('Deleted user meta', [
+            'user_id' => $user_id,
+            'meta_keys' => [
+                $meta_key
+            ]
+        ]);
+
+        /*
+         * Do event
+         */
+
+        do_event('user.meta.delete', $user_id, [
+            $meta_key
+        ]);
+
+        /*
+         * Send response
+         */
+
+        $this->response->setStatusCode(204)->send();
+
+    }
+
+    /**
+     * Delete user meta. (batch)
+     *
+     * @param string $user_id
+     *
+     * @throws ChannelNotFoundException
+     * @throws HttpException
+     * @throws InvalidStatusCodeException
+     * @throws NotFoundException
+     * @throws Exception
+     */
+
+    protected function _deleteUserMetas(string $user_id): void
+    {
+
+        /*
+         * Check permissions
+         */
+
+        if (!$this->hasAnyPermissions([ // If no applicable permissions
+                'global.users.meta.delete',
+                'group.users.meta.delete',
+                'self.users.meta.delete'
+            ])
+            || (!$this->hasAnyPermissions([ // If only self does not match
+                    'global.users.meta.delete',
+                    'group.users.meta.delete',
+                ]) && $user_id != $this->user_id)
+            || (!$this->hasPermissions('global.users.meta.delete') // If only group and not in group
+                && $this->hasPermissions('group.users.meta.delete')
+                && !in_array($user_id, $this->getGroupedUserIds()))) {
+
+            abort(403, 'Unable to delete user meta: insufficient permissions');
+            die;
+
+        }
+
+        /*
+         * Get body
+         */
+
+        $body = $this->api->getBody();
+
+        if (!empty(Arr::except($body, [ // If invalid members have been sent
+            'meta'
+        ]))) {
+
+            abort(400, 'Unable to delete user meta: request body contains invalid members');
+            die;
+
+        }
+
+        /*
+         * Validate body
+         */
+
+        try {
+
+            Validate::as($body, [
+                'meta' => 'array'
+            ]);
+
+        } catch (ValidationException $e) {
+
+            abort(400, $e->getMessage());
+            die;
+
+        }
+
+        /*
+         * Check exists
+         */
+
+        if (!$this->auth->userIdExists($user_id)) {
+
+            abort(404, 'Unable to delete user meta: user ID does not exist');
+            die;
+
+        }
+
+        /*
+         * Perform action
+         */
+
+        $this->auth->deleteUserMeta($user_id, $body['meta']);
+
+        /*
+         * Log action
+         */
+
+        log_info('Deleted user meta', [
+            'user_id' => $user_id,
+            'meta_keys' => $body['meta']
+        ]);
+
+        /*
+         * Do event
+         */
+
+        do_event('user.meta.delete', $user_id, $body['meta']);
+
+        /*
+         * Send response
+         */
+
+        $this->response->setStatusCode(204)->send();
 
     }
 
@@ -2262,11 +2612,12 @@ class Users extends ApiController
 
             if (isset($params['meta_key'])) { // Single key
 
-                $this->_setUserMeta($params['user_id'], $params['meta_key']);
+                // TODO: Remove endpoint?
+                //$this->_setUserMeta($params['user_id'], $params['meta_key']);
 
             } else { // Multiple keys
 
-                $this->_setUserMetas($params['user_id']);
+                $this->_updateUserMeta($params['user_id']);
 
             }
 
