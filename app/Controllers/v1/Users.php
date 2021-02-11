@@ -2093,7 +2093,7 @@ class Users extends ApiController
          * Sanitize body
          */
 
-        if (Validate::array($body['value'])) {
+        if (is_array($body['value'])) {
 
             $body['value'] = json_encode($body['value']);
 
@@ -2122,8 +2122,8 @@ class Users extends ApiController
 
         log_info('Updated user meta', [
             'user_id' => $user_id,
-            'meta' => [
-                $meta_key => $body['value']
+            'keys' => [
+                $meta_key
             ]
         ]);
 
@@ -2132,7 +2132,7 @@ class Users extends ApiController
          */
 
         do_event('user.meta.update', $user_id, [
-            $meta_key => $body['value']
+            $meta_key
         ]);
 
         /*
@@ -2185,43 +2185,27 @@ class Users extends ApiController
 
         $body = $this->api->getBody();
 
-        if (!empty(Arr::except($body, [ // If invalid members have been sent
-            'meta'
-        ]))) {
-
-            abort(400, 'Unable to update user meta: request body contains invalid members');
-            die;
-
-        }
-
         /*
-         * Validate body
+         * Validate & sanitize body
          */
 
-        try {
+        $metas = [];
 
-            Validate::as($body, [
-                'meta' => 'array'
-            ]);
+        foreach ($body as $k => $meta) {
 
-        } catch (ValidationException $e) {
+            if (!is_array($meta) || !isset($meta['id']) || !isset($meta['value'])) {
 
-            abort(400, $e->getMessage());
-            die;
-
-        }
-
-        /*
-         * Sanitize body
-         */
-
-        foreach ($body['meta'] as $k => $v) {
-
-            if (Validate::array($v)) {
-
-                $body['meta'][$k] = json_encode($v);
+                abort(400, 'Unable to update user meta: request body contains invalid members');
 
             }
+
+            if (is_array($meta['value'])) {
+
+                $body[$k]['value'] = json_encode($meta['value']);
+
+            }
+
+            $metas[$meta['id']] = $meta['value'];
 
         }
 
@@ -2231,7 +2215,7 @@ class Users extends ApiController
 
         try {
 
-            $this->auth->setUserMeta($user_id, $body['meta']);
+            $this->auth->setUserMeta($user_id, $metas);
 
         } catch (InvalidUserException $e) {
 
@@ -2246,14 +2230,14 @@ class Users extends ApiController
 
         log_info('Updated user meta', [
             'user_id' => $user_id,
-            'meta' => $body['meta']
+            'keys' => array_keys($metas)
         ]);
 
         /*
          * Do event
          */
 
-        do_event('user.meta.update', $user_id, $body['meta']);
+        do_event('user.meta.update', $user_id, array_keys($metas));
 
         /*
          * Send response
