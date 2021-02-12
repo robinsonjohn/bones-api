@@ -705,86 +705,7 @@ class Roles extends ApiController
     }
 
     /**
-     * Add permission to role.
-     *
-     * @param string $role_id
-     * @param string $permission_id
-     *
-     * @throws ChannelNotFoundException
-     * @throws HttpException
-     * @throws InvalidStatusCodeException
-     * @throws NotFoundException
-     */
-
-    protected function _grantRolePermission(string $role_id, string $permission_id): void
-    {
-
-        /*
-         * Check permissions
-         */
-
-        if (!$this->hasPermissions('global.roles.permissions.grant')) {
-
-            abort(403, 'Unable to add permission to role: insufficient permissions');
-            die;
-
-        }
-
-        /*
-         * Check exists
-         */
-
-        if (!$this->auth->roleIdExists($role_id)) {
-
-            abort(404, 'Unable to add permission to role: role ID does not exist');
-            die;
-
-        }
-
-        /*
-         * Perform action
-         */
-
-        try {
-
-            $this->auth->grantRolePermissions($role_id, $permission_id);
-
-        } catch (InvalidGrantException $e) {
-
-            abort(400, 'Unable to add permission to role: permission ID does not exist');
-            die;
-
-        }
-
-        /*
-         * Log action
-         */
-
-        log_info('Added permission to role', [
-            'role_id' => $role_id,
-            'permissions' => [
-                $permission_id
-            ]
-        ]);
-
-        /*
-         * Do event
-         */
-
-        do_event('role.permissions.grant', $role_id, [
-            $permission_id
-        ]);
-
-        /*
-         * Send response
-         */
-
-        $this->response->setStatusCode(204)->send();
-
-    }
-
-    /**
-     * Add permissions to role. (batch)
+     * Add permissions to role.
      *
      * @param string $role_id
      *
@@ -809,34 +730,38 @@ class Roles extends ApiController
         }
 
         /*
-         * Get body
+         * Get & validate body
          */
 
-        $body = $this->api->getBody();
+        $body = $this->api->getBody([
+            'data'
+        ]); // Required members
 
-        if (!empty(Arr::except($body, [ // If invalid members have been sent
-            'permissions'
-        ]))) {
+        if (!empty(Arr::except($body, 'data')) // Valid members
+            || !is_array($body['data'])) {
 
             abort(400, 'Unable to add permissions to role: request body contains invalid members');
             die;
 
         }
 
-        /*
-         * Validate body
-         */
+        foreach ($body['data'] as $resource) {
 
-        try {
+            if (!empty(Arr::except($resource, [ // Valid members
+                    'type',
+                    'id'
+                ]))
+                || Arr::isMissing($resource, [ // Required members
+                    'type',
+                    'id'
+                ])
+                || $resource['type'] != 'permissions'
+                || !Validate::string($resource['id'])) {
 
-            Validate::as($body, [
-                'permissions' => 'array'
-            ]);
+                abort(400, 'Unable to add permissions to role: request body contains invalid members');
+                die;
 
-        } catch (ValidationException $e) {
-
-            abort(400, $e->getMessage());
-            die;
+            }
 
         }
 
@@ -855,9 +780,11 @@ class Roles extends ApiController
          * Perform action
          */
 
+        $permissions = Arr::pluck($body['data'], 'id');
+
         try {
 
-            $this->auth->grantRolePermissions($role_id, $body['permissions']);
+            $this->auth->grantRolePermissions($role_id, $permissions);
 
         } catch (InvalidGrantException $e) {
 
@@ -872,14 +799,14 @@ class Roles extends ApiController
 
         log_info('Added permissions to role', [
             'role_id' => $role_id,
-            'permissions' => $body['permissions']
+            'permissions' => $permissions
         ]);
 
         /*
          * Do event
          */
 
-        do_event('role.permissions.grant', $role_id, $body['permissions']);
+        do_event('role.permissions.grant', $role_id, $permissions);
 
         /*
          * Send response
@@ -890,78 +817,7 @@ class Roles extends ApiController
     }
 
     /**
-     * Remove permission from role
-     *
-     * @param string $role_id
-     * @param string $permission_id
-     *
-     * @throws ChannelNotFoundException
-     * @throws HttpException
-     * @throws InvalidStatusCodeException
-     * @throws NotFoundException
-     * @throws Exception
-     */
-
-    protected function _revokeRolePermission(string $role_id, string $permission_id): void
-    {
-
-        /*
-         * Check permissions
-         */
-
-        if (!$this->hasPermissions('global.roles.permissions.revoke')) {
-
-            abort(403, 'Unable to remove permission from role: insufficient permissions');
-            die;
-
-        }
-
-        /*
-         * Check exists
-         */
-
-        if (!$this->auth->roleIdExists($role_id)) {
-
-            abort(404, 'Unable to remove permission from role: role ID does not exist');
-            die;
-
-        }
-
-        /*
-         * Perform action
-         */
-
-        $this->auth->revokeRolePermissions($role_id, $permission_id);
-
-        /*
-         * Log action
-         */
-
-        log_info('Removed permission from role', [
-            'role_id' => $role_id,
-            'permissions' => [
-                $permission_id
-            ]
-        ]);
-
-        /*
-         * Do event
-         */
-
-        do_event('role.permissions.revoke', $role_id, [
-            $permission_id
-        ]);
-
-        /*
-         * Send response
-         */
-
-        $this->response->setStatusCode(204)->send();
-
-    }
-
-    /**
-     * Remove permissions from role. (batch)
+     * Remove permissions from role.
      *
      * @param string $role_id
      *
@@ -987,34 +843,38 @@ class Roles extends ApiController
         }
 
         /*
-         * Get body
+         * Get & validate body
          */
 
-        $body = $this->api->getBody();
+        $body = $this->api->getBody([
+            'data'
+        ]); // Required members
 
-        if (!empty(Arr::except($body, [ // If invalid members have been sent
-            'permissions'
-        ]))) {
+        if (!empty(Arr::except($body, 'data')) // Valid members
+            || !is_array($body['data'])) {
 
             abort(400, 'Unable to remove permissions from role: request body contains invalid members');
             die;
 
         }
 
-        /*
-         * Validate body
-         */
+        foreach ($body['data'] as $resource) {
 
-        try {
+            if (!empty(Arr::except($resource, [ // Valid members
+                    'type',
+                    'id'
+                ]))
+                || Arr::isMissing($resource, [ // Required members
+                    'type',
+                    'id'
+                ])
+                || $resource['type'] != 'permissions'
+                || !Validate::string($resource['id'])) {
 
-            Validate::as($body, [
-                'permissions' => 'array'
-            ]);
+                abort(400, 'Unable to remove permissions from role: request body contains invalid members');
+                die;
 
-        } catch (ValidationException $e) {
-
-            abort(400, $e->getMessage());
-            die;
+            }
 
         }
 
@@ -1033,7 +893,9 @@ class Roles extends ApiController
          * Perform action
          */
 
-        $this->auth->revokeRolePermissions($role_id, $body['permissions']);
+        $permissions = Arr::pluck($body['data'], 'id');
+
+        $this->auth->revokeRolePermissions($role_id, $permissions);
 
         /*
          * Log action
@@ -1041,14 +903,14 @@ class Roles extends ApiController
 
         log_info('Removed permissions from role', [
             'role_id' => $role_id,
-            'permissions' => $body['permissions']
+            'permissions' => $permissions
         ]);
 
         /*
          * Do event
          */
 
-        do_event('role.permissions.revoke', $role_id, $body['permissions']);
+        do_event('role.permissions.revoke', $role_id, $permissions);
 
         /*
          * Send response
@@ -1170,88 +1032,8 @@ class Roles extends ApiController
 
     }
 
-
     /**
-     * Grant role to user.
-     *
-     * @param string $role_id
-     * @param string $user_id
-     *
-     * @throws ChannelNotFoundException
-     * @throws HttpException
-     * @throws InvalidStatusCodeException
-     * @throws NotFoundException
-     */
-
-    protected function _grantRoleUser(string $role_id, string $user_id): void
-    {
-
-        /*
-         * Check permissions
-         */
-
-        if (!$this->hasPermissions('global.roles.users.grant')) {
-
-            abort(403, 'Unable to grant role to user: insufficient permissions');
-            die;
-
-        }
-
-        /*
-         * Check exists
-         */
-
-        if (!$this->auth->roleIdExists($role_id)) {
-
-            abort(404, 'Unable to grant role to user: role ID does not exist');
-            die;
-
-        }
-
-        /*
-         * Perform action
-         */
-
-        try {
-
-            $this->auth->grantRoleUsers($role_id, $user_id);
-
-        } catch (InvalidGrantException $e) {
-
-            abort(400, 'Unable to grant role to user: user ID does not exist');
-            die;
-
-        }
-
-        /*
-         * Log action
-         */
-
-        log_info('Granted role to user', [
-            'role_id' => $role_id,
-            'users' => [
-                $user_id
-            ]
-        ]);
-
-        /*
-         * Do event
-         */
-
-        do_event('role.users.grant', $role_id, [
-            $user_id
-        ]);
-
-        /*
-         * Send response
-         */
-
-        $this->response->setStatusCode(204)->send();
-
-    }
-
-    /**
-     * Grant role to users. (batch)
+     * Grant role to users.
      *
      * @param string $role_id
      *
@@ -1276,34 +1058,38 @@ class Roles extends ApiController
         }
 
         /*
-         * Get body
+         * Get & validate body
          */
 
-        $body = $this->api->getBody();
+        $body = $this->api->getBody([
+            'data'
+        ]); // Required members
 
-        if (!empty(Arr::except($body, [ // If invalid members have been sent
-            'users'
-        ]))) {
+        if (!empty(Arr::except($body, 'data')) // Valid members
+            || !is_array($body['data'])) {
 
             abort(400, 'Unable to grant role to users: request body contains invalid members');
             die;
 
         }
 
-        /*
-         * Validate body
-         */
+        foreach ($body['data'] as $resource) {
 
-        try {
+            if (!empty(Arr::except($resource, [ // Valid members
+                    'type',
+                    'id'
+                ]))
+                || Arr::isMissing($resource, [ // Required members
+                    'type',
+                    'id'
+                ])
+                || $resource['type'] != 'users'
+                || !Validate::string($resource['id'])) {
 
-            Validate::as($body, [
-                'users' => 'array'
-            ]);
+                abort(400, 'Unable to grant role to users: request body contains invalid members');
+                die;
 
-        } catch (ValidationException $e) {
-
-            abort(400, $e->getMessage());
-            die;
+            }
 
         }
 
@@ -1322,9 +1108,11 @@ class Roles extends ApiController
          * Perform action
          */
 
+        $users = Arr::pluck($body['data'], 'id');
+
         try {
 
-            $this->auth->grantRoleUsers($role_id, $body['users']);
+            $this->auth->grantRoleUsers($role_id, $users);
 
         } catch (InvalidGrantException $e) {
 
@@ -1339,14 +1127,14 @@ class Roles extends ApiController
 
         log_info('Granted role to users', [
             'role_id' => $role_id,
-            'users' => $body['users']
+            'users' => $users
         ]);
 
         /*
          * Do event
          */
 
-        do_event('role.users.grant', $role_id, $body['users']);
+        do_event('role.users.grant', $role_id, $users);
 
         /*
          * Send response
@@ -1357,78 +1145,7 @@ class Roles extends ApiController
     }
 
     /**
-     * Revoke role from user.
-     *
-     * @param string $role_id
-     * @param string $user_id
-     *
-     * @throws ChannelNotFoundException
-     * @throws HttpException
-     * @throws InvalidStatusCodeException
-     * @throws NotFoundException
-     * @throws Exception
-     */
-
-    protected function _revokeRoleUser(string $role_id, string $user_id): void
-    {
-
-        /*
-         * Check permissions
-         */
-
-        if (!$this->hasPermissions('global.roles.users.revoke')) {
-
-            abort(403, 'Unable to revoke role from user: insufficient permissions');
-            die;
-
-        }
-
-        /*
-         * Check exists
-         */
-
-        if (!$this->auth->roleIdExists($role_id)) {
-
-            abort(404, 'Unable to revoke role from user: role ID does not exist');
-            die;
-
-        }
-
-        /*
-         * Perform action
-         */
-
-        $this->auth->revokeRoleUsers($role_id, $user_id);
-
-        /*
-         * Log action
-         */
-
-        log_info('Revoked role from user', [
-            'role_id' => $role_id,
-            'users' => [
-                $user_id
-            ]
-        ]);
-
-        /*
-         * Do event
-         */
-
-        do_event('role.users.revoke', $role_id, [
-            $user_id
-        ]);
-
-        /*
-         * Send response
-         */
-
-        $this->response->setStatusCode(204)->send();
-
-    }
-
-    /**
-     * Revoke role from users. (batch)
+     * Revoke role from users.
      *
      * @param string $role_id
      *
@@ -1454,34 +1171,38 @@ class Roles extends ApiController
         }
 
         /*
-         * Get body
+         * Get & validate body
          */
 
-        $body = $this->api->getBody();
+        $body = $this->api->getBody([
+            'data'
+        ]); // Required members
 
-        if (!empty(Arr::except($body, [ // If invalid members have been sent
-            'users'
-        ]))) {
+        if (!empty(Arr::except($body, 'data')) // Valid members
+            || !is_array($body['data'])) {
 
             abort(400, 'Unable to revoke role from users: request body contains invalid members');
             die;
 
         }
 
-        /*
-         * Validate body
-         */
+        foreach ($body['data'] as $resource) {
 
-        try {
+            if (!empty(Arr::except($resource, [ // Valid members
+                    'type',
+                    'id'
+                ]))
+                || Arr::isMissing($resource, [ // Required members
+                    'type',
+                    'id'
+                ])
+                || $resource['type'] != 'users'
+                || !Validate::string($resource['id'])) {
 
-            Validate::as($body, [
-                'users' => 'array'
-            ]);
+                abort(400, 'Unable to revoke role from users: request body contains invalid members');
+                die;
 
-        } catch (ValidationException $e) {
-
-            abort(400, $e->getMessage());
-            die;
+            }
 
         }
 
@@ -1500,7 +1221,9 @@ class Roles extends ApiController
          * Perform action
          */
 
-        $this->auth->revokeRoleUsers($role_id, $body['users']);
+        $users = Arr::pluck($body['data'], 'id');
+
+        $this->auth->revokeRoleUsers($role_id, $users);
 
         /*
          * Log action
@@ -1508,14 +1231,14 @@ class Roles extends ApiController
 
         log_info('Revoked role from users', [
             'role_id' => $role_id,
-            'users' => $body['users']
+            'users' => $users
         ]);
 
         /*
          * Do event
          */
 
-        do_event('role.users.revoke', $role_id, $body['users']);
+        do_event('role.users.revoke', $role_id, $users);
 
         /*
          * Send response
@@ -1618,7 +1341,7 @@ class Roles extends ApiController
 
         $this->api->allowedMethods([
             'GET',
-            'PUT',
+            'POST',
             'DELETE'
         ]);
 
@@ -1631,29 +1354,13 @@ class Roles extends ApiController
 
             $this->_getRolePermissions($params['role_id']);
 
-        } else if (Request::isPut()) {
+        } else if (Request::isPost()) {
 
-            if (isset($params['permission_id'])) { // Single permission
-
-                $this->_grantRolePermission($params['role_id'], $params['permission_id']);
-
-            } else { // Multiple permissions
-
-                $this->_grantRolePermissions($params['role_id']);
-
-            }
+            $this->_grantRolePermissions($params['role_id']);
 
         } else { // Delete
 
-            if (isset($params['permission_id'])) { // Single permission
-
-                $this->_revokeRolePermission($params['role_id'], $params['permission_id']);
-
-            } else { // Multiple permissions
-
-                $this->_revokeRolePermissions($params['role_id']);
-
-            }
+            $this->_revokeRolePermissions($params['role_id']);
 
         }
 
@@ -1678,7 +1385,7 @@ class Roles extends ApiController
 
         $this->api->allowedMethods([
             'GET',
-            'PUT',
+            'POST',
             'DELETE'
         ]);
 
@@ -1691,29 +1398,13 @@ class Roles extends ApiController
 
             $this->_getRoleUsers($params['role_id']);
 
-        } else if (Request::isPut()) {
+        } else if (Request::isPost()) {
 
-            if (isset($params['user_id'])) { // Single user
-
-                $this->_grantRoleUser($params['role_id'], $params['user_id']);
-
-            } else { // Multiple permissions
-
-                $this->_grantRoleUsers($params['role_id']);
-
-            }
+            $this->_grantRoleUsers($params['role_id']);
 
         } else { // Delete
 
-            if (isset($params['user_id'])) { // Single user
-
-                $this->_revokeRoleUser($params['role_id'], $params['user_id']);
-
-            } else { // Multiple users
-
-                $this->_revokeRoleUsers($params['role_id']);
-
-            }
+            $this->_revokeRoleUsers($params['role_id']);
 
         }
 

@@ -887,86 +887,7 @@ class Users extends ApiController
     }
 
     /**
-     * Grant role to user.
-     *
-     * @param string $user_id
-     * @param string $role_id
-     *
-     * @throws ChannelNotFoundException
-     * @throws HttpException
-     * @throws InvalidStatusCodeException
-     * @throws NotFoundException
-     */
-
-    protected function _grantUserRole(string $user_id, string $role_id): void
-    {
-
-        /*
-         * Check permissions
-         */
-
-        if (!$this->hasPermissions('global.users.roles.grant')) {
-
-            abort(403, 'Unable to grant role to user: insufficient permissions');
-            die;
-
-        }
-
-        /*
-         * Check exists
-         */
-
-        if (!$this->auth->userIdExists($user_id)) {
-
-            abort(404, 'Unable to grant role to user: user ID does not exist');
-            die;
-
-        }
-
-        /*
-         * Perform action
-         */
-
-        try {
-
-            $this->auth->grantUserRoles($user_id, $role_id);
-
-        } catch (InvalidGrantException $e) {
-
-            abort(400, 'Unable to grant role to user: role ID does not exist');
-            die;
-
-        }
-
-        /*
-         * Log action
-         */
-
-        log_info('Granted role to user', [
-            'user_id' => $user_id,
-            'roles' => [
-                $role_id
-            ]
-        ]);
-
-        /*
-         * Do event
-         */
-
-        do_event('user.roles.grant', $user_id, [
-            $role_id
-        ]);
-
-        /*
-         * Send response
-         */
-
-        $this->response->setStatusCode(204)->send();
-
-    }
-
-    /**
-     * Grant roles to user. (batch)
+     * Grant roles to user.
      *
      * @param string $user_id
      *
@@ -991,34 +912,38 @@ class Users extends ApiController
         }
 
         /*
-         * Get body
+         * Get & validate body
          */
 
-        $body = $this->api->getBody();
+        $body = $this->api->getBody([
+            'data'
+        ]); // Required members
 
-        if (!empty(Arr::except($body, [ // If invalid members have been sent
-            'roles'
-        ]))) {
+        if (!empty(Arr::except($body, 'data')) // Valid members
+            || !is_array($body['data'])) {
 
             abort(400, 'Unable to grant roles to user: request body contains invalid members');
             die;
 
         }
 
-        /*
-         * Validate body
-         */
+        foreach ($body['data'] as $resource) {
 
-        try {
+            if (!empty(Arr::except($resource, [ // Valid members
+                    'type',
+                    'id'
+                ]))
+                || Arr::isMissing($resource, [ // Required members
+                    'type',
+                    'id'
+                ])
+                || $resource['type'] != 'roles'
+                || !Validate::string($resource['id'])) {
 
-            Validate::as($body, [
-                'roles' => 'array'
-            ]);
+                abort(400, 'Unable to grant roles to user: request body contains invalid members');
+                die;
 
-        } catch (ValidationException $e) {
-
-            abort(400, $e->getMessage());
-            die;
+            }
 
         }
 
@@ -1037,9 +962,11 @@ class Users extends ApiController
          * Perform action
          */
 
+        $roles = Arr::pluck($body['data'], 'id');
+
         try {
 
-            $this->auth->grantUserRoles($user_id, $body['roles']);
+            $this->auth->grantUserRoles($user_id, $roles);
 
         } catch (InvalidGrantException $e) {
 
@@ -1054,14 +981,14 @@ class Users extends ApiController
 
         log_info('Granted roles to user', [
             'user_id' => $user_id,
-            'roles' => $body['roles']
+            'roles' => $roles
         ]);
 
         /*
          * Do event
          */
 
-        do_event('user.roles.grant', $user_id, $body['roles']);
+        do_event('user.roles.grant', $user_id, $roles);
 
         /*
          * Send response
@@ -1072,78 +999,7 @@ class Users extends ApiController
     }
 
     /**
-     * Revoke role from user.
-     *
-     * @param string $user_id
-     * @param string $role_id
-     *
-     * @throws ChannelNotFoundException
-     * @throws HttpException
-     * @throws InvalidStatusCodeException
-     * @throws NotFoundException
-     * @throws Exception
-     */
-
-    protected function _revokeUserRole(string $user_id, string $role_id): void
-    {
-
-        /*
-         * Check permissions
-         */
-
-        if (!$this->hasPermissions('global.users.roles.revoke')) {
-
-            abort(403, 'Unable to revoke role from user: insufficient permissions');
-            die;
-
-        }
-
-        /*
-         * Check exists
-         */
-
-        if (!$this->auth->userIdExists($user_id)) {
-
-            abort(404, 'Unable to revoke role from user: user ID does not exist');
-            die;
-
-        }
-
-        /*
-         * Perform action
-         */
-
-        $this->auth->revokeUserRoles($user_id, $role_id);
-
-        /*
-         * Log action
-         */
-
-        log_info('Revoked role from user', [
-            'user_id' => $user_id,
-            'roles' => [
-                $role_id
-            ]
-        ]);
-
-        /*
-         * Do event
-         */
-
-        do_event('user.roles.revoke', $user_id, [
-            $role_id
-        ]);
-
-        /*
-         * Send response
-         */
-
-        $this->response->setStatusCode(204)->send();
-
-    }
-
-    /**
-     * Revoke roles from user. (batch)
+     * Revoke roles from user.
      *
      * @param string $user_id
      *
@@ -1169,36 +1025,41 @@ class Users extends ApiController
         }
 
         /*
-         * Get body
+         * Get & validate body
          */
 
-        $body = $this->api->getBody();
+        $body = $this->api->getBody([
+            'data'
+        ]); // Required members
 
-        if (!empty(Arr::except($body, [ // If invalid members have been sent
-            'roles'
-        ]))) {
+        if (!empty(Arr::except($body, 'data')) // Valid members
+            || !is_array($body['data'])) {
 
             abort(400, 'Unable to revoke roles from user: request body contains invalid members');
             die;
 
         }
 
-        /*
-         * Validate body
-         */
+        foreach ($body['data'] as $resource) {
 
-        try {
+            if (!empty(Arr::except($resource, [ // Valid members
+                    'type',
+                    'id'
+                ]))
+                || Arr::isMissing($resource, [ // Required members
+                    'type',
+                    'id'
+                ])
+                || $resource['type'] != 'roles'
+                || !Validate::string($resource['id'])) {
 
-            Validate::as($body, [
-                'roles' => 'array'
-            ]);
+                abort(400, 'Unable to revoke roles from user: request body contains invalid members');
+                die;
 
-        } catch (ValidationException $e) {
-
-            abort(400, $e->getMessage());
-            die;
+            }
 
         }
+
 
         /*
          * Check exists
@@ -1215,7 +1076,9 @@ class Users extends ApiController
          * Perform action
          */
 
-        $this->auth->revokeUserRoles($user_id, $body['roles']);
+        $roles = Arr::pluck($body['data'], 'id');
+
+        $this->auth->revokeUserRoles($user_id, $roles);
 
         /*
          * Log action
@@ -1223,14 +1086,14 @@ class Users extends ApiController
 
         log_info('Revoked roles from user', [
             'user_id' => $user_id,
-            'roles' => $body['roles']
+            'roles' => $roles
         ]);
 
         /*
          * Do event
          */
 
-        do_event('user.roles.revoke', $user_id, $body['roles']);
+        do_event('user.roles.revoke', $user_id, $roles);
 
         /*
          * Send response
@@ -1359,90 +1222,7 @@ class Users extends ApiController
     }
 
     /**
-     * Add user to group.
-     *
-     * @param string $user_id
-     * @param string $group_id
-     *
-     * @throws ChannelNotFoundException
-     * @throws HttpException
-     * @throws InvalidStatusCodeException
-     * @throws NotFoundException
-     */
-
-    protected function _grantUserGroup(string $user_id, string $group_id): void
-    {
-
-        /*
-         * Check permissions
-         */
-
-        if (!$this->hasAnyPermissions([
-                'global.users.groups.grant',
-                'self.users.groups.grant'
-            ])
-            || (!$this->hasPermissions('global.users.groups.grant') && $user_id != $this->user_id)) {
-
-            abort(403, 'Unable to add user to group: insufficient permissions');
-            die;
-
-        }
-
-        /*
-         * Check exists
-         */
-
-        if (!$this->auth->userIdExists($user_id)) {
-
-            abort(404, 'Unable to add user to group: user ID does not exist');
-            die;
-
-        }
-
-        /*
-         * Perform action
-         */
-
-        try {
-
-            $this->auth->grantUserGroups($user_id, $group_id);
-
-        } catch (InvalidGrantException $e) {
-
-            abort(400, 'Unable to add user to group: group ID does not exist');
-            die;
-
-        }
-
-        /*
-         * Log action
-         */
-
-        log_info('Added user to group', [
-            'user_id' => $user_id,
-            'groups' => [
-                $group_id
-            ]
-        ]);
-
-        /*
-         * Do event
-         */
-
-        do_event('user.groups.grant', $user_id, [
-            $group_id
-        ]);
-
-        /*
-         * Send response
-         */
-
-        $this->response->setStatusCode(204)->send();
-
-    }
-
-    /**
-     * Add user to groups. (batch)
+     * Add user to groups.
      *
      * @param string $user_id
      *
@@ -1471,34 +1251,38 @@ class Users extends ApiController
         }
 
         /*
-         * Get body
+         * Get & validate body
          */
 
-        $body = $this->api->getBody();
+        $body = $this->api->getBody([
+            'data'
+        ]); // Required members
 
-        if (!empty(Arr::except($body, [ // If invalid members have been sent
-            'groups'
-        ]))) {
+        if (!empty(Arr::except($body, 'data')) // Valid members
+            || !is_array($body['data'])) {
 
             abort(400, 'Unable to add user to groups: request body contains invalid members');
             die;
 
         }
 
-        /*
-         * Validate body
-         */
+        foreach ($body['data'] as $resource) {
 
-        try {
+            if (!empty(Arr::except($resource, [ // Valid members
+                    'type',
+                    'id'
+                ]))
+                || Arr::isMissing($resource, [ // Required members
+                    'type',
+                    'id'
+                ])
+                || $resource['type'] != 'groups'
+                || !Validate::string($resource['id'])) {
 
-            Validate::as($body, [
-                'groups' => 'array'
-            ]);
+                abort(400, 'Unable to add user to groups: request body contains invalid members');
+                die;
 
-        } catch (ValidationException $e) {
-
-            abort(400, $e->getMessage());
-            die;
+            }
 
         }
 
@@ -1517,9 +1301,11 @@ class Users extends ApiController
          * Perform action
          */
 
+        $groups = Arr::pluck($body['data'], 'id');
+
         try {
 
-            $this->auth->grantUserGroups($user_id, $body['groups']);
+            $this->auth->grantUserGroups($user_id, $groups);
 
         } catch (InvalidGrantException $e) {
 
@@ -1534,14 +1320,14 @@ class Users extends ApiController
 
         log_info('Added user to groups', [
             'user_id' => $user_id,
-            'groups' => $body['groups']
+            'groups' => $groups
         ]);
 
         /*
          * Do event
          */
 
-        do_event('user.groups.grant', $user_id, $body['groups']);
+        do_event('user.groups.grant', $user_id, $groups);
 
         /*
          * Send response
@@ -1552,82 +1338,7 @@ class Users extends ApiController
     }
 
     /**
-     * Remove user from group.
-     *
-     * @param string $user_id
-     * @param string $group_id
-     *
-     * @throws ChannelNotFoundException
-     * @throws HttpException
-     * @throws InvalidStatusCodeException
-     * @throws NotFoundException
-     * @throws Exception
-     */
-
-    protected function _revokeUserGroup(string $user_id, string $group_id): void
-    {
-
-        /*
-         * Check permissions
-         */
-
-        if (!$this->hasAnyPermissions([
-                'global.users.groups.revoke',
-                'self.users.groups.revoke'
-            ])
-            || (!$this->hasPermissions('global.users.groups.revoke') && $user_id != $this->user_id)) {
-
-            abort(403, 'Unable to remove user from group: insufficient permissions');
-            die;
-
-        }
-
-        /*
-         * Check exists
-         */
-
-        if (!$this->auth->userIdExists($user_id)) {
-
-            abort(404, 'Unable to remove user from group: user ID does not exist');
-            die;
-
-        }
-
-        /*
-         * Perform action
-         */
-
-        $this->auth->revokeUserGroups($user_id, $group_id);
-
-        /*
-         * Log action
-         */
-
-        log_info('Removed user from group', [
-            'user_id' => $user_id,
-            'groups' => [
-                $group_id
-            ]
-        ]);
-
-        /*
-         * Do event
-         */
-
-        do_event('user.groups.revoke', $user_id, [
-            $group_id
-        ]);
-
-        /*
-         * Send response
-         */
-
-        $this->response->setStatusCode(204)->send();
-
-    }
-
-    /**
-     * Remove user from groups. (batch)
+     * Remove user from groups.
      *
      * @param string $user_id
      *
@@ -1657,34 +1368,38 @@ class Users extends ApiController
         }
 
         /*
-         * Get body
+         * Get & validate body
          */
 
-        $body = $this->api->getBody();
+        $body = $this->api->getBody([
+            'data'
+        ]); // Required members
 
-        if (!empty(Arr::except($body, [ // If invalid members have been sent
-            'groups'
-        ]))) {
+        if (!empty(Arr::except($body, 'data')) // Valid members
+            || !is_array($body['data'])) {
 
             abort(400, 'Unable to remove user from groups: request body contains invalid members');
             die;
 
         }
 
-        /*
-         * Validate body
-         */
+        foreach ($body['data'] as $resource) {
 
-        try {
+            if (!empty(Arr::except($resource, [ // Valid members
+                    'type',
+                    'id'
+                ]))
+                || Arr::isMissing($resource, [ // Required members
+                    'type',
+                    'id'
+                ])
+                || $resource['type'] != 'groups'
+                || !Validate::string($resource['id'])) {
 
-            Validate::as($body, [
-                'groups' => 'array'
-            ]);
+                abort(400, 'Unable to remove user from groups: request body contains invalid members');
+                die;
 
-        } catch (ValidationException $e) {
-
-            abort(400, $e->getMessage());
-            die;
+            }
 
         }
 
@@ -1703,7 +1418,9 @@ class Users extends ApiController
          * Perform action
          */
 
-        $this->auth->revokeUserGroups($user_id, $body['groups']);
+        $groups = Arr::pluck($body['data'], 'id');
+
+        $this->auth->revokeUserGroups($user_id, $groups);
 
         /*
          * Log action
@@ -1711,14 +1428,14 @@ class Users extends ApiController
 
         log_info('Removed user from groups', [
             'user_id' => $user_id,
-            'groups' => $body['groups']
+            'groups' => $groups
         ]);
 
         /*
          * Do event
          */
 
-        do_event('user.groups.revoke', $user_id, $body['groups']);
+        do_event('user.groups.revoke', $user_id, $groups);
 
         /*
          * Send response
@@ -2585,7 +2302,7 @@ class Users extends ApiController
 
         $this->api->allowedMethods([
             'GET',
-            'PUT',
+            'POST',
             'DELETE'
         ]);
 
@@ -2598,29 +2315,13 @@ class Users extends ApiController
 
             $this->_getUserRoles($params['user_id']);
 
-        } else if (Request::isPut()) {
+        } else if (Request::isPost()) {
 
-            if (isset($params['role_id'])) { // Single role
-
-                $this->_grantUserRole($params['user_id'], $params['role_id']);
-
-            } else { // Multiple roles
-
-                $this->_grantUserRoles($params['user_id']);
-
-            }
+            $this->_grantUserRoles($params['user_id']);
 
         } else { // Delete
 
-            if (isset($params['role_id'])) { // Single role
-
-                $this->_revokeUserRole($params['user_id'], $params['role_id']);
-
-            } else { // Multiple roles
-
-                $this->_revokeUserRoles($params['user_id']);
-
-            }
+            $this->_revokeUserRoles($params['user_id']);
 
         }
 
@@ -2645,7 +2346,7 @@ class Users extends ApiController
 
         $this->api->allowedMethods([
             'GET',
-            'PUT',
+            'POST',
             'DELETE'
         ]);
 
@@ -2658,29 +2359,13 @@ class Users extends ApiController
 
             $this->_getUserGroups($params['user_id']);
 
-        } else if (Request::isPut()) {
+        } else if (Request::isPost()) {
 
-            if (isset($params['group_id'])) { // Single group
-
-                $this->_grantUserGroup($params['user_id'], $params['group_id']);
-
-            } else { // Multiple groups
-
-                $this->_grantUserGroups($params['user_id']);
-
-            }
+            $this->_grantUserGroups($params['user_id']);
 
         } else { // Delete
 
-            if (isset($params['group_id'])) { // Single group
-
-                $this->_revokeUserGroup($params['user_id'], $params['group_id']);
-
-            } else { // Multiple groups
-
-                $this->_revokeUserGroups($params['user_id']);
-
-            }
+            $this->_revokeUserGroups($params['user_id']);
 
         }
 
