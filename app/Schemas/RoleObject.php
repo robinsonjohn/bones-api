@@ -30,7 +30,7 @@ class RoleObject implements SchemaInterface
         }
 
         $return = [
-            'type' => 'role',
+            'type' => 'roles',
             'id' => $array['id']
         ];
 
