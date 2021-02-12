@@ -89,19 +89,30 @@ class Users extends ApiController
          */
 
         $body = $this->api->getBody([
-            'login',
-            'password'
-        ]); // Required keys
+            'data'
+        ]); // Required members
 
-        if (!empty(Arr::except($body, [ // If invalid members have been sent
-            'login',
-            'password',
-            'firstName',
-            'lastName',
-            'companyName',
-            'email',
-            'enabled'
-        ]))) {
+        if (!empty(Arr::except($body, 'data')) // Valid members
+            || !is_array($body['data'])
+            || !empty(Arr::except($body['data'], [ // Valid members
+                'type',
+                'attributes'
+            ]))
+            || $body['data']['type'] != 'users'
+            || !is_array($body['data']['attributes'])
+            || !empty(Arr::except($body['data']['attributes'], [ // Valid members
+                'login',
+                'password',
+                'firstName',
+                'lastName',
+                'companyName',
+                'email',
+                'enabled'
+            ]))
+            || Arr::isMissing($body['data']['attributes'], [ // Required members
+                'login',
+                'password'
+            ])) {
 
             abort(400, 'Unable to create user: request body contains invalid members');
             die;
@@ -114,7 +125,7 @@ class Users extends ApiController
 
         try {
 
-            Validate::as($body, [
+            Validate::as($body['data']['attributes'], [
                 'login' => 'string',
                 'password' => 'string',
                 'firstName' => 'string|null',
@@ -137,7 +148,7 @@ class Users extends ApiController
 
         try {
 
-            $id = $this->auth->createUser($body);
+            $id = $this->auth->createUser($body['data']['attributes']);
 
         } catch (InvalidKeysException $e) {
 
@@ -226,17 +237,29 @@ class Users extends ApiController
          * Get body
          */
 
-        $body = $this->api->getBody();
+        $body = $this->api->getBody([
+            'data'
+        ]); // Required members
 
-        if (!empty(Arr::except($body, [ // If invalid members have been sent
-            'login',
-            'password',
-            'firstName',
-            'lastName',
-            'companyName',
-            'email',
-            'enabled'
-        ]))) {
+        if (!empty(Arr::except($body, 'data')) // Valid members
+            || !is_array($body['data'])
+            || !empty(Arr::except($body['data'], [ // Valid members
+                'type',
+                'id',
+                'attributes'
+            ]))
+            || $body['data']['type'] != 'users'
+            || $body['data']['id'] != $id
+            || !is_array($body['data']['attributes'])
+            || !empty(Arr::except($body['data']['attributes'], [ // Valid members
+                'login',
+                'password',
+                'firstName',
+                'lastName',
+                'companyName',
+                'email',
+                'enabled'
+            ]))) {
 
             abort(400, 'Unable to update user: request body contains invalid members');
             die;
@@ -249,7 +272,7 @@ class Users extends ApiController
 
         try {
 
-            Validate::as($body, [
+            Validate::as($body['data']['attributes'], [
                 'login' => 'string',
                 'password' => 'string',
                 'firstName' => 'string|null',
@@ -272,7 +295,7 @@ class Users extends ApiController
 
         try {
 
-            $this->auth->updateUser($id, $body);
+            $this->auth->updateUser($id, $body['data']['attributes']);
 
         } catch (InvalidKeysException $e) {
 

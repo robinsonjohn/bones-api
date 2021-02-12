@@ -83,13 +83,24 @@ class Permissions extends ApiController
          */
 
         $body = $this->api->getBody([
-            'name'
-        ]); // Required keys
+            'data'
+        ]); // Required members
 
-        if (!empty(Arr::except($body, [ // If invalid members have been sent
-            'name',
-            'description'
-        ]))) {
+        if (!empty(Arr::except($body, 'data')) // Valid members
+            || !is_array($body['data'])
+            || !empty(Arr::except($body['data'], [ // Valid members
+                'type',
+                'attributes'
+            ]))
+            || $body['data']['type'] != 'permissions'
+            || !is_array($body['data']['attributes'])
+            || !empty(Arr::except($body['data']['attributes'], [ // Valid members
+                'name',
+                'description'
+            ]))
+            || Arr::isMissing($body['data']['attributes'], [ // Required members
+                'name'
+            ])) {
 
             abort(400, 'Unable to create permission: request body contains invalid members');
             die;
@@ -102,9 +113,9 @@ class Permissions extends ApiController
 
         try {
 
-            Validate::as($body, [
+            Validate::as($body['data']['attributes'], [ // Valid members
                 'name' => 'string',
-                'description' => 'string'
+                'description' => 'string|null'
             ]);
 
         } catch (ValidationException $e) {
@@ -120,7 +131,7 @@ class Permissions extends ApiController
 
         try {
 
-            $id = $this->auth->createPermission($body);
+            $id = $this->auth->createPermission($body['data']['attributes']);
 
         } catch (InvalidKeysException $e) {
 
@@ -197,12 +208,24 @@ class Permissions extends ApiController
          * Get body
          */
 
-        $body = $this->api->getBody();
+        $body = $this->api->getBody([
+            'data'
+        ]); // Required members
 
-        if (!empty(Arr::except($body, [ // If invalid members have been sent
-            'name',
-            'description'
-        ]))) {
+        if (!empty(Arr::except($body, 'data')) // Valid members
+            || !is_array($body['data'])
+            || !empty(Arr::except($body['data'], [ // Valid members
+                'type',
+                'id',
+                'attributes'
+            ]))
+            || $body['data']['type'] != 'permissions'
+            || $body['data']['id'] != $id
+            || !is_array($body['data']['attributes'])
+            || !empty(Arr::except($body['data']['attributes'], [ // Valid members
+                'name',
+                'description'
+            ]))) {
 
             abort(400, 'Unable to update permission: request body contains invalid members');
             die;
@@ -215,9 +238,9 @@ class Permissions extends ApiController
 
         try {
 
-            Validate::as($body, [
+            Validate::as($body['data']['attributes'], [ // Valid members
                 'name' => 'string',
-                'description' => 'string'
+                'description' => 'string|null'
             ]);
 
         } catch (ValidationException $e) {
@@ -233,7 +256,7 @@ class Permissions extends ApiController
 
         try {
 
-            $this->auth->updatePermission($id, $body);
+            $this->auth->updatePermission($id, $body['data']['attributes']);
 
         } catch (InvalidKeysException $e) {
 

@@ -90,12 +90,23 @@ class Groups extends ApiController
          */
 
         $body = $this->api->getBody([
-            'name'
-        ]); // Required keys
+            'data'
+        ]); // Required members
 
-        if (!empty(Arr::except($body, [ // If invalid members have been sent
-            'name'
-        ]))) {
+        if (!empty(Arr::except($body, 'data')) // Valid members
+            || !is_array($body['data'])
+            || !empty(Arr::except($body['data'], [ // Valid members
+                'type',
+                'attributes'
+            ]))
+            || $body['data']['type'] != 'groups'
+            || !is_array($body['data']['attributes'])
+            || !empty(Arr::except($body['data']['attributes'], [ // Valid members
+                'name'
+            ]))
+            || Arr::isMissing($body['data']['attributes'], [ // Required members
+                'name'
+            ])) {
 
             abort(400, 'Unable to create group: request body contains invalid members');
             die;
@@ -108,7 +119,7 @@ class Groups extends ApiController
 
         try {
 
-            Validate::as($body, [
+            Validate::as($body['data']['attributes'], [
                 'name' => 'string'
             ]);
 
@@ -125,7 +136,7 @@ class Groups extends ApiController
 
         try {
 
-            $id = $this->auth->createGroup($body);
+            $id = $this->auth->createGroup($body['data']['attributes']);
 
         } catch (InvalidKeysException $e) {
 
@@ -202,11 +213,23 @@ class Groups extends ApiController
          * Get body
          */
 
-        $body = $this->api->getBody();
+        $body = $this->api->getBody([
+            'data'
+        ]); // Required members
 
-        if (!empty(Arr::except($body, [ // If invalid members have been sent
-            'name'
-        ]))) {
+        if (!empty(Arr::except($body, 'data')) // Valid members
+            || !is_array($body['data'])
+            || !empty(Arr::except($body['data'], [ // Valid members
+                'type',
+                'id',
+                'attributes'
+            ]))
+            || $body['data']['type'] != 'groups'
+            || $body['data']['id'] != $id
+            || !is_array($body['data']['attributes'])
+            || !empty(Arr::except($body['data']['attributes'], [ // Valid members
+                'name'
+            ]))) {
 
             abort(400, 'Unable to update group: request body contains invalid members');
             die;
@@ -219,7 +242,7 @@ class Groups extends ApiController
 
         try {
 
-            Validate::as($body, [
+            Validate::as($body['data']['attributes'], [
                 'name' => 'string'
             ]);
 
@@ -236,7 +259,7 @@ class Groups extends ApiController
 
         try {
 
-            $this->auth->updateGroup($id, $body);
+            $this->auth->updateGroup($id, $body['data']['attributes']);
 
         } catch (InvalidKeysException $e) {
 

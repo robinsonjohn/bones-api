@@ -91,13 +91,24 @@ class Roles extends ApiController
          */
 
         $body = $this->api->getBody([
-            'name'
-        ]); // Required keys
+            'data'
+        ]); // Required members
 
-        if (!empty(Arr::except($body, [ // If invalid members have been sent
-            'name',
-            'enabled'
-        ]))) {
+        if (!empty(Arr::except($body, 'data')) // Valid members
+            || !is_array($body['data'])
+            || !empty(Arr::except($body['data'], [ // Valid members
+                'type',
+                'attributes'
+            ]))
+            || $body['data']['type'] != 'roles'
+            || !is_array($body['data']['attributes'])
+            || !empty(Arr::except($body['data']['attributes'], [ // Valid members
+                'name',
+                'enabled'
+            ]))
+            || Arr::isMissing($body['data']['attributes'], [ // Required members
+                'name'
+            ])) {
 
             abort(400, 'Unable to create role: request body contains invalid members');
             die;
@@ -110,7 +121,7 @@ class Roles extends ApiController
 
         try {
 
-            Validate::as($body, [
+            Validate::as($body['data']['attributes'], [ // Valid members
                 'name' => 'string',
                 'enabled' => 'boolean'
             ]);
@@ -128,7 +139,7 @@ class Roles extends ApiController
 
         try {
 
-            $id = $this->auth->createRole($body);
+            $id = $this->auth->createRole($body['data']['attributes']);
 
         } catch (InvalidKeysException $e) {
 
@@ -205,12 +216,24 @@ class Roles extends ApiController
          * Get body
          */
 
-        $body = $this->api->getBody();
+        $body = $this->api->getBody([
+            'data'
+        ]); // Required members
 
-        if (!empty(Arr::except($body, [ // If invalid members have been sent
-            'name',
-            'enabled'
-        ]))) {
+        if (!empty(Arr::except($body, 'data')) // Valid members
+            || !is_array($body['data'])
+            || !empty(Arr::except($body['data'], [ // Valid members
+                'type',
+                'id',
+                'attributes'
+            ]))
+            || $body['data']['type'] != 'roles'
+            || $body['data']['id'] != $id
+            || !is_array($body['data']['attributes'])
+            || !empty(Arr::except($body['data']['attributes'], [ // Valid members
+                'name',
+                'enabled'
+            ]))) {
 
             abort(400, 'Unable to update role: request body contains invalid members');
             die;
@@ -223,7 +246,7 @@ class Roles extends ApiController
 
         try {
 
-            Validate::as($body, [
+            Validate::as($body['data']['attributes'], [
                 'name' => 'string',
                 'enabled' => 'boolean'
             ]);
@@ -241,7 +264,7 @@ class Roles extends ApiController
 
         try {
 
-            $this->auth->updateRole($id, $body);
+            $this->auth->updateRole($id, $body['data']['attributes']);
 
         } catch (InvalidKeysException $e) {
 
