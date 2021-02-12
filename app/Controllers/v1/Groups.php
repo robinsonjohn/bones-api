@@ -589,7 +589,7 @@ class Groups extends ApiController
     /**
      * Get users in group.
      *
-     * @param string $group_id
+     * @param string $id
      *
      * @throws HttpException
      * @throws InvalidSchemaException
@@ -597,7 +597,7 @@ class Groups extends ApiController
      * @throws NotFoundException
      */
 
-    protected function _getGroupUsers(string $group_id): void
+    protected function _getGroupUsers(string $id): void
     {
 
         /*
@@ -608,7 +608,7 @@ class Groups extends ApiController
                 'global.groups.users.read',
                 'self.groups.users.read'
             ])
-            || (!$this->hasPermissions('global.groups.users.read') && !in_array($group_id, $this->user_groups))) {
+            || (!$this->hasPermissions('global.groups.users.read') && !in_array($id, $this->user_groups))) {
 
             abort(403, 'Unable to get users in group: insufficient permissions');
             die;
@@ -655,7 +655,7 @@ class Groups extends ApiController
          * Check exists
          */
 
-        if (!$this->auth->groupIdExists($group_id)) {
+        if (!$this->auth->groupIdExists($id)) {
 
             abort(404, 'Unable to get users in group: group ID does not exist');
             die;
@@ -674,7 +674,7 @@ class Groups extends ApiController
 
         try {
 
-            $users = $this->auth->getGroupUsersCollection($request, $group_id);
+            $users = $this->auth->getGroupUsersCollection($request, $id);
 
         } catch (QueryException|PDOException $e) {
 
@@ -689,7 +689,7 @@ class Groups extends ApiController
 
         $schema = UserCollection::create($users, [
             'object_prefix' => '/users',
-            'collection_prefix' => '/groups/' . $group_id . '/users'
+            'collection_prefix' => '/groups/' . $id . '/users'
         ]);
 
         /*
@@ -705,7 +705,7 @@ class Groups extends ApiController
     /**
      * Add users to group.
      *
-     * @param string $group_id
+     * @param string $id
      *
      * @throws ChannelNotFoundException
      * @throws HttpException
@@ -713,7 +713,7 @@ class Groups extends ApiController
      * @throws NotFoundException
      */
 
-    protected function _grantGroupUsers(string $group_id): void
+    protected function _grantGroupUsers(string $id): void
     {
 
         /*
@@ -724,7 +724,7 @@ class Groups extends ApiController
                 'global.groups.users.grant',
                 'self.groups.users.grant'
             ])
-            || (!$this->hasPermissions('global.groups.users.grant') && !in_array($group_id, $this->user_groups))) {
+            || (!$this->hasPermissions('global.groups.users.grant') && !in_array($id, $this->user_groups))) {
 
             abort(403, 'Unable to add users to group: insufficient permissions');
             die;
@@ -771,7 +771,7 @@ class Groups extends ApiController
          * Check exists
          */
 
-        if (!$this->auth->groupIdExists($group_id)) {
+        if (!$this->auth->groupIdExists($id)) {
 
             abort(404, 'Unable to add users to group: group ID does not exist');
             die;
@@ -786,7 +786,7 @@ class Groups extends ApiController
 
         try {
 
-            $this->auth->grantGroupUsers($group_id, $users);
+            $this->auth->grantGroupUsers($id, $users);
 
         } catch (InvalidGrantException $e) {
 
@@ -800,7 +800,7 @@ class Groups extends ApiController
          */
 
         log_info('Added users to group', [
-            'group_id' => $group_id,
+            'id' => $id,
             'users' => $users
         ]);
 
@@ -808,7 +808,7 @@ class Groups extends ApiController
          * Do event
          */
 
-        do_event('group.users.grant', $group_id, $users);
+        do_event('group.users.grant', $id, $users);
 
         /*
          * Send response
@@ -821,7 +821,7 @@ class Groups extends ApiController
     /**
      * Remove users from group.
      *
-     * @param string $group_id
+     * @param string $id
      *
      * @throws ChannelNotFoundException
      * @throws HttpException
@@ -830,7 +830,7 @@ class Groups extends ApiController
      * @throws Exception
      */
 
-    protected function _revokeGroupUsers(string $group_id): void
+    protected function _revokeGroupUsers(string $id): void
     {
 
         /*
@@ -841,7 +841,7 @@ class Groups extends ApiController
                 'global.groups.users.revoke',
                 'self.groups.users.revoke'
             ])
-            || (!$this->hasPermissions('global.groups.users.revoke') && !in_array($group_id, $this->user_groups))) {
+            || (!$this->hasPermissions('global.groups.users.revoke') && !in_array($id, $this->user_groups))) {
 
             abort(403, 'Unable to remove users from group: insufficient permissions');
             die;
@@ -888,7 +888,7 @@ class Groups extends ApiController
          * Check exists
          */
 
-        if (!$this->auth->groupIdExists($group_id)) {
+        if (!$this->auth->groupIdExists($id)) {
 
             abort(404, 'Unable to remove users from group: group ID does not exist');
             die;
@@ -901,14 +901,14 @@ class Groups extends ApiController
 
         $users = Arr::pluck($body['data'], 'id');
 
-        $this->auth->revokeGroupUsers($group_id, $users);
+        $this->auth->revokeGroupUsers($id, $users);
 
         /*
          * Log action
          */
 
         log_info('Removed users from group', [
-            'group_id' => $group_id,
+            'id' => $id,
             'users' => $users
         ]);
 
@@ -916,7 +916,7 @@ class Groups extends ApiController
          * Do event
          */
 
-        do_event('group.users.revoke', $group_id, $users);
+        do_event('group.users.revoke', $id, $users);
 
         /*
          * Send response
@@ -1023,22 +1023,22 @@ class Groups extends ApiController
             'DELETE'
         ]);
 
-        if (!isset($params['group_id'])) {
+        if (!isset($params['id'])) {
             abort(400);
             die;
         }
 
         if (Request::isGet()) {
 
-            $this->_getGroupUsers($params['group_id']);
+            $this->_getGroupUsers($params['id']);
 
         } else if (Request::isPost()) {
 
-            $this->_grantGroupUsers($params['group_id']);
+            $this->_grantGroupUsers($params['id']);
 
         } else { // Delete
 
-            $this->_revokeGroupUsers($params['group_id']);
+            $this->_revokeGroupUsers($params['id']);
 
         }
 

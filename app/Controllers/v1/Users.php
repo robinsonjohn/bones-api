@@ -653,7 +653,7 @@ class Users extends ApiController
     /**
      * Get user permissions.
      *
-     * @param string $user_id
+     * @param string $id
      *
      * @throws HttpException
      * @throws InvalidSchemaException
@@ -661,7 +661,7 @@ class Users extends ApiController
      * @throws NotFoundException
      */
 
-    protected function _getUserPermissions(string $user_id): void
+    protected function _getUserPermissions(string $id): void
     {
 
         /*
@@ -676,10 +676,10 @@ class Users extends ApiController
             || (!$this->hasAnyPermissions([ // If only self does not match
                     'global.users.permissions.read',
                     'group.users.permissions.read',
-                ]) && $user_id != $this->user_id)
+                ]) && $id != $this->user_id)
             || (!$this->hasPermissions('global.users.permissions.read') // If only group and not in group
                 && $this->hasPermissions('group.users.permissions.read')
-                && !in_array($user_id, $this->getGroupedUserIds()))) {
+                && !in_array($id, $this->getGroupedUserIds()))) {
 
             abort(403, 'Unable to get user permissions: insufficient permissions');
             die;
@@ -720,7 +720,7 @@ class Users extends ApiController
          * Check exists
          */
 
-        if (!$this->auth->userIdExists($user_id)) {
+        if (!$this->auth->userIdExists($id)) {
 
             abort(404, 'Unable to get user permissions: user ID does not exist');
             die;
@@ -739,7 +739,7 @@ class Users extends ApiController
 
         try {
 
-            $permissions = $this->auth->getUserPermissionsCollection($request, $user_id);
+            $permissions = $this->auth->getUserPermissionsCollection($request, $id);
 
         } catch (QueryException|PDOException $e) {
 
@@ -754,7 +754,7 @@ class Users extends ApiController
 
         $schema = PermissionCollection::create($permissions, [
             'object_prefix' => '/permissions',
-            'collection_prefix' => '/users/' . $user_id . '/permissions'
+            'collection_prefix' => '/users/' . $id . '/permissions'
         ]);
 
         /*
@@ -770,7 +770,7 @@ class Users extends ApiController
     /**
      * Get user roles.
      *
-     * @param string $user_id
+     * @param string $id
      *
      * @throws HttpException
      * @throws InvalidSchemaException
@@ -778,7 +778,7 @@ class Users extends ApiController
      * @throws NotFoundException
      */
 
-    protected function _getUserRoles(string $user_id): void
+    protected function _getUserRoles(string $id): void
     {
 
         /*
@@ -793,10 +793,10 @@ class Users extends ApiController
             || (!$this->hasAnyPermissions([ // If only self does not match
                     'global.users.roles.read',
                     'group.users.roles.read',
-                ]) && $user_id != $this->user_id)
+                ]) && $id != $this->user_id)
             || (!$this->hasPermissions('global.users.roles.read') // If only group and not in group
                 && $this->hasPermissions('group.users.roles.read')
-                && !in_array($user_id, $this->getGroupedUserIds()))) {
+                && !in_array($id, $this->getGroupedUserIds()))) {
 
             abort(403, 'Unable to get user roles: insufficient permissions');
             die;
@@ -839,7 +839,7 @@ class Users extends ApiController
          * Check exists
          */
 
-        if (!$this->auth->userIdExists($user_id)) {
+        if (!$this->auth->userIdExists($id)) {
 
             abort(404, 'Unable to get user roles: user ID does not exist');
             die;
@@ -858,7 +858,7 @@ class Users extends ApiController
 
         try {
 
-            $roles = $this->auth->getUserRolesCollection($request, $user_id);
+            $roles = $this->auth->getUserRolesCollection($request, $id);
 
         } catch (QueryException|PDOException $e) {
 
@@ -873,7 +873,7 @@ class Users extends ApiController
 
         $schema = RoleCollection::create($roles, [
             'object_prefix' => '/roles',
-            'collection_prefix' => '/users/' . $user_id . '/roles'
+            'collection_prefix' => '/users/' . $id . '/roles'
         ]);
 
         /*
@@ -889,7 +889,7 @@ class Users extends ApiController
     /**
      * Grant roles to user.
      *
-     * @param string $user_id
+     * @param string $id
      *
      * @throws ChannelNotFoundException
      * @throws HttpException
@@ -897,7 +897,7 @@ class Users extends ApiController
      * @throws NotFoundException
      */
 
-    protected function _grantUserRoles(string $user_id): void
+    protected function _grantUserRoles(string $id): void
     {
 
         /*
@@ -951,7 +951,7 @@ class Users extends ApiController
          * Check exists
          */
 
-        if (!$this->auth->userIdExists($user_id)) {
+        if (!$this->auth->userIdExists($id)) {
 
             abort(404, 'Unable to grant roles to user: user ID does not exist');
             die;
@@ -966,7 +966,7 @@ class Users extends ApiController
 
         try {
 
-            $this->auth->grantUserRoles($user_id, $roles);
+            $this->auth->grantUserRoles($id, $roles);
 
         } catch (InvalidGrantException $e) {
 
@@ -980,7 +980,7 @@ class Users extends ApiController
          */
 
         log_info('Granted roles to user', [
-            'user_id' => $user_id,
+            'id' => $id,
             'roles' => $roles
         ]);
 
@@ -988,7 +988,7 @@ class Users extends ApiController
          * Do event
          */
 
-        do_event('user.roles.grant', $user_id, $roles);
+        do_event('user.roles.grant', $id, $roles);
 
         /*
          * Send response
@@ -1001,7 +1001,7 @@ class Users extends ApiController
     /**
      * Revoke roles from user.
      *
-     * @param string $user_id
+     * @param string $id
      *
      * @throws ChannelNotFoundException
      * @throws HttpException
@@ -1010,7 +1010,7 @@ class Users extends ApiController
      * @throws Exception
      */
 
-    protected function _revokeUserRoles(string $user_id): void
+    protected function _revokeUserRoles(string $id): void
     {
 
         /*
@@ -1060,12 +1060,11 @@ class Users extends ApiController
 
         }
 
-
         /*
          * Check exists
          */
 
-        if (!$this->auth->userIdExists($user_id)) {
+        if (!$this->auth->userIdExists($id)) {
 
             abort(404, 'Unable to revoke roles from user: user ID does not exist');
             die;
@@ -1078,14 +1077,14 @@ class Users extends ApiController
 
         $roles = Arr::pluck($body['data'], 'id');
 
-        $this->auth->revokeUserRoles($user_id, $roles);
+        $this->auth->revokeUserRoles($id, $roles);
 
         /*
          * Log action
          */
 
         log_info('Revoked roles from user', [
-            'user_id' => $user_id,
+            'id' => $id,
             'roles' => $roles
         ]);
 
@@ -1093,7 +1092,7 @@ class Users extends ApiController
          * Do event
          */
 
-        do_event('user.roles.revoke', $user_id, $roles);
+        do_event('user.roles.revoke', $id, $roles);
 
         /*
          * Send response
@@ -1106,7 +1105,7 @@ class Users extends ApiController
     /**
      * Get user groups.
      *
-     * @param string $user_id
+     * @param string $id
      *
      * @throws HttpException
      * @throws InvalidSchemaException
@@ -1114,7 +1113,7 @@ class Users extends ApiController
      * @throws NotFoundException
      */
 
-    protected function _getUserGroups(string $user_id): void
+    protected function _getUserGroups(string $id): void
     {
 
         /*
@@ -1129,10 +1128,10 @@ class Users extends ApiController
             || (!$this->hasAnyPermissions([ // If only self does not match
                     'global.users.groups.read',
                     'group.users.groups.read',
-                ]) && $user_id != $this->user_id)
+                ]) && $id != $this->user_id)
             || (!$this->hasPermissions('global.users.groups.read') // If only group and not in group
                 && $this->hasPermissions('group.users.groups.read')
-                && !in_array($user_id, $this->getGroupedUserIds()))) {
+                && !in_array($id, $this->getGroupedUserIds()))) {
 
             abort(403, 'Unable to get user groups: insufficient permissions');
             die;
@@ -1174,7 +1173,7 @@ class Users extends ApiController
          * Check exists
          */
 
-        if (!$this->auth->userIdExists($user_id)) {
+        if (!$this->auth->userIdExists($id)) {
 
             abort(404, 'Unable to get user groups: user ID does not exist');
             die;
@@ -1193,7 +1192,7 @@ class Users extends ApiController
 
         try {
 
-            $groups = $this->auth->getUserGroupsCollection($request, $user_id);
+            $groups = $this->auth->getUserGroupsCollection($request, $id);
 
         } catch (QueryException|PDOException $e) {
 
@@ -1208,7 +1207,7 @@ class Users extends ApiController
 
         $schema = GroupCollection::create($groups, [
             'object_prefix' => '/groups',
-            'collection_prefix' => '/users/' . $user_id . '/groups'
+            'collection_prefix' => '/users/' . $id . '/groups'
         ]);
 
         /*
@@ -1224,7 +1223,7 @@ class Users extends ApiController
     /**
      * Add user to groups.
      *
-     * @param string $user_id
+     * @param string $id
      *
      * @throws ChannelNotFoundException
      * @throws HttpException
@@ -1232,7 +1231,7 @@ class Users extends ApiController
      * @throws NotFoundException
      */
 
-    protected function _grantUserGroups(string $user_id): void
+    protected function _grantUserGroups(string $id): void
     {
 
         /*
@@ -1243,7 +1242,7 @@ class Users extends ApiController
                 'global.users.groups.grant',
                 'self.users.groups.grant'
             ])
-            || (!$this->hasPermissions('global.users.groups.grant') && $user_id != $this->user_id)) {
+            || (!$this->hasPermissions('global.users.groups.grant') && $id != $this->user_id)) {
 
             abort(403, 'Unable to add user to groups: insufficient permissions');
             die;
@@ -1290,7 +1289,7 @@ class Users extends ApiController
          * Check exists
          */
 
-        if (!$this->auth->userIdExists($user_id)) {
+        if (!$this->auth->userIdExists($id)) {
 
             abort(404, 'Unable to add user to groups: user ID does not exist');
             die;
@@ -1305,7 +1304,7 @@ class Users extends ApiController
 
         try {
 
-            $this->auth->grantUserGroups($user_id, $groups);
+            $this->auth->grantUserGroups($id, $groups);
 
         } catch (InvalidGrantException $e) {
 
@@ -1319,7 +1318,7 @@ class Users extends ApiController
          */
 
         log_info('Added user to groups', [
-            'user_id' => $user_id,
+            'id' => $id,
             'groups' => $groups
         ]);
 
@@ -1327,7 +1326,7 @@ class Users extends ApiController
          * Do event
          */
 
-        do_event('user.groups.grant', $user_id, $groups);
+        do_event('user.groups.grant', $id, $groups);
 
         /*
          * Send response
@@ -1340,7 +1339,7 @@ class Users extends ApiController
     /**
      * Remove user from groups.
      *
-     * @param string $user_id
+     * @param string $id
      *
      * @throws ChannelNotFoundException
      * @throws HttpException
@@ -1349,7 +1348,7 @@ class Users extends ApiController
      * @throws Exception
      */
 
-    protected function _revokeUserGroups(string $user_id): void
+    protected function _revokeUserGroups(string $id): void
     {
 
         /*
@@ -1360,7 +1359,7 @@ class Users extends ApiController
                 'global.users.groups.revoke',
                 'self.users.groups.revoke'
             ])
-            || (!$this->hasPermissions('global.users.groups.revoke') && $user_id != $this->user_id)) {
+            || (!$this->hasPermissions('global.users.groups.revoke') && $id != $this->user_id)) {
 
             abort(403, 'Unable to remove user from groups: insufficient permissions');
             die;
@@ -1407,7 +1406,7 @@ class Users extends ApiController
          * Check exists
          */
 
-        if (!$this->auth->userIdExists($user_id)) {
+        if (!$this->auth->userIdExists($id)) {
 
             abort(404, 'Unable to remove user from groups: user ID does not exist');
             die;
@@ -1420,14 +1419,14 @@ class Users extends ApiController
 
         $groups = Arr::pluck($body['data'], 'id');
 
-        $this->auth->revokeUserGroups($user_id, $groups);
+        $this->auth->revokeUserGroups($id, $groups);
 
         /*
          * Log action
          */
 
         log_info('Removed user from groups', [
-            'user_id' => $user_id,
+            'id' => $id,
             'groups' => $groups
         ]);
 
@@ -1435,7 +1434,7 @@ class Users extends ApiController
          * Do event
          */
 
-        do_event('user.groups.revoke', $user_id, $groups);
+        do_event('user.groups.revoke', $id, $groups);
 
         /*
          * Send response
@@ -1448,7 +1447,7 @@ class Users extends ApiController
     /**
      * Get single user meta.
      *
-     * @param string $user_id
+     * @param string $id
      * @param string $meta_key
      *
      * @return void
@@ -1459,7 +1458,7 @@ class Users extends ApiController
      * @throws NotFoundException
      */
 
-    protected function _getUserMeta(string $user_id, string $meta_key): void
+    protected function _getUserMeta(string $id, string $meta_key): void
     {
 
         /*
@@ -1474,10 +1473,10 @@ class Users extends ApiController
             || (!$this->hasAnyPermissions([ // If only self does not match
                     'global.users.meta.read',
                     'group.users.meta.read',
-                ]) && $user_id != $this->user_id)
+                ]) && $id != $this->user_id)
             || (!$this->hasPermissions('global.users.meta.read') // If only group and not in group
                 && $this->hasPermissions('group.users.meta.read')
-                && !in_array($user_id, $this->getGroupedUserIds()))) {
+                && !in_array($id, $this->getGroupedUserIds()))) {
 
             abort(403, 'Unable to get user meta: insufficient permissions');
             die;
@@ -1521,7 +1520,7 @@ class Users extends ApiController
 
             $meta = [
                 'id' => $meta_key,
-                'value' => $this->auth->getUserMeta($user_id, $meta_key)
+                'value' => $this->auth->getUserMeta($id, $meta_key)
             ];
 
         } catch (InvalidMetaException $e) {
@@ -1570,10 +1569,9 @@ class Users extends ApiController
          */
 
         $schema = UserMetaResource::create($meta, [
-            'object_prefix' => '/users/' . $user_id . '/meta',
-            'collection_prefix' => '/users/' . $user_id . '/meta'
+            'object_prefix' => '/users/' . $id . '/meta',
+            'collection_prefix' => '/users/' . $id . '/meta'
         ]);
-
 
         /*
          * Send response
@@ -1588,7 +1586,7 @@ class Users extends ApiController
     /**
      * Get all user meta.
      *
-     * @param string $user_id
+     * @param string $id
      *
      * @return void
      *
@@ -1598,7 +1596,7 @@ class Users extends ApiController
      * @throws NotFoundException
      */
 
-    protected function _getAllUserMeta(string $user_id): void
+    protected function _getAllUserMeta(string $id): void
     {
 
         /*
@@ -1613,10 +1611,10 @@ class Users extends ApiController
             || (!$this->hasAnyPermissions([ // If only self does not match
                     'global.users.meta.read',
                     'group.users.meta.read',
-                ]) && $user_id != $this->user_id)
+                ]) && $id != $this->user_id)
             || (!$this->hasPermissions('global.users.meta.read') // If only group and not in group
                 && $this->hasPermissions('group.users.meta.read')
-                && !in_array($user_id, $this->getGroupedUserIds()))) {
+                && !in_array($id, $this->getGroupedUserIds()))) {
 
             abort(403, 'Unable to get user meta: insufficient permissions');
             die;
@@ -1656,7 +1654,7 @@ class Users extends ApiController
          * Check exists
          */
 
-        if (!$this->auth->userIdExists($user_id)) {
+        if (!$this->auth->userIdExists($id)) {
 
             abort(404, 'Unable to get user meta: user ID does not exist');
             die;
@@ -1729,7 +1727,7 @@ class Users extends ApiController
 
         try {
 
-            $meta = $this->auth->getUserMetaCollection($request, $user_id);
+            $meta = $this->auth->getUserMetaCollection($request, $id);
 
         } catch (QueryException|PDOException $e) {
 
@@ -1757,8 +1755,8 @@ class Users extends ApiController
          */
 
         $schema = UserMetaCollection::create($meta, [
-            'object_prefix' => '/users/' . $user_id . '/meta',
-            'collection_prefix' => '/users/' . $user_id . '/meta'
+            'object_prefix' => '/users/' . $id . '/meta',
+            'collection_prefix' => '/users/' . $id . '/meta'
         ]);
 
         /*
@@ -1774,7 +1772,7 @@ class Users extends ApiController
     /**
      * Update user meta.
      *
-     * @param string $user_id
+     * @param string $id
      * @param string $meta_key
      *
      * @throws ChannelNotFoundException
@@ -1783,7 +1781,7 @@ class Users extends ApiController
      * @throws NotFoundException
      */
 
-    protected function _updateUserMeta(string $user_id, string $meta_key): void
+    protected function _updateUserMeta(string $id, string $meta_key): void
     {
 
         /*
@@ -1798,10 +1796,10 @@ class Users extends ApiController
             || (!$this->hasAnyPermissions([ // If only self does not match
                     'global.users.meta.update',
                     'group.users.meta.update',
-                ]) && $user_id != $this->user_id)
+                ]) && $id != $this->user_id)
             || (!$this->hasPermissions('global.users.meta.update') // If only group and not in group
                 && $this->hasPermissions('group.users.meta.update')
-                && !in_array($user_id, $this->getGroupedUserIds()))) {
+                && !in_array($id, $this->getGroupedUserIds()))) {
 
             abort(403, 'Unable to update user meta: insufficient permissions');
             die;
@@ -1845,7 +1843,7 @@ class Users extends ApiController
 
         try {
 
-            $this->auth->setUserMeta($user_id, [
+            $this->auth->setUserMeta($id, [
                 $meta_key => $body['value']
             ]);
 
@@ -1861,7 +1859,7 @@ class Users extends ApiController
          */
 
         log_info('Updated user meta', [
-            'user_id' => $user_id,
+            'id' => $id,
             'keys' => [
                 $meta_key
             ]
@@ -1871,7 +1869,7 @@ class Users extends ApiController
          * Do event
          */
 
-        do_event('user.meta.update', $user_id, [
+        do_event('user.meta.update', $id, [
             $meta_key
         ]);
 
@@ -1886,7 +1884,7 @@ class Users extends ApiController
     /**
      * Set user meta. (batch)
      *
-     * @param string $user_id
+     * @param string $id
      *
      * @throws ChannelNotFoundException
      * @throws HttpException
@@ -1894,7 +1892,7 @@ class Users extends ApiController
      * @throws NotFoundException
      */
 
-    protected function _updateUserMetas(string $user_id): void
+    protected function _updateUserMetas(string $id): void
     {
 
         /*
@@ -1909,10 +1907,10 @@ class Users extends ApiController
             || (!$this->hasAnyPermissions([ // If only self does not match
                     'global.users.meta.update',
                     'group.users.meta.update',
-                ]) && $user_id != $this->user_id)
+                ]) && $id != $this->user_id)
             || (!$this->hasPermissions('global.users.meta.update') // If only group and not in group
                 && $this->hasPermissions('group.users.meta.update')
-                && !in_array($user_id, $this->getGroupedUserIds()))) {
+                && !in_array($id, $this->getGroupedUserIds()))) {
 
             abort(403, 'Unable to update user meta: insufficient permissions');
             die;
@@ -1955,7 +1953,7 @@ class Users extends ApiController
 
         try {
 
-            $this->auth->setUserMeta($user_id, $metas);
+            $this->auth->setUserMeta($id, $metas);
 
         } catch (InvalidUserException $e) {
 
@@ -1969,7 +1967,7 @@ class Users extends ApiController
          */
 
         log_info('Updated user meta', [
-            'user_id' => $user_id,
+            'id' => $id,
             'keys' => array_keys($metas)
         ]);
 
@@ -1977,7 +1975,7 @@ class Users extends ApiController
          * Do event
          */
 
-        do_event('user.meta.update', $user_id, array_keys($metas));
+        do_event('user.meta.update', $id, array_keys($metas));
 
         /*
          * Send response
@@ -1990,7 +1988,7 @@ class Users extends ApiController
     /**
      * Delete user meta.
      *
-     * @param string $user_id
+     * @param string $id
      * @param string $meta_key
      *
      * @throws ChannelNotFoundException
@@ -2000,7 +1998,7 @@ class Users extends ApiController
      * @throws Exception
      */
 
-    protected function _deleteUserMeta(string $user_id, string $meta_key): void
+    protected function _deleteUserMeta(string $id, string $meta_key): void
     {
 
         /*
@@ -2015,10 +2013,10 @@ class Users extends ApiController
             || (!$this->hasAnyPermissions([ // If only self does not match
                     'global.users.meta.delete',
                     'group.users.meta.delete',
-                ]) && $user_id != $this->user_id)
+                ]) && $id != $this->user_id)
             || (!$this->hasPermissions('global.users.meta.delete') // If only group and not in group
                 && $this->hasPermissions('group.users.meta.delete')
-                && !in_array($user_id, $this->getGroupedUserIds()))) {
+                && !in_array($id, $this->getGroupedUserIds()))) {
 
             abort(403, 'Unable to delete user meta: insufficient permissions');
             die;
@@ -2029,7 +2027,7 @@ class Users extends ApiController
          * Check exists
          */
 
-        if (!$this->auth->userIdExists($user_id)) {
+        if (!$this->auth->userIdExists($id)) {
 
             abort(404, 'Unable to delete user meta: user ID does not exist');
             die;
@@ -2040,7 +2038,7 @@ class Users extends ApiController
          * Perform action
          */
 
-        $this->auth->deleteUserMeta($user_id, [
+        $this->auth->deleteUserMeta($id, [
             $meta_key
         ]);
 
@@ -2049,7 +2047,7 @@ class Users extends ApiController
          */
 
         log_info('Deleted user meta', [
-            'user_id' => $user_id,
+            'id' => $id,
             'meta_keys' => [
                 $meta_key
             ]
@@ -2059,7 +2057,7 @@ class Users extends ApiController
          * Do event
          */
 
-        do_event('user.meta.delete', $user_id, [
+        do_event('user.meta.delete', $id, [
             $meta_key
         ]);
 
@@ -2074,7 +2072,7 @@ class Users extends ApiController
     /**
      * Delete user meta. (batch)
      *
-     * @param string $user_id
+     * @param string $id
      *
      * @throws ChannelNotFoundException
      * @throws HttpException
@@ -2083,7 +2081,7 @@ class Users extends ApiController
      * @throws Exception
      */
 
-    protected function _deleteUserMetas(string $user_id): void
+    protected function _deleteUserMetas(string $id): void
     {
 
         /*
@@ -2098,10 +2096,10 @@ class Users extends ApiController
             || (!$this->hasAnyPermissions([ // If only self does not match
                     'global.users.meta.delete',
                     'group.users.meta.delete',
-                ]) && $user_id != $this->user_id)
+                ]) && $id != $this->user_id)
             || (!$this->hasPermissions('global.users.meta.delete') // If only group and not in group
                 && $this->hasPermissions('group.users.meta.delete')
-                && !in_array($user_id, $this->getGroupedUserIds()))) {
+                && !in_array($id, $this->getGroupedUserIds()))) {
 
             abort(403, 'Unable to delete user meta: insufficient permissions');
             die;
@@ -2144,7 +2142,7 @@ class Users extends ApiController
          * Check exists
          */
 
-        if (!$this->auth->userIdExists($user_id)) {
+        if (!$this->auth->userIdExists($id)) {
 
             abort(404, 'Unable to delete user meta: user ID does not exist');
             die;
@@ -2155,14 +2153,14 @@ class Users extends ApiController
          * Perform action
          */
 
-        $this->auth->deleteUserMeta($user_id, $body['meta']);
+        $this->auth->deleteUserMeta($id, $body['meta']);
 
         /*
          * Log action
          */
 
         log_info('Deleted user meta', [
-            'user_id' => $user_id,
+            'id' => $id,
             'meta_keys' => $body['meta']
         ]);
 
@@ -2170,7 +2168,7 @@ class Users extends ApiController
          * Do event
          */
 
-        do_event('user.meta.delete', $user_id, $body['meta']);
+        do_event('user.meta.delete', $id, $body['meta']);
 
         /*
          * Send response
@@ -2274,12 +2272,12 @@ class Users extends ApiController
             'GET'
         ]);
 
-        if (!isset($params['user_id'])) {
+        if (!isset($params['id'])) {
             abort(400);
             die;
         }
 
-        $this->_getUserPermissions($params['user_id']);
+        $this->_getUserPermissions($params['id']);
 
     }
 
@@ -2306,22 +2304,22 @@ class Users extends ApiController
             'DELETE'
         ]);
 
-        if (!isset($params['user_id'])) {
+        if (!isset($params['id'])) {
             abort(400);
             die;
         }
 
         if (Request::isGet()) {
 
-            $this->_getUserRoles($params['user_id']);
+            $this->_getUserRoles($params['id']);
 
         } else if (Request::isPost()) {
 
-            $this->_grantUserRoles($params['user_id']);
+            $this->_grantUserRoles($params['id']);
 
         } else { // Delete
 
-            $this->_revokeUserRoles($params['user_id']);
+            $this->_revokeUserRoles($params['id']);
 
         }
 
@@ -2350,22 +2348,22 @@ class Users extends ApiController
             'DELETE'
         ]);
 
-        if (!isset($params['user_id'])) {
+        if (!isset($params['id'])) {
             abort(400);
             die;
         }
 
         if (Request::isGet()) {
 
-            $this->_getUserGroups($params['user_id']);
+            $this->_getUserGroups($params['id']);
 
         } else if (Request::isPost()) {
 
-            $this->_grantUserGroups($params['user_id']);
+            $this->_grantUserGroups($params['id']);
 
         } else { // Delete
 
-            $this->_revokeUserGroups($params['user_id']);
+            $this->_revokeUserGroups($params['id']);
 
         }
 

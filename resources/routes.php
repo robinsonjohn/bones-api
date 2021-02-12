@@ -29,14 +29,14 @@ $router->setHost(get_config('router.host'))
     // User Auth library
 
     ->any('v1/groups/{?:id}', 'v1\\Groups:index')
-    ->any('v1/groups/{*:group_id}/users', 'v1\\Groups:users')
+    ->any('v1/groups/{*:id}/users', 'v1\\Groups:users')
     ->any('v1/permissions/{?:id}', 'v1\\Permissions:index')
-    ->any('v1/permissions/{*:permission_id}/roles/{?:role_id}', 'v1\\Permissions:roles')
+    ->any('v1/permissions/{*:id}/roles', 'v1\\Permissions:roles')
     ->any('v1/roles/{?:id}', 'v1\\Roles:index')
-    ->any('v1/roles/{*:role_id}/permissions', 'v1\\Roles:permissions')
-    ->any('v1/roles/{*:role_id}/users', 'v1\\Roles:users')
+    ->any('v1/roles/{*:id}/permissions', 'v1\\Roles:permissions')
+    ->any('v1/roles/{*:id}/users', 'v1\\Roles:users')
     ->any('v1/users/{?:id}', 'v1\\Users:index')
-    ->any('v1/users/{*:user_id}/groups', 'v1\\Users:groups')
-    ->any('v1/users/{*:user_id}/meta/{?:meta_key}', 'v1\\Users:meta')
-    ->any('v1/users/{*:user_id}/permissions', 'v1\\Users:permissions')
-    ->any('v1/users/{*:user_id}/roles', 'v1\\Users:roles');
+    ->any('v1/users/{*:id}/groups', 'v1\\Users:groups')
+    ->any('v1/users/{*:id}/meta/{?:meta_key}', 'v1\\Users:meta')
+    ->any('v1/users/{*:id}/permissions', 'v1\\Users:permissions')
+    ->any('v1/users/{*:id}/roles', 'v1\\Users:roles');

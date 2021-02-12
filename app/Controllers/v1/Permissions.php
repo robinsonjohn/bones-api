@@ -584,7 +584,7 @@ class Permissions extends ApiController
     /**
      * Get roles with permission.
      *
-     * @param string $permission_id
+     * @param string $id
      *
      * @throws HttpException
      * @throws InvalidSchemaException
@@ -592,7 +592,7 @@ class Permissions extends ApiController
      * @throws NotFoundException
      */
 
-    protected function _getPermissionRoles(string $permission_id): void
+    protected function _getPermissionRoles(string $id): void
     {
 
         /*
@@ -642,7 +642,7 @@ class Permissions extends ApiController
          * Check exists
          */
 
-        if (!$this->auth->permissionIdExists($permission_id)) {
+        if (!$this->auth->permissionIdExists($id)) {
 
             abort(404, 'Unable to get roles with permission: permission ID does not exist');
             die;
@@ -661,7 +661,7 @@ class Permissions extends ApiController
 
         try {
 
-            $roles = $this->auth->getPermissionRolesCollection($request, $permission_id);
+            $roles = $this->auth->getPermissionRolesCollection($request, $id);
 
         } catch (QueryException|PDOException $e) {
 
@@ -676,7 +676,7 @@ class Permissions extends ApiController
 
         $schema = RoleCollection::create($roles, [
             'object_prefix' => '/roles',
-            'collection_prefix' => '/permissions/' . $permission_id . '/roles'
+            'collection_prefix' => '/permissions/' . $id . '/roles'
         ]);
 
         /*
@@ -691,88 +691,9 @@ class Permissions extends ApiController
     }
 
     /**
-     * Grant permission to role.
+     * Grant permission to roles.
      *
-     * @param string $permission_id
-     * @param string $role_id
-     *
-     * @throws ChannelNotFoundException
-     * @throws HttpException
-     * @throws InvalidStatusCodeException
-     * @throws NotFoundException
-     */
-
-    protected function _grantPermissionRole(string $permission_id, string $role_id): void
-    {
-
-        /*
-         * Check permissions
-         */
-
-        if (!$this->hasPermissions('global.permissions.roles.grant')) {
-
-            abort(403, 'Unable to grant permission to role: insufficient permissions');
-            die;
-
-        }
-
-        /*
-         * Check exists
-         */
-
-        if (!$this->auth->permissionIdExists($permission_id)) {
-
-            abort(404, 'Unable to grant permission to role: permission ID does not exist');
-            die;
-
-        }
-
-        /*
-         * Perform action
-         */
-
-        try {
-
-            $this->auth->grantPermissionRoles($permission_id, $role_id);
-
-        } catch (InvalidGrantException $e) {
-
-            abort(400, 'Unable to grant permission to role: role ID does not exist');
-            die;
-
-        }
-
-        /*
-         * Log action
-         */
-
-        log_info('Granted permission to role', [
-            'permission_id' => $permission_id,
-            'roles' => [
-                $role_id
-            ]
-        ]);
-
-        /*
-         * Do event
-         */
-
-        do_event('permission.roles.grant', $permission_id, [
-            $role_id
-        ]);
-
-        /*
-         * Send response
-         */
-
-        $this->response->setStatusCode(204)->send();
-
-    }
-
-    /**
-     * Grant permission to roles. (batch)
-     *
-     * @param string $permission_id
+     * @param string $id
      *
      * @throws ChannelNotFoundException
      * @throws HttpException
@@ -780,7 +701,7 @@ class Permissions extends ApiController
      * @throws NotFoundException
      */
 
-    protected function _grantPermissionRoles(string $permission_id): void
+    protected function _grantPermissionRoles(string $id): void
     {
 
         /*
@@ -795,34 +716,38 @@ class Permissions extends ApiController
         }
 
         /*
-         * Get body
+         * Get & validate body
          */
 
-        $body = $this->api->getBody();
+        $body = $this->api->getBody([
+            'data'
+        ]); // Required members
 
-        if (!empty(Arr::except($body, [ // If invalid members have been sent
-            'roles'
-        ]))) {
+        if (!empty(Arr::except($body, 'data')) // Valid members
+            || !is_array($body['data'])) {
 
             abort(400, 'Unable to grant permission to roles: request body contains invalid members');
             die;
 
         }
 
-        /*
-         * Validate body
-         */
+        foreach ($body['data'] as $resource) {
 
-        try {
+            if (!empty(Arr::except($resource, [ // Valid members
+                    'type',
+                    'id'
+                ]))
+                || Arr::isMissing($resource, [ // Required members
+                    'type',
+                    'id'
+                ])
+                || $resource['type'] != 'roles'
+                || !Validate::string($resource['id'])) {
 
-            Validate::as($body, [
-                'roles' => 'array'
-            ]);
+                abort(400, 'Unable to grant permission to roles: request body contains invalid members');
+                die;
 
-        } catch (ValidationException $e) {
-
-            abort(400, $e->getMessage());
-            die;
+            }
 
         }
 
@@ -830,7 +755,7 @@ class Permissions extends ApiController
          * Check exists
          */
 
-        if (!$this->auth->permissionIdExists($permission_id)) {
+        if (!$this->auth->permissionIdExists($id)) {
 
             abort(404, 'Unable to grant permission to roles: permission ID does not exist');
             die;
@@ -841,9 +766,11 @@ class Permissions extends ApiController
          * Perform action
          */
 
+        $roles = Arr::pluck($body['data'], 'id');
+
         try {
 
-            $this->auth->grantPermissionRoles($permission_id, $body['roles']);
+            $this->auth->grantPermissionRoles($id, $roles);
 
         } catch (InvalidGrantException $e) {
 
@@ -857,15 +784,15 @@ class Permissions extends ApiController
          */
 
         log_info('Granted permission to roles', [
-            'permission_id' => $permission_id,
-            'roles' => $body['roles']
+            'id' => $id,
+            'roles' => $roles
         ]);
 
         /*
          * Do event
          */
 
-        do_event('permission.roles.grant', $permission_id, $body['roles']);
+        do_event('permission.roles.grant', $id, $roles);
 
         /*
          * Send response
@@ -876,80 +803,9 @@ class Permissions extends ApiController
     }
 
     /**
-     * Revoke permission from role.
+     * Revoke permission from roles.
      *
-     * @param string $permission_id
-     * @param string $role_id
-     *
-     * @throws ChannelNotFoundException
-     * @throws HttpException
-     * @throws InvalidStatusCodeException
-     * @throws NotFoundException
-     * @throws Exception
-     */
-
-    protected function _revokePermissionRole(string $permission_id, string $role_id): void
-    {
-
-        /*
-         * Check permissions
-         */
-
-        if (!$this->hasPermissions('global.permissions.roles.revoke')) {
-
-            abort(403, 'Unable to revoke permission from role: insufficient permissions');
-            die;
-
-        }
-
-        /*
-         * Check exists
-         */
-
-        if (!$this->auth->permissionIdExists($permission_id)) {
-
-            abort(404, 'Unable to revoke permission from role: permission ID does not exist');
-            die;
-
-        }
-
-        /*
-         * Perform action
-         */
-
-        $this->auth->revokePermissionRoles($permission_id, $role_id);
-
-        /*
-         * Log action
-         */
-
-        log_info('Revoked permission from role', [
-            'permission_id' => $permission_id,
-            'roles' => [
-                $role_id
-            ]
-        ]);
-
-        /*
-         * Do event
-         */
-
-        do_event('permission.roles.revoke', $permission_id, [
-            $role_id
-        ]);
-
-        /*
-         * Send response
-         */
-
-        $this->response->setStatusCode(204)->send();
-
-    }
-
-    /**
-     * Revoke permission from roles. (batch)
-     *
-     * @param string $permission_id
+     * @param string $id
      *
      * @throws ChannelNotFoundException
      * @throws HttpException
@@ -958,7 +814,7 @@ class Permissions extends ApiController
      * @throws Exception
      */
 
-    protected function _revokePermissionRoles(string $permission_id): void
+    protected function _revokePermissionRoles(string $id): void
     {
 
         /*
@@ -973,34 +829,38 @@ class Permissions extends ApiController
         }
 
         /*
-         * Get body
+         * Get & validate body
          */
 
-        $body = $this->api->getBody();
+        $body = $this->api->getBody([
+            'data'
+        ]); // Required members
 
-        if (!empty(Arr::except($body, [ // If invalid members have been sent
-            'roles'
-        ]))) {
+        if (!empty(Arr::except($body, 'data')) // Valid members
+            || !is_array($body['data'])) {
 
             abort(400, 'Unable to revoke permission from roles: request body contains invalid members');
             die;
 
         }
 
-        /*
-         * Validate body
-         */
+        foreach ($body['data'] as $resource) {
 
-        try {
+            if (!empty(Arr::except($resource, [ // Valid members
+                    'type',
+                    'id'
+                ]))
+                || Arr::isMissing($resource, [ // Required members
+                    'type',
+                    'id'
+                ])
+                || $resource['type'] != 'roles'
+                || !Validate::string($resource['id'])) {
 
-            Validate::as($body, [
-                'roles' => 'array'
-            ]);
+                abort(400, 'Unable to revoke permission from roles: request body contains invalid members');
+                die;
 
-        } catch (ValidationException $e) {
-
-            abort(400, $e->getMessage());
-            die;
+            }
 
         }
 
@@ -1008,7 +868,7 @@ class Permissions extends ApiController
          * Check exists
          */
 
-        if (!$this->auth->permissionIdExists($permission_id)) {
+        if (!$this->auth->permissionIdExists($id)) {
 
             abort(404, 'Unable to revoke permission from roles: permission ID does not exist');
             die;
@@ -1019,22 +879,24 @@ class Permissions extends ApiController
          * Perform action
          */
 
-        $this->auth->revokePermissionRoles($permission_id, $body['roles']);
+        $roles = Arr::pluck($body['data'], 'id');
+
+        $this->auth->revokePermissionRoles($id, $roles);
 
         /*
          * Log action
          */
 
         log_info('Revoked permission from roles', [
-            'permission_id' => $permission_id,
-            'roles' => $body['roles']
+            'id' => $id,
+            'roles' => $roles
         ]);
 
         /*
          * Do event
          */
 
-        do_event('permission.roles.revoke', $permission_id, $body['roles']);
+        do_event('permission.roles.revoke', $id, $roles);
 
         /*
          * Send response
@@ -1137,42 +999,26 @@ class Permissions extends ApiController
 
         $this->api->allowedMethods([
             'GET',
-            'PUT',
+            'POST',
             'DELETE'
         ]);
 
-        if (!isset($params['permission_id'])) {
+        if (!isset($params['id'])) {
             abort(400);
             die;
         }
 
         if (Request::isGet()) {
 
-            $this->_getPermissionRoles($params['permission_id']);
+            $this->_getPermissionRoles($params['id']);
 
-        } else if (Request::isPut()) {
+        } else if (Request::isPost()) {
 
-            if (isset($params['role_id'])) { // Single role
-
-                $this->_grantPermissionRole($params['permission_id'], $params['role_id']);
-
-            } else { // Multiple roles
-
-                $this->_grantPermissionRoles($params['permission_id']);
-
-            }
+            $this->_grantPermissionRoles($params['id']);
 
         } else { // Delete
 
-            if (isset($params['role_id'])) { // Single role
-
-                $this->_revokePermissionRole($params['permission_id'], $params['role_id']);
-
-            } else { // Multiple roles
-
-                $this->_revokePermissionRoles($params['permission_id']);
-
-            }
+            $this->_revokePermissionRoles($params['id']);
 
         }
 

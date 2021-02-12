@@ -596,7 +596,7 @@ class Roles extends ApiController
     /**
      * Get permissions of role.
      *
-     * @param string $role_id
+     * @param string $id
      *
      * @throws HttpException
      * @throws InvalidSchemaException
@@ -604,7 +604,7 @@ class Roles extends ApiController
      * @throws NotFoundException
      */
 
-    protected function _getRolePermissions(string $role_id): void
+    protected function _getRolePermissions(string $id): void
     {
 
         /*
@@ -616,7 +616,7 @@ class Roles extends ApiController
                 'self.roles.permissions.read'
             ])
             || (!$this->hasPermissions('global.roles.permissions.read')
-                && !in_array($role_id, Arr::pluck($this->auth->getUserRoles($this->user_id), 'id')))) {
+                && !in_array($id, Arr::pluck($this->auth->getUserRoles($this->user_id), 'id')))) {
 
             abort(403, 'Unable to get permissions of role: insufficient permissions');
             die;
@@ -657,7 +657,7 @@ class Roles extends ApiController
          * Check exists
          */
 
-        if (!$this->auth->roleIdExists($role_id)) {
+        if (!$this->auth->roleIdExists($id)) {
 
             abort(404, 'Unable to get permissions of role: role ID does not exist');
             die;
@@ -676,7 +676,7 @@ class Roles extends ApiController
 
         try {
 
-            $permissions = $this->auth->getRolePermissionsCollection($request, $role_id);
+            $permissions = $this->auth->getRolePermissionsCollection($request, $id);
 
         } catch (QueryException|PDOException $e) {
 
@@ -691,7 +691,7 @@ class Roles extends ApiController
 
         $schema = PermissionCollection::create($permissions, [
             'object_prefix' => '/permissions',
-            'collection_prefix' => '/roles/' . $role_id . '/permissions'
+            'collection_prefix' => '/roles/' . $id . '/permissions'
         ]);
 
         /*
@@ -707,7 +707,7 @@ class Roles extends ApiController
     /**
      * Add permissions to role.
      *
-     * @param string $role_id
+     * @param string $id
      *
      * @throws ChannelNotFoundException
      * @throws HttpException
@@ -715,7 +715,7 @@ class Roles extends ApiController
      * @throws NotFoundException
      */
 
-    protected function _grantRolePermissions(string $role_id): void
+    protected function _grantRolePermissions(string $id): void
     {
 
         /*
@@ -769,7 +769,7 @@ class Roles extends ApiController
          * Check exists
          */
 
-        if (!$this->auth->roleIdExists($role_id)) {
+        if (!$this->auth->roleIdExists($id)) {
 
             abort(404, 'Unable to add permissions to role: role ID does not exist');
             die;
@@ -784,7 +784,7 @@ class Roles extends ApiController
 
         try {
 
-            $this->auth->grantRolePermissions($role_id, $permissions);
+            $this->auth->grantRolePermissions($id, $permissions);
 
         } catch (InvalidGrantException $e) {
 
@@ -798,7 +798,7 @@ class Roles extends ApiController
          */
 
         log_info('Added permissions to role', [
-            'role_id' => $role_id,
+            'id' => $id,
             'permissions' => $permissions
         ]);
 
@@ -806,7 +806,7 @@ class Roles extends ApiController
          * Do event
          */
 
-        do_event('role.permissions.grant', $role_id, $permissions);
+        do_event('role.permissions.grant', $id, $permissions);
 
         /*
          * Send response
@@ -819,7 +819,7 @@ class Roles extends ApiController
     /**
      * Remove permissions from role.
      *
-     * @param string $role_id
+     * @param string $id
      *
      * @throws ChannelNotFoundException
      * @throws HttpException
@@ -828,7 +828,7 @@ class Roles extends ApiController
      * @throws Exception
      */
 
-    protected function _revokeRolePermissions(string $role_id): void
+    protected function _revokeRolePermissions(string $id): void
     {
 
         /*
@@ -882,7 +882,7 @@ class Roles extends ApiController
          * Check exists
          */
 
-        if (!$this->auth->roleIdExists($role_id)) {
+        if (!$this->auth->roleIdExists($id)) {
 
             abort(404, 'Unable to remove permissions from role: role ID does not exist');
             die;
@@ -895,14 +895,14 @@ class Roles extends ApiController
 
         $permissions = Arr::pluck($body['data'], 'id');
 
-        $this->auth->revokeRolePermissions($role_id, $permissions);
+        $this->auth->revokeRolePermissions($id, $permissions);
 
         /*
          * Log action
          */
 
         log_info('Removed permissions from role', [
-            'role_id' => $role_id,
+            'id' => $id,
             'permissions' => $permissions
         ]);
 
@@ -910,7 +910,7 @@ class Roles extends ApiController
          * Do event
          */
 
-        do_event('role.permissions.revoke', $role_id, $permissions);
+        do_event('role.permissions.revoke', $id, $permissions);
 
         /*
          * Send response
@@ -923,7 +923,7 @@ class Roles extends ApiController
     /**
      * Get users with role.
      *
-     * @param string $role_id
+     * @param string $id
      *
      * @throws HttpException
      * @throws InvalidSchemaException
@@ -931,7 +931,7 @@ class Roles extends ApiController
      * @throws NotFoundException
      */
 
-    protected function _getRoleUsers(string $role_id): void
+    protected function _getRoleUsers(string $id): void
     {
 
         /*
@@ -985,7 +985,7 @@ class Roles extends ApiController
          * Check exists
          */
 
-        if (!$this->auth->roleIdExists($role_id)) {
+        if (!$this->auth->roleIdExists($id)) {
 
             abort(404, 'Unable to get users with role: role ID does not exist');
             die;
@@ -1004,7 +1004,7 @@ class Roles extends ApiController
 
         try {
 
-            $users = $this->auth->getRoleUsersCollection($request, $role_id);
+            $users = $this->auth->getRoleUsersCollection($request, $id);
 
         } catch (QueryException|PDOException $e) {
 
@@ -1019,7 +1019,7 @@ class Roles extends ApiController
 
         $schema = UserCollection::create($users, [
             'object_prefix' => '/users',
-            'collection_prefix' => '/roles/' . $role_id . '/users'
+            'collection_prefix' => '/roles/' . $id . '/users'
         ]);
 
         /*
@@ -1035,7 +1035,7 @@ class Roles extends ApiController
     /**
      * Grant role to users.
      *
-     * @param string $role_id
+     * @param string $id
      *
      * @throws ChannelNotFoundException
      * @throws HttpException
@@ -1043,7 +1043,7 @@ class Roles extends ApiController
      * @throws NotFoundException
      */
 
-    protected function _grantRoleUsers(string $role_id): void
+    protected function _grantRoleUsers(string $id): void
     {
 
         /*
@@ -1097,7 +1097,7 @@ class Roles extends ApiController
          * Check exists
          */
 
-        if (!$this->auth->roleIdExists($role_id)) {
+        if (!$this->auth->roleIdExists($id)) {
 
             abort(404, 'Unable to grant role to users: role ID does not exist');
             die;
@@ -1112,7 +1112,7 @@ class Roles extends ApiController
 
         try {
 
-            $this->auth->grantRoleUsers($role_id, $users);
+            $this->auth->grantRoleUsers($id, $users);
 
         } catch (InvalidGrantException $e) {
 
@@ -1126,7 +1126,7 @@ class Roles extends ApiController
          */
 
         log_info('Granted role to users', [
-            'role_id' => $role_id,
+            'id' => $id,
             'users' => $users
         ]);
 
@@ -1134,7 +1134,7 @@ class Roles extends ApiController
          * Do event
          */
 
-        do_event('role.users.grant', $role_id, $users);
+        do_event('role.users.grant', $id, $users);
 
         /*
          * Send response
@@ -1147,7 +1147,7 @@ class Roles extends ApiController
     /**
      * Revoke role from users.
      *
-     * @param string $role_id
+     * @param string $id
      *
      * @throws ChannelNotFoundException
      * @throws HttpException
@@ -1156,7 +1156,7 @@ class Roles extends ApiController
      * @throws Exception
      */
 
-    protected function _revokeRoleUsers(string $role_id): void
+    protected function _revokeRoleUsers(string $id): void
     {
 
         /*
@@ -1210,7 +1210,7 @@ class Roles extends ApiController
          * Check exists
          */
 
-        if (!$this->auth->roleIdExists($role_id)) {
+        if (!$this->auth->roleIdExists($id)) {
 
             abort(404, 'Unable to revoke role from users: role ID does not exist');
             die;
@@ -1223,14 +1223,14 @@ class Roles extends ApiController
 
         $users = Arr::pluck($body['data'], 'id');
 
-        $this->auth->revokeRoleUsers($role_id, $users);
+        $this->auth->revokeRoleUsers($id, $users);
 
         /*
          * Log action
          */
 
         log_info('Revoked role from users', [
-            'role_id' => $role_id,
+            'id' => $id,
             'users' => $users
         ]);
 
@@ -1238,7 +1238,7 @@ class Roles extends ApiController
          * Do event
          */
 
-        do_event('role.users.revoke', $role_id, $users);
+        do_event('role.users.revoke', $id, $users);
 
         /*
          * Send response
@@ -1345,22 +1345,22 @@ class Roles extends ApiController
             'DELETE'
         ]);
 
-        if (!isset($params['role_id'])) {
+        if (!isset($params['id'])) {
             abort(400);
             die;
         }
 
         if (Request::isGet()) {
 
-            $this->_getRolePermissions($params['role_id']);
+            $this->_getRolePermissions($params['id']);
 
         } else if (Request::isPost()) {
 
-            $this->_grantRolePermissions($params['role_id']);
+            $this->_grantRolePermissions($params['id']);
 
         } else { // Delete
 
-            $this->_revokeRolePermissions($params['role_id']);
+            $this->_revokeRolePermissions($params['id']);
 
         }
 
@@ -1389,22 +1389,22 @@ class Roles extends ApiController
             'DELETE'
         ]);
 
-        if (!isset($params['role_id'])) {
+        if (!isset($params['id'])) {
             abort(400);
             die;
         }
 
         if (Request::isGet()) {
 
-            $this->_getRoleUsers($params['role_id']);
+            $this->_getRoleUsers($params['id']);
 
         } else if (Request::isPost()) {
 
-            $this->_grantRoleUsers($params['role_id']);
+            $this->_grantRoleUsers($params['id']);
 
         } else { // Delete
 
-            $this->_revokeRoleUsers($params['role_id']);
+            $this->_revokeRoleUsers($params['id']);
 
         }
 
