@@ -132,7 +132,6 @@ class Users extends ApiController
                 'type',
                 'attributes'
             ]))
-            || $body['data']['type'] != 'user'
             || !is_array($body['data']['attributes'])
             || !empty(Arr::except($body['data']['attributes'], [ // Valid members
                 'login',
@@ -149,6 +148,13 @@ class Users extends ApiController
             ])) {
 
             abort(400, 'Unable to create user: request body contains invalid members');
+            die;
+
+        }
+
+        if (Arr::get($body, 'data.type') != 'user') {
+
+            abort(409, 'Unable to create user: invalid resource type');
             die;
 
         }
@@ -275,7 +281,6 @@ class Users extends ApiController
                 'id',
                 'attributes'
             ]))
-            || $body['data']['type'] != 'user'
             || $body['data']['id'] != $id
             || !is_array($body['data']['attributes'])
             || !empty(Arr::except($body['data']['attributes'], [ // Valid members
@@ -289,6 +294,13 @@ class Users extends ApiController
             ]))) {
 
             abort(400, 'Unable to update user: request body contains invalid members');
+            die;
+
+        }
+
+        if (Arr::get($body, 'data.type') != 'group') {
+
+            abort(409, 'Unable to update user: invalid resource type');
             die;
 
         }
@@ -1465,7 +1477,6 @@ class Users extends ApiController
                 'id',
                 'attributes'
             ]))
-            || $body['data']['type'] != 'userMeta'
             || !is_array($body['data']['attributes'])
             || !empty(Arr::except($body['data']['attributes'], [ // Valid members
                 'value'
@@ -1475,6 +1486,13 @@ class Users extends ApiController
             ])) {
 
             abort(400, 'Unable to create user meta: request body contains invalid members');
+            die;
+
+        }
+
+        if (Arr::get($body, 'data.type') != 'userMeta') {
+
+            abort(409, 'Unable to create user meta: invalid resource type');
             die;
 
         }
@@ -1595,7 +1613,6 @@ class Users extends ApiController
                 'id',
                 'attributes'
             ]))
-            || $body['data']['type'] != 'userMeta'
             || $body['data']['id'] != $meta_key
             || !is_array($body['data']['attributes'])
             || !empty(Arr::except($body['data']['attributes'], [ // Valid members
@@ -1603,6 +1620,13 @@ class Users extends ApiController
             ]))) {
 
             abort(400, 'Unable to update user meta: request body contains invalid members');
+            die;
+
+        }
+
+        if (Arr::get($body, 'data.type') != 'userMeta') {
+
+            abort(409, 'Unable to update user meta: invalid resource type');
             die;
 
         }

@@ -99,7 +99,6 @@ class Groups extends ApiController
                 'type',
                 'attributes'
             ]))
-            || $body['data']['type'] != 'group'
             || !is_array($body['data']['attributes'])
             || !empty(Arr::except($body['data']['attributes'], [ // Valid members
                 'name'
@@ -109,6 +108,13 @@ class Groups extends ApiController
             ])) {
 
             abort(400, 'Unable to create group: request body contains invalid members');
+            die;
+
+        }
+
+        if (Arr::get($body, 'data.type') != 'group') {
+
+            abort(409, 'Unable to create group: invalid resource type');
             die;
 
         }
@@ -228,7 +234,6 @@ class Groups extends ApiController
                 'id',
                 'attributes'
             ]))
-            || $body['data']['type'] != 'group'
             || $body['data']['id'] != $id
             || !is_array($body['data']['attributes'])
             || !empty(Arr::except($body['data']['attributes'], [ // Valid members
@@ -236,6 +241,13 @@ class Groups extends ApiController
             ]))) {
 
             abort(400, 'Unable to update group: request body contains invalid members');
+            die;
+
+        }
+
+        if (Arr::get($body, 'data.type') != 'group') {
+
+            abort(409, 'Unable to update group: invalid resource type');
             die;
 
         }

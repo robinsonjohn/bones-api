@@ -92,7 +92,6 @@ class Permissions extends ApiController
                 'type',
                 'attributes'
             ]))
-            || $body['data']['type'] != 'permission'
             || !is_array($body['data']['attributes'])
             || !empty(Arr::except($body['data']['attributes'], [ // Valid members
                 'name',
@@ -103,6 +102,13 @@ class Permissions extends ApiController
             ])) {
 
             abort(400, 'Unable to create permission: request body contains invalid members');
+            die;
+
+        }
+
+        if (Arr::get($body, 'data.type') != 'permission') {
+
+            abort(409, 'Unable to create permission: invalid resource type');
             die;
 
         }
@@ -223,7 +229,6 @@ class Permissions extends ApiController
                 'id',
                 'attributes'
             ]))
-            || $body['data']['type'] != 'permission'
             || $body['data']['id'] != $id
             || !is_array($body['data']['attributes'])
             || !empty(Arr::except($body['data']['attributes'], [ // Valid members
@@ -232,6 +237,13 @@ class Permissions extends ApiController
             ]))) {
 
             abort(400, 'Unable to update permission: request body contains invalid members');
+            die;
+
+        }
+
+        if (Arr::get($body, 'data.type') != 'permission') {
+
+            abort(409, 'Unable to create permission: invalid resource type');
             die;
 
         }

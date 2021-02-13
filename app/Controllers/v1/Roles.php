@@ -100,7 +100,6 @@ class Roles extends ApiController
                 'type',
                 'attributes'
             ]))
-            || $body['data']['type'] != 'role'
             || !is_array($body['data']['attributes'])
             || !empty(Arr::except($body['data']['attributes'], [ // Valid members
                 'name',
@@ -111,6 +110,13 @@ class Roles extends ApiController
             ])) {
 
             abort(400, 'Unable to create role: request body contains invalid members');
+            die;
+
+        }
+
+        if (Arr::get($body, 'data.type') != 'role') {
+
+            abort(409, 'Unable to create role: invalid resource type');
             die;
 
         }
@@ -231,7 +237,6 @@ class Roles extends ApiController
                 'id',
                 'attributes'
             ]))
-            || $body['data']['type'] != 'role'
             || $body['data']['id'] != $id
             || !is_array($body['data']['attributes'])
             || !empty(Arr::except($body['data']['attributes'], [ // Valid members
@@ -240,6 +245,13 @@ class Roles extends ApiController
             ]))) {
 
             abort(400, 'Unable to update role: request body contains invalid members');
+            die;
+
+        }
+
+        if (Arr::get($body, 'data.type') != 'role') {
+
+            abort(409, 'Unable to update role: invalid resource type');
             die;
 
         }
