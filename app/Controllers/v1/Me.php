@@ -34,7 +34,6 @@ class Me extends ApiController
         parent::__construct(true); // Requires authentication
     }
 
-
     /**
      * Router destination.
      *
