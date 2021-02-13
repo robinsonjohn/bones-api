@@ -1508,9 +1508,9 @@ class Users extends ApiController
          * Log action
          */
 
-        log_info('User meta created', [
+        log_info('Created user meta', [
             'id' => $id,
-            'meta' => $body['data']['id']
+            'meta_key' => $body['data']['id']
         ]);
 
         /*
@@ -1637,9 +1637,9 @@ class Users extends ApiController
          * Log action
          */
 
-        log_info('User meta updated', [
+        log_info('Updated user meat', [
             'id' => $id,
-            'meta' => $meta_key
+            'meta_key' => $meta_key
         ]);
 
         /*
@@ -2026,9 +2026,7 @@ class Users extends ApiController
 
         log_info('Deleted user meta', [
             'id' => $id,
-            'meta_keys' => [
-                $meta_key
-            ]
+            'meta_key' => $meta_key
         ]);
 
         /*
