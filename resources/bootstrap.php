@@ -11,6 +11,7 @@ use Bayfront\PDO\Db;
  */
 
 get_service('BonesApi', [
+    'response' => get_from_container('response'),
     'config' => get_config('api')
 ]);
 

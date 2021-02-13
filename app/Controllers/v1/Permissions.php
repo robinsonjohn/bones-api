@@ -92,7 +92,7 @@ class Permissions extends ApiController
                 'type',
                 'attributes'
             ]))
-            || $body['data']['type'] != 'permissions'
+            || $body['data']['type'] != 'permission'
             || !is_array($body['data']['attributes'])
             || !empty(Arr::except($body['data']['attributes'], [ // Valid members
                 'name',
@@ -219,7 +219,7 @@ class Permissions extends ApiController
                 'id',
                 'attributes'
             ]))
-            || $body['data']['type'] != 'permissions'
+            || $body['data']['type'] != 'permission'
             || $body['data']['id'] != $id
             || !is_array($body['data']['attributes'])
             || !empty(Arr::except($body['data']['attributes'], [ // Valid members

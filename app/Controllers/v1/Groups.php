@@ -99,7 +99,7 @@ class Groups extends ApiController
                 'type',
                 'attributes'
             ]))
-            || $body['data']['type'] != 'groups'
+            || $body['data']['type'] != 'group'
             || !is_array($body['data']['attributes'])
             || !empty(Arr::except($body['data']['attributes'], [ // Valid members
                 'name'
@@ -224,7 +224,7 @@ class Groups extends ApiController
                 'id',
                 'attributes'
             ]))
-            || $body['data']['type'] != 'groups'
+            || $body['data']['type'] != 'group'
             || $body['data']['id'] != $id
             || !is_array($body['data']['attributes'])
             || !empty(Arr::except($body['data']['attributes'], [ // Valid members

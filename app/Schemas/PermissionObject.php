@@ -30,7 +30,7 @@ class PermissionObject implements SchemaInterface
         }
 
         $return = [
-            'type' => 'permissions',
+            'type' => 'permission',
             'id' => $array['id']
         ];
 

@@ -132,7 +132,7 @@ class Users extends ApiController
                 'type',
                 'attributes'
             ]))
-            || $body['data']['type'] != 'users'
+            || $body['data']['type'] != 'user'
             || !is_array($body['data']['attributes'])
             || !empty(Arr::except($body['data']['attributes'], [ // Valid members
                 'login',
@@ -271,7 +271,7 @@ class Users extends ApiController
                 'id',
                 'attributes'
             ]))
-            || $body['data']['type'] != 'users'
+            || $body['data']['type'] != 'user'
             || $body['data']['id'] != $id
             || !is_array($body['data']['attributes'])
             || !empty(Arr::except($body['data']['attributes'], [ // Valid members

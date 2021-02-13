@@ -100,7 +100,7 @@ class Roles extends ApiController
                 'type',
                 'attributes'
             ]))
-            || $body['data']['type'] != 'roles'
+            || $body['data']['type'] != 'role'
             || !is_array($body['data']['attributes'])
             || !empty(Arr::except($body['data']['attributes'], [ // Valid members
                 'name',
@@ -227,7 +227,7 @@ class Roles extends ApiController
                 'id',
                 'attributes'
             ]))
-            || $body['data']['type'] != 'roles'
+            || $body['data']['type'] != 'role'
             || $body['data']['id'] != $id
             || !is_array($body['data']['attributes'])
             || !empty(Arr::except($body['data']['attributes'], [ // Valid members
