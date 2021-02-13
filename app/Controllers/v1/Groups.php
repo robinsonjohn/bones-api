@@ -176,7 +176,11 @@ class Groups extends ApiController
          * Send response
          */
 
-        $this->response->sendJson($schema);
+        $this->response->setStatusCode(201)
+        ->setHeaders([
+            'Location' => '/groups/' . $id
+        ])
+        ->sendJson($schema);
 
     }
 

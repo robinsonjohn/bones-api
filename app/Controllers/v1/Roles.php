@@ -179,7 +179,11 @@ class Roles extends ApiController
          * Send response
          */
 
-        $this->response->sendJson($schema);
+        $this->response->setStatusCode(201)
+            ->setHeaders([
+                'Location' => '/roles/' . $id
+            ])
+            ->sendJson($schema);
 
     }
 

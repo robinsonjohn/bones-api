@@ -222,7 +222,11 @@ class Users extends ApiController
          * Send response
          */
 
-        $this->response->sendJson($schema);
+        $this->response->setStatusCode(201)
+            ->setHeaders([
+                'Location' => '/users/' . $id
+            ])
+            ->sendJson($schema);
 
     }
 
@@ -1539,7 +1543,11 @@ class Users extends ApiController
          * Send response
          */
 
-        $this->response->sendJson($schema);
+        $this->response->setStatusCode(201)
+            ->setHeaders([
+                'Location' => '/users/' . $id . '/meta/' . $body['data']['id']
+            ])
+            ->sendJson($schema);
 
     }
 

@@ -171,7 +171,11 @@ class Permissions extends ApiController
          * Send response
          */
 
-        $this->response->sendJson($schema);
+        $this->response->setStatusCode(201)
+            ->setHeaders([
+                'Location' => '/permissions/' . $id
+            ])
+            ->sendJson($schema);
 
     }
 
