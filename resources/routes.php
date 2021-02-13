@@ -30,6 +30,7 @@ $router->setHost(get_config('router.host'))
 
     ->any('v1/groups/{?:id}', 'v1\\Groups:index')
     ->any('v1/groups/{*:id}/users', 'v1\\Groups:users')
+    ->any('v1/me/{?:resource}', 'v1\\Me:index')
     ->any('v1/permissions/{?:id}', 'v1\\Permissions:index')
     ->any('v1/permissions/{*:id}/roles', 'v1\\Permissions:roles')
     ->any('v1/roles/{?:id}', 'v1\\Roles:index')
