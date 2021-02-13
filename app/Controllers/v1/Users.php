@@ -2387,51 +2387,50 @@ class Users extends ApiController
     {
 
         $this->api->allowedMethods([
+            'POST',
             'GET',
-            'PUT',
+            'PATCH',
             'DELETE'
         ]);
 
-        if (!isset($params['user_id'])) {
+        if (!isset($params['id'])) {
             abort(400);
             die;
         }
 
-        if (Request::isGet()) {
+        if (Request::isPost()) {
 
-            if (isset($params['meta_key'])) { // Single key
+            $this->_createUserMeta($params['id']);
 
-                $this->_getUserMeta($params['user_id'], $params['meta_key']);
+        } else if (Request::isGet()) {
 
-            } else { // All keys
+            if (isset($params['meta_key'])) { // Single meta
 
-                $this->_getAllUserMeta($params['user_id']);
+                $this->_getUserMeta($params['id'], $params['meta_key']);
 
-            }
+            } else { // Get all meta
 
-        } else if (Request::isPut()) {
-
-            if (isset($params['meta_key'])) { // Single key
-
-                $this->_updateUserMeta($params['user_id'], $params['meta_key']);
-
-            } else { // Multiple keys
-
-                $this->_updateUserMetas($params['user_id']);
+                $this->_getAllUserMeta($params['id']);
 
             }
+
+        } else if (Request::isPatch()) {
+
+            if (!isset($params['meta_key'])) {
+                abort(400);
+                die;
+            }
+
+            $this->_updateUserMeta($params['id'], $params['meta_key']);
 
         } else { // Delete
 
-            if (isset($params['meta_key'])) { // Single key
-
-                $this->_deleteUserMeta($params['user_id'], $params['meta_key']);
-
-            } else { // Multiple keys
-
-                $this->_deleteUserMetas($params['user_id']);
-
+            if (!isset($params['meta_key'])) {
+                abort(400);
+                die;
             }
+
+            $this->_deleteUserMeta($params['id'], $params['meta_key']);
 
         }
 
