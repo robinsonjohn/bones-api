@@ -57,6 +57,40 @@ class Users extends ApiController
     }
 
     /**
+     * Check if user has global, group, or self permission
+     * based on permission naming structure.
+     *
+     * @param string $user_id
+     * @param string $permission
+     *
+     * @return bool
+     */
+
+    protected function _userCan(string $user_id, string $permission): bool
+    {
+
+        if (!$this->hasAnyPermissions([ // If no applicable permissions
+                'global.' . $permission,
+                'group.' . $permission,
+                'self.' . $permission
+            ])
+            || (!$this->hasAnyPermissions([ // If only self does not match
+                    'global.' . $permission,
+                    'group.' . $permission,
+                ]) && $user_id != $this->user_id)
+            || (!$this->hasPermissions('global.' . $permission) // If only group and not in group
+                && $this->hasPermissions('group.' . $permission)
+                && !in_array($user_id, $this->getGroupedUserIds()))) {
+
+            return false;
+
+        }
+
+        return true;
+
+    }
+
+    /**
      * Create new user.
      *
      * @return void
@@ -215,18 +249,7 @@ class Users extends ApiController
          * Check permissions
          */
 
-        if (!$this->hasAnyPermissions([ // If no applicable permissions
-                'global.users.update',
-                'group.users.update',
-                'self.users.update'
-            ])
-            || (!$this->hasAnyPermissions([ // If only self does not match
-                    'global.users.update',
-                    'group.users.update'
-                ]) && $id != $this->user_id)
-            || (!$this->hasPermissions('global.users.update') // If only group and not in group
-                && $this->hasPermissions('group.users.update')
-                && !in_array($id, $this->getGroupedUserIds()))) {
+        if (!$this->_userCan($id, 'users.update')) {
 
             abort(403, 'Unable to update user: insufficient permissions');
             die;
@@ -364,18 +387,7 @@ class Users extends ApiController
          * Check permissions
          */
 
-        if (!$this->hasAnyPermissions([ // If no applicable permissions
-                'global.users.read',
-                'group.users.read',
-                'self.users.read'
-            ])
-            || (!$this->hasAnyPermissions([ // If only self does not match
-                    'global.users.read',
-                    'group.users.read'
-                ]) && $id != $this->user_id)
-            || (!$this->hasPermissions('global.users.read') // If only group and not in group
-                && $this->hasPermissions('group.users.read')
-                && !in_array($id, $this->getGroupedUserIds()))) {
+        if (!$this->_userCan($id, 'users.read')) {
 
             abort(403, 'Unable to get user: insufficient permissions');
             die;
@@ -595,18 +607,7 @@ class Users extends ApiController
          * Check permissions
          */
 
-        if (!$this->hasAnyPermissions([ // If no applicable permissions
-                'global.users.delete',
-                'group.users.delete',
-                'self.users.delete'
-            ])
-            || (!$this->hasAnyPermissions([ // If only self does not match
-                    'global.users.delete',
-                    'group.users.delete'
-                ]) && $id != $this->user_id)
-            || (!$this->hasPermissions('global.users.delete') // If only group and not in group
-                && $this->hasPermissions('group.users.delete')
-                && !in_array($id, $this->getGroupedUserIds()))) {
+        if (!$this->_userCan($id, 'users.delete')) {
 
             abort(403, 'Unable to delete user: insufficient permissions');
             die;
@@ -668,18 +669,7 @@ class Users extends ApiController
          * Check permissions
          */
 
-        if (!$this->hasAnyPermissions([ // If no applicable permissions
-                'global.users.permissions.read',
-                'group.users.permissions.read',
-                'self.users.permissions.read'
-            ])
-            || (!$this->hasAnyPermissions([ // If only self does not match
-                    'global.users.permissions.read',
-                    'group.users.permissions.read',
-                ]) && $id != $this->user_id)
-            || (!$this->hasPermissions('global.users.permissions.read') // If only group and not in group
-                && $this->hasPermissions('group.users.permissions.read')
-                && !in_array($id, $this->getGroupedUserIds()))) {
+        if (!$this->_userCan($id, 'users.permissions.read')) {
 
             abort(403, 'Unable to get user permissions: insufficient permissions');
             die;
@@ -785,18 +775,7 @@ class Users extends ApiController
          * Check permissions
          */
 
-        if (!$this->hasAnyPermissions([ // If no applicable permissions
-                'global.users.roles.read',
-                'group.users.roles.read',
-                'self.users.roles.read'
-            ])
-            || (!$this->hasAnyPermissions([ // If only self does not match
-                    'global.users.roles.read',
-                    'group.users.roles.read',
-                ]) && $id != $this->user_id)
-            || (!$this->hasPermissions('global.users.roles.read') // If only group and not in group
-                && $this->hasPermissions('group.users.roles.read')
-                && !in_array($id, $this->getGroupedUserIds()))) {
+        if (!$this->_userCan($id, 'users.roles.read')) {
 
             abort(403, 'Unable to get user roles: insufficient permissions');
             die;
@@ -1120,18 +1099,7 @@ class Users extends ApiController
          * Check permissions
          */
 
-        if (!$this->hasAnyPermissions([ // If no applicable permissions
-                'global.users.groups.read',
-                'group.users.groups.read',
-                'self.users.groups.read'
-            ])
-            || (!$this->hasAnyPermissions([ // If only self does not match
-                    'global.users.groups.read',
-                    'group.users.groups.read',
-                ]) && $id != $this->user_id)
-            || (!$this->hasPermissions('global.users.groups.read') // If only group and not in group
-                && $this->hasPermissions('group.users.groups.read')
-                && !in_array($id, $this->getGroupedUserIds()))) {
+        if (!$this->_userCan($id, 'users.groups.read')) {
 
             abort(403, 'Unable to get user groups: insufficient permissions');
             die;
@@ -1444,6 +1412,261 @@ class Users extends ApiController
 
     }
 
+
+    /**
+     * Create user meta.
+     *
+     * @param string $id
+     *
+     * @return void
+     *
+     * @throws ChannelNotFoundException
+     * @throws HttpException
+     * @throws InvalidSchemaException
+     * @throws InvalidStatusCodeException
+     * @throws NotFoundException
+     */
+
+    protected function _createUserMeta(string $id): void
+    {
+
+        /*
+         * Check permissions
+         */
+
+        if (!$this->_userCan($id, 'users.meta.create')) {
+
+            abort(403, 'Unable to create user meta: insufficient permissions');
+            die;
+
+        }
+
+        /*
+         * Get body
+         */
+
+        $body = $this->api->getBody([
+            'data'
+        ]); // Required members
+
+        if (!empty(Arr::except($body, 'data')) // Valid members
+            || !is_array($body['data'])
+            || !empty(Arr::except($body['data'], [ // Valid members
+                'type',
+                'id',
+                'attributes'
+            ]))
+            || $body['data']['type'] != 'userMeta'
+            || !is_array($body['data']['attributes'])
+            || !empty(Arr::except($body['data']['attributes'], [ // Valid members
+                'value'
+            ]))
+            || Arr::isMissing($body['data']['attributes'], [ // Required members
+                'value'
+            ])) {
+
+            abort(400, 'Unable to create user meta: request body contains invalid members');
+            die;
+
+        }
+
+        /*
+         * Validate body
+         *
+         * No validation needed- value can be mixed type
+         */
+
+        /*
+         * Check exists
+         */
+
+        if ($this->auth->userHasMeta($id, $body['data']['id'])) {
+
+            abort(409, 'Unable to create user meta: meta ID already exists');
+            die;
+
+        }
+
+        /*
+         * Perform action
+         */
+
+        try {
+
+            $this->auth->setUserMeta($id, [
+                $body['data']['id'] => $body['data']['attributes']['value']
+            ]);
+
+        } catch (InvalidUserException $e) {
+
+            abort(404, 'Unable to create user meta: user ID does not exist');
+            die;
+
+        }
+
+        /*
+         * Log action
+         */
+
+        log_info('User meta created', [
+            'id' => $id,
+            'meta' => $body['data']['id']
+        ]);
+
+        /*
+         * Do event
+         */
+
+        do_event('user.meta.create', $id, $body['data']['id']);
+
+        /*
+         * Build schema
+         */
+
+        $schema = UserMetaResource::create([
+            'metaKey' => $body['data']['id'],
+            'metaValue' => $body['data']['attributes']['value']
+        ], [
+            'object_prefix' => '/users/' . $id . '/meta'
+        ]);
+
+        /*
+         * Send response
+         */
+
+        $this->response->sendJson($schema);
+
+    }
+
+    /**
+     * Update user meta.
+     *
+     * @param string $id
+     * @param string $meta_key
+     *
+     * @return void
+     *
+     * @throws ChannelNotFoundException
+     * @throws HttpException
+     * @throws InvalidSchemaException
+     * @throws InvalidStatusCodeException
+     * @throws NotFoundException
+     */
+
+    protected function _updateUserMeta(string $id, string $meta_key): void
+    {
+
+        /*
+         * Check permissions
+         */
+
+        if (!$this->_userCan($id, 'users.meta.update')) {
+
+            abort(403, 'Unable to update user meta: insufficient permissions');
+            die;
+
+        }
+
+        /*
+         * Get body
+         */
+
+        $body = $this->api->getBody([
+            'data'
+        ]); // Required members
+
+        if (!empty(Arr::except($body, 'data')) // Valid members
+            || !is_array($body['data'])
+            || !empty(Arr::except($body['data'], [ // Valid members
+                'type',
+                'id',
+                'attributes'
+            ]))
+            || $body['data']['type'] != 'userMeta'
+            || $body['data']['id'] != $meta_key
+            || !is_array($body['data']['attributes'])
+            || !empty(Arr::except($body['data']['attributes'], [ // Valid members
+                'value'
+            ]))) {
+
+            abort(400, 'Unable to update user meta: request body contains invalid members');
+            die;
+
+        }
+
+        /*
+         * Validate body
+         *
+         * No validation needed- value can be mixed type
+         */
+
+        /*
+         * Check exists
+         */
+
+        if (!$this->auth->userHasMeta($id, $meta_key)) {
+
+            abort(404, 'Unable to update user meta: user meta does not exist');
+            die;
+
+        }
+
+        /*
+         * Perform action
+         */
+
+        try {
+
+            $this->auth->setUserMeta($id, [
+                $meta_key => $body['data']['attributes']['value']
+            ]);
+
+        } catch (InvalidUserException $e) {
+
+            /*
+             * This should never occur since userHasMeta was already checked,
+             * but the exception will be caught anyway.
+             */
+
+            abort(404, 'Unable to update user meta: user ID does not exist');
+            die;
+
+        }
+
+        /*
+         * Log action
+         */
+
+        log_info('User meta updated', [
+            'id' => $id,
+            'meta' => $meta_key
+        ]);
+
+        /*
+         * Do event
+         */
+
+        do_event('user.meta.update', $id, $meta_key);
+
+        /*
+         * Build schema
+         */
+
+        $schema = UserMetaResource::create([
+            'metaKey' => $meta_key,
+            'metaValue' => $body['data']['attributes']['value']
+        ], [
+            'object_prefix' => '/users/' . $id . '/meta'
+        ]);
+
+        /*
+         * Send response
+         */
+
+        $this->response->sendJson($schema);
+
+    }
+
     /**
      * Get single user meta.
      *
@@ -1465,18 +1688,7 @@ class Users extends ApiController
          * Check permissions
          */
 
-        if (!$this->hasAnyPermissions([ // If no applicable permissions
-                'global.users.meta.read',
-                'group.users.meta.read',
-                'self.users.meta.read'
-            ])
-            || (!$this->hasAnyPermissions([ // If only self does not match
-                    'global.users.meta.read',
-                    'group.users.meta.read',
-                ]) && $id != $this->user_id)
-            || (!$this->hasPermissions('global.users.meta.read') // If only group and not in group
-                && $this->hasPermissions('group.users.meta.read')
-                && !in_array($id, $this->getGroupedUserIds()))) {
+        if (!$this->_userCan($id, 'users.meta.read')) {
 
             abort(403, 'Unable to get user meta: insufficient permissions');
             die;
@@ -1546,10 +1758,6 @@ class Users extends ApiController
          * Sanitize fields
          */
 
-        if (isset($meta['value']) && Validate::json($meta['value'])) {
-            $meta['value'] = json_decode($meta['value'], true);
-        }
-
         foreach ($meta as $k => $v) {
 
             if ($k == 'id') {
@@ -1558,8 +1766,16 @@ class Users extends ApiController
             }
 
             if ($k == 'value') {
+
+                if (Validate::json($v)) {
+
+                    $v = json_decode($v, true);
+
+                }
+
                 $meta['metaValue'] = $v;
                 unset($meta[$k]);
+
             }
 
         }
@@ -1603,18 +1819,7 @@ class Users extends ApiController
          * Check permissions
          */
 
-        if (!$this->hasAnyPermissions([ // If no applicable permissions
-                'global.users.meta.read',
-                'group.users.meta.read',
-                'self.users.meta.read'
-            ])
-            || (!$this->hasAnyPermissions([ // If only self does not match
-                    'global.users.meta.read',
-                    'group.users.meta.read',
-                ]) && $id != $this->user_id)
-            || (!$this->hasPermissions('global.users.meta.read') // If only group and not in group
-                && $this->hasPermissions('group.users.meta.read')
-                && !in_array($id, $this->getGroupedUserIds()))) {
+        if (!$this->_userCan($id, 'users.meta.read')) {
 
             abort(403, 'Unable to get user meta: insufficient permissions');
             die;
@@ -1770,222 +1975,6 @@ class Users extends ApiController
     }
 
     /**
-     * Update user meta.
-     *
-     * @param string $id
-     * @param string $meta_key
-     *
-     * @throws ChannelNotFoundException
-     * @throws HttpException
-     * @throws InvalidStatusCodeException
-     * @throws NotFoundException
-     */
-
-    protected function _updateUserMeta(string $id, string $meta_key): void
-    {
-
-        /*
-         * Check permissions
-         */
-
-        if (!$this->hasAnyPermissions([ // If no applicable permissions
-                'global.users.meta.update',
-                'group.users.meta.update',
-                'self.users.meta.update'
-            ])
-            || (!$this->hasAnyPermissions([ // If only self does not match
-                    'global.users.meta.update',
-                    'group.users.meta.update',
-                ]) && $id != $this->user_id)
-            || (!$this->hasPermissions('global.users.meta.update') // If only group and not in group
-                && $this->hasPermissions('group.users.meta.update')
-                && !in_array($id, $this->getGroupedUserIds()))) {
-
-            abort(403, 'Unable to update user meta: insufficient permissions');
-            die;
-
-        }
-
-        /*
-         * Get body
-         */
-
-        $body = $this->api->getBody();
-
-        if (!empty(Arr::except($body, [ // If invalid members have been sent
-            'value'
-        ]))) {
-
-            abort(400, 'Unable to update user meta: request body contains invalid members');
-            die;
-
-        }
-
-        /*
-         * Validate body
-         *
-         * No need, as meta value can be a variety of types.
-         */
-
-        /*
-         * Sanitize body
-         */
-
-        if (is_array($body['value'])) {
-
-            $body['value'] = json_encode($body['value']);
-
-        }
-
-        /*
-         * Perform action
-         */
-
-        try {
-
-            $this->auth->setUserMeta($id, [
-                $meta_key => $body['value']
-            ]);
-
-        } catch (InvalidUserException $e) {
-
-            abort(404, 'Unable to update user meta: user ID does not exist');
-            die;
-
-        }
-
-        /*
-         * Log action
-         */
-
-        log_info('Updated user meta', [
-            'id' => $id,
-            'keys' => [
-                $meta_key
-            ]
-        ]);
-
-        /*
-         * Do event
-         */
-
-        do_event('user.meta.update', $id, [
-            $meta_key
-        ]);
-
-        /*
-         * Send response
-         */
-
-        $this->response->setStatusCode(204)->send();
-
-    }
-
-    /**
-     * Set user meta. (batch)
-     *
-     * @param string $id
-     *
-     * @throws ChannelNotFoundException
-     * @throws HttpException
-     * @throws InvalidStatusCodeException
-     * @throws NotFoundException
-     */
-
-    protected function _updateUserMetas(string $id): void
-    {
-
-        /*
-         * Check permissions
-         */
-
-        if (!$this->hasAnyPermissions([ // If no applicable permissions
-                'global.users.meta.update',
-                'group.users.meta.update',
-                'self.users.meta.update'
-            ])
-            || (!$this->hasAnyPermissions([ // If only self does not match
-                    'global.users.meta.update',
-                    'group.users.meta.update',
-                ]) && $id != $this->user_id)
-            || (!$this->hasPermissions('global.users.meta.update') // If only group and not in group
-                && $this->hasPermissions('group.users.meta.update')
-                && !in_array($id, $this->getGroupedUserIds()))) {
-
-            abort(403, 'Unable to update user meta: insufficient permissions');
-            die;
-
-        }
-
-        /*
-         * Get body
-         */
-
-        $body = $this->api->getBody();
-
-        /*
-         * Validate & sanitize body
-         */
-
-        $metas = [];
-
-        foreach ($body as $k => $meta) {
-
-            if (!is_array($meta) || !isset($meta['id']) || !isset($meta['value'])) {
-
-                abort(400, 'Unable to update user meta: request body contains invalid members');
-
-            }
-
-            if (is_array($meta['value'])) {
-
-                $body[$k]['value'] = json_encode($meta['value']);
-
-            }
-
-            $metas[$meta['id']] = $meta['value'];
-
-        }
-
-        /*
-         * Perform action
-         */
-
-        try {
-
-            $this->auth->setUserMeta($id, $metas);
-
-        } catch (InvalidUserException $e) {
-
-            abort(404, 'Unable to update user meta: user ID does not exist');
-            die;
-
-        }
-
-        /*
-         * Log action
-         */
-
-        log_info('Updated user meta', [
-            'id' => $id,
-            'keys' => array_keys($metas)
-        ]);
-
-        /*
-         * Do event
-         */
-
-        do_event('user.meta.update', $id, array_keys($metas));
-
-        /*
-         * Send response
-         */
-
-        $this->response->setStatusCode(204)->send();
-
-    }
-
-    /**
      * Delete user meta.
      *
      * @param string $id
@@ -2005,18 +1994,7 @@ class Users extends ApiController
          * Check permissions
          */
 
-        if (!$this->hasAnyPermissions([ // If no applicable permissions
-                'global.users.meta.delete',
-                'group.users.meta.delete',
-                'self.users.meta.delete'
-            ])
-            || (!$this->hasAnyPermissions([ // If only self does not match
-                    'global.users.meta.delete',
-                    'group.users.meta.delete',
-                ]) && $id != $this->user_id)
-            || (!$this->hasPermissions('global.users.meta.delete') // If only group and not in group
-                && $this->hasPermissions('group.users.meta.delete')
-                && !in_array($id, $this->getGroupedUserIds()))) {
+        if (!$this->_userCan($id, 'users.meta.delete')) {
 
             abort(403, 'Unable to delete user meta: insufficient permissions');
             die;
@@ -2060,115 +2038,6 @@ class Users extends ApiController
         do_event('user.meta.delete', $id, [
             $meta_key
         ]);
-
-        /*
-         * Send response
-         */
-
-        $this->response->setStatusCode(204)->send();
-
-    }
-
-    /**
-     * Delete user meta. (batch)
-     *
-     * @param string $id
-     *
-     * @throws ChannelNotFoundException
-     * @throws HttpException
-     * @throws InvalidStatusCodeException
-     * @throws NotFoundException
-     * @throws Exception
-     */
-
-    protected function _deleteUserMetas(string $id): void
-    {
-
-        /*
-         * Check permissions
-         */
-
-        if (!$this->hasAnyPermissions([ // If no applicable permissions
-                'global.users.meta.delete',
-                'group.users.meta.delete',
-                'self.users.meta.delete'
-            ])
-            || (!$this->hasAnyPermissions([ // If only self does not match
-                    'global.users.meta.delete',
-                    'group.users.meta.delete',
-                ]) && $id != $this->user_id)
-            || (!$this->hasPermissions('global.users.meta.delete') // If only group and not in group
-                && $this->hasPermissions('group.users.meta.delete')
-                && !in_array($id, $this->getGroupedUserIds()))) {
-
-            abort(403, 'Unable to delete user meta: insufficient permissions');
-            die;
-
-        }
-
-        /*
-         * Get body
-         */
-
-        $body = $this->api->getBody();
-
-        if (!empty(Arr::except($body, [ // If invalid members have been sent
-            'meta'
-        ]))) {
-
-            abort(400, 'Unable to delete user meta: request body contains invalid members');
-            die;
-
-        }
-
-        /*
-         * Validate body
-         */
-
-        try {
-
-            Validate::as($body, [
-                'meta' => 'array'
-            ]);
-
-        } catch (ValidationException $e) {
-
-            abort(400, $e->getMessage());
-            die;
-
-        }
-
-        /*
-         * Check exists
-         */
-
-        if (!$this->auth->userIdExists($id)) {
-
-            abort(404, 'Unable to delete user meta: user ID does not exist');
-            die;
-
-        }
-
-        /*
-         * Perform action
-         */
-
-        $this->auth->deleteUserMeta($id, $body['meta']);
-
-        /*
-         * Log action
-         */
-
-        log_info('Deleted user meta', [
-            'id' => $id,
-            'meta_keys' => $body['meta']
-        ]);
-
-        /*
-         * Do event
-         */
-
-        do_event('user.meta.delete', $id, $body['meta']);
 
         /*
          * Send response
