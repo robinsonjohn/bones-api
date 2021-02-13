@@ -406,7 +406,8 @@ class Permissions extends ApiController
          */
 
         $this->response->setHeaders([
-            'Cache-Control' => 'max-age=3600' // 1 hour
+            'Cache-Control' => 'max-age=3600', // 1 hour
+            'Expires' => gmdate('D, d M Y H:i:s T', time() + 3600)
         ])->sendJson($schema);
 
     }
@@ -512,7 +513,8 @@ class Permissions extends ApiController
          */
 
         $this->response->setHeaders([
-            'Cache-Control' => 'max-age=3600' // 1 hour
+            'Cache-Control' => 'max-age=3600', // 1 hour
+            'Expires' => gmdate('D, d M Y H:i:s T', time() + 3600)
         ])->sendJson($schema);
 
     }
@@ -684,7 +686,8 @@ class Permissions extends ApiController
          */
 
         $this->response->setHeaders([
-            'Cache-Control' => 'max-age=3600' // 1 hour
+            'Cache-Control' => 'max-age=3600', // 1 hour
+            'Expires' => gmdate('D, d M Y H:i:s T', time() + 3600)
         ])->sendJson($schema);
 
 
