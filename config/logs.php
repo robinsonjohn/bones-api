@@ -16,6 +16,7 @@ return [
                     'maxFiles' => 30,
                     'level' => (get_env('APP_ENVIRONMENT') == 'production') ? 'INFO' : 'DEBUG'
                 ],
+                /*
                 'formatter' => [
                     'name' => 'LineFormatter',
                     'params' => [
@@ -23,6 +24,7 @@ return [
                         'dateformat' => 'Y-m-d H:i:s T'
                     ]
                 ]
+                */
             ]
         ],
         'processors' => [
