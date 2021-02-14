@@ -8,7 +8,7 @@
 return [
     'App' => [
         'default' => true,
-        'enabled' => true,
+        'enabled' => false,
         'handlers' => [
             'RotatingFileHandler' => [
                 'params' => [
