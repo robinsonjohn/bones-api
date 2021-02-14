@@ -46,6 +46,14 @@ class GroupObject implements SchemaInterface
             Arr::set($return, 'attributes.updatedAt', date('c', strtotime($array['updatedAt'])));
         }
 
+        $return['relationships'] = [
+            'users' => [
+                'links' => [
+                    'self' => Arr::get($config, 'object_prefix', '') . '/' . $array['id'] . '/users'
+                ]
+            ],
+        ];
+
         $return ['links'] = [
             'self' => Arr::get($config, 'object_prefix', '') . '/' . $array['id']
         ];

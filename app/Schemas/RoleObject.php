@@ -50,6 +50,19 @@ class RoleObject implements SchemaInterface
             Arr::set($return, 'attributes.updatedAt', date('c', strtotime($array['updatedAt'])));
         }
 
+        $return['relationships'] = [
+            'permissions' => [
+                'links' => [
+                    'self' => Arr::get($config, 'object_prefix', '') . '/' . $array['id'] . '/permissions'
+                ]
+            ],
+            'users' => [
+                'links' => [
+                    'self' => Arr::get($config, 'object_prefix', '') . '/' . $array['id'] . '/users'
+                ]
+            ],
+        ];
+
         $return ['links'] = [
             'self' => Arr::get($config, 'object_prefix', '') . '/' . $array['id']
         ];
