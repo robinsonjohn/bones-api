@@ -11,7 +11,7 @@ return [
     'rate_limit' => 50, // Per minute rate limit for authenticated user
     'rate_limit_auth' => 5, // Per minute (Rate limit for failed authentication)
     'rate_limit_public' => 100, // Per minute rate limit for public endpoints
-    'access_token_lifetime' => 86400, // 24 hours
+    'access_token_lifetime' => 2592000, // 86400 (24 hours)
     'refresh_token_lifetime' => 604800, // e.g.: 604800 (7 days), 2592000 (30 days)
     'default_page_size' => 10,
     'max_page_size' => 100,
