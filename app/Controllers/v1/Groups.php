@@ -112,7 +112,7 @@ class Groups extends ApiController
 
         }
 
-        if (Arr::get($body, 'data.type') != 'group') {
+        if (Arr::get($body, 'data.type') != 'groups') {
 
             abort(409, 'Unable to create group: invalid resource type');
             die;
@@ -245,7 +245,7 @@ class Groups extends ApiController
 
         }
 
-        if (Arr::get($body, 'data.type') != 'group') {
+        if (Arr::get($body, 'data.type') != 'groups') {
 
             abort(409, 'Unable to update group: invalid resource type');
             die;

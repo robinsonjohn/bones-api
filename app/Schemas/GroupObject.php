@@ -30,7 +30,7 @@ class GroupObject implements SchemaInterface
         }
 
         $return = [
-            'type' => 'group',
+            'type' => 'groups',
             'id' => $array['id']
         ];
 

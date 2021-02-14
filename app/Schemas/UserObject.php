@@ -30,7 +30,7 @@ class UserObject implements SchemaInterface
         }
 
         $return = [
-            'type' => 'user',
+            'type' => 'users',
             'id' => $array['id']
         ];
 

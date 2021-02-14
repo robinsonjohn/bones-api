@@ -114,7 +114,7 @@ class Roles extends ApiController
 
         }
 
-        if (Arr::get($body, 'data.type') != 'role') {
+        if (Arr::get($body, 'data.type') != 'roles') {
 
             abort(409, 'Unable to create role: invalid resource type');
             die;
@@ -249,7 +249,7 @@ class Roles extends ApiController
 
         }
 
-        if (Arr::get($body, 'data.type') != 'role') {
+        if (Arr::get($body, 'data.type') != 'roles') {
 
             abort(409, 'Unable to update role: invalid resource type');
             die;

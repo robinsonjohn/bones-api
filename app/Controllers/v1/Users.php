@@ -152,7 +152,7 @@ class Users extends ApiController
 
         }
 
-        if (Arr::get($body, 'data.type') != 'user') {
+        if (Arr::get($body, 'data.type') != 'users') {
 
             abort(409, 'Unable to create user: invalid resource type');
             die;
@@ -298,7 +298,7 @@ class Users extends ApiController
 
         }
 
-        if (Arr::get($body, 'data.type') != 'group') {
+        if (Arr::get($body, 'data.type') != 'users') {
 
             abort(409, 'Unable to update user: invalid resource type');
             die;

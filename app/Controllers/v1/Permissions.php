@@ -106,7 +106,7 @@ class Permissions extends ApiController
 
         }
 
-        if (Arr::get($body, 'data.type') != 'permission') {
+        if (Arr::get($body, 'data.type') != 'permissions') {
 
             abort(409, 'Unable to create permission: invalid resource type');
             die;
@@ -241,7 +241,7 @@ class Permissions extends ApiController
 
         }
 
-        if (Arr::get($body, 'data.type') != 'permission') {
+        if (Arr::get($body, 'data.type') != 'permissions') {
 
             abort(409, 'Unable to create permission: invalid resource type');
             die;
