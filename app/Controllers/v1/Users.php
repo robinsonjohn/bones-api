@@ -122,18 +122,9 @@ class Users extends ApiController
          * Get body
          */
 
-        $body = $this->api->getBody([
-            'data'
-        ]); // Required members
+        $body = $this->api->getBody();
 
-        if (!empty(Arr::except($body, 'data')) // Valid members
-            || !is_array($body['data'])
-            || !empty(Arr::except($body['data'], [ // Valid members
-                'type',
-                'attributes'
-            ]))
-            || !is_array($body['data']['attributes'])
-            || !empty(Arr::except($body['data']['attributes'], [ // Valid members
+        if (!$this->api->isValidResource($body, [ // Valid attributes
                 'login',
                 'password',
                 'firstName',
@@ -141,11 +132,11 @@ class Users extends ApiController
                 'companyName',
                 'email',
                 'enabled'
-            ]))
-            || Arr::isMissing($body['data']['attributes'], [ // Required members
+            ], [ // Required attributes
                 'login',
                 'password'
-            ])) {
+            ])
+            || isset($body['data']['id'])) {
 
             abort(400, 'Unable to create user: request body contains invalid members');
             die;
@@ -270,37 +261,28 @@ class Users extends ApiController
          * Get body
          */
 
-        $body = $this->api->getBody([
-            'data'
-        ]); // Required members
+        $body = $this->api->getBody();
 
-        if (!empty(Arr::except($body, 'data')) // Valid members
-            || !is_array($body['data'])
-            || !empty(Arr::except($body['data'], [ // Valid members
-                'type',
-                'id',
-                'attributes'
-            ]))
-            || $body['data']['id'] != $id
-            || !is_array($body['data']['attributes'])
-            || !empty(Arr::except($body['data']['attributes'], [ // Valid members
-                'login',
-                'password',
-                'firstName',
-                'lastName',
-                'companyName',
-                'email',
-                'enabled'
-            ]))) {
+        if (!$this->api->isValidResource($body, [ // Valid attributes
+            'login',
+            'password',
+            'firstName',
+            'lastName',
+            'companyName',
+            'email',
+            'enabled'
+        ], [] // Required attributes
+        )) {
 
             abort(400, 'Unable to update user: request body contains invalid members');
             die;
 
         }
 
-        if (Arr::get($body, 'data.type') != 'users') {
+        if (Arr::get($body, 'data.type') != 'users'
+            || Arr::get($body, 'data.id') != $id) {
 
-            abort(409, 'Unable to update user: invalid resource type');
+            abort(409, 'Unable to update user: invalid resource type and/or ID');
             die;
 
         }
@@ -1461,24 +1443,14 @@ class Users extends ApiController
          * Get body
          */
 
-        $body = $this->api->getBody([
-            'data'
-        ]); // Required members
+        $body = $this->api->getBody();
 
-        if (!empty(Arr::except($body, 'data')) // Valid members
-            || !is_array($body['data'])
-            || !empty(Arr::except($body['data'], [ // Valid members
-                'type',
-                'id',
-                'attributes'
-            ]))
-            || !is_array($body['data']['attributes'])
-            || !empty(Arr::except($body['data']['attributes'], [ // Valid members
+        if (!$this->api->isValidResource($body, [ // Valid attributes
                 'value'
-            ]))
-            || Arr::isMissing($body['data']['attributes'], [ // Required members
+            ], [ // Required attributes
                 'value'
-            ])) {
+            ])
+            || !isset($body['data']['id'])) {
 
             abort(400, 'Unable to create user meta: request body contains invalid members');
             die;
@@ -1597,31 +1569,22 @@ class Users extends ApiController
          * Get body
          */
 
-        $body = $this->api->getBody([
-            'data'
-        ]); // Required members
+        $body = $this->api->getBody();
 
-        if (!empty(Arr::except($body, 'data')) // Valid members
-            || !is_array($body['data'])
-            || !empty(Arr::except($body['data'], [ // Valid members
-                'type',
-                'id',
-                'attributes'
-            ]))
-            || $body['data']['id'] != $meta_key
-            || !is_array($body['data']['attributes'])
-            || !empty(Arr::except($body['data']['attributes'], [ // Valid members
-                'value'
-            ]))) {
+        if (!$this->api->isValidResource($body, [ // Valid attributes
+            'value'
+        ], [] // Required attributes
+        )) {
 
             abort(400, 'Unable to update user meta: request body contains invalid members');
             die;
 
         }
 
-        if (Arr::get($body, 'data.type') != 'userMeta') {
+        if (Arr::get($body, 'data.type') != 'userMeta'
+            || Arr::get($body, 'data.id') != $meta_key) {
 
-            abort(409, 'Unable to update user meta: invalid resource type');
+            abort(409, 'Unable to update user meta: invalid resource type and/or ID');
             die;
 
         }

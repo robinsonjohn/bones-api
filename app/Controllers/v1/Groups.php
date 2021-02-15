@@ -89,23 +89,14 @@ class Groups extends ApiController
          * Get body
          */
 
-        $body = $this->api->getBody([
-            'data'
-        ]); // Required members
+        $body = $this->api->getBody();
 
-        if (!empty(Arr::except($body, 'data')) // Valid members
-            || !is_array($body['data'])
-            || !empty(Arr::except($body['data'], [ // Valid members
-                'type',
-                'attributes'
-            ]))
-            || !is_array($body['data']['attributes'])
-            || !empty(Arr::except($body['data']['attributes'], [ // Valid members
+        if (!$this->api->isValidResource($body, [ // Valid attributes
                 'name'
-            ]))
-            || Arr::isMissing($body['data']['attributes'], [ // Required members
+            ], [ // Required attributes
                 'name'
-            ])) {
+            ])
+            || isset($body['data']['id'])) {
 
             abort(400, 'Unable to create group: request body contains invalid members');
             die;
@@ -183,10 +174,10 @@ class Groups extends ApiController
          */
 
         $this->response->setStatusCode(201)
-        ->setHeaders([
-            'Location' => $this->base_uri . '/groups/' . $id
-        ])
-        ->sendJson($schema);
+            ->setHeaders([
+                'Location' => $this->base_uri . '/groups/' . $id
+            ])
+            ->sendJson($schema);
 
     }
 
@@ -223,31 +214,22 @@ class Groups extends ApiController
          * Get body
          */
 
-        $body = $this->api->getBody([
-            'data'
-        ]); // Required members
+        $body = $this->api->getBody();
 
-        if (!empty(Arr::except($body, 'data')) // Valid members
-            || !is_array($body['data'])
-            || !empty(Arr::except($body['data'], [ // Valid members
-                'type',
-                'id',
-                'attributes'
-            ]))
-            || $body['data']['id'] != $id
-            || !is_array($body['data']['attributes'])
-            || !empty(Arr::except($body['data']['attributes'], [ // Valid members
-                'name'
-            ]))) {
+        if (!$this->api->isValidResource($body, [ // Valid attributes
+            'name'
+        ], [] // Required attributes
+        )) {
 
             abort(400, 'Unable to update group: request body contains invalid members');
             die;
 
         }
 
-        if (Arr::get($body, 'data.type') != 'groups') {
+        if (Arr::get($body, 'data.type') != 'groups'
+            || Arr::get($body, 'data.id') != $id) {
 
-            abort(409, 'Unable to update group: invalid resource type');
+            abort(409, 'Unable to update group: invalid resource type and/or ID');
             die;
 
         }

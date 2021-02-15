@@ -90,24 +90,15 @@ class Roles extends ApiController
          * Get body
          */
 
-        $body = $this->api->getBody([
-            'data'
-        ]); // Required members
+        $body = $this->api->getBody();
 
-        if (!empty(Arr::except($body, 'data')) // Valid members
-            || !is_array($body['data'])
-            || !empty(Arr::except($body['data'], [ // Valid members
-                'type',
-                'attributes'
-            ]))
-            || !is_array($body['data']['attributes'])
-            || !empty(Arr::except($body['data']['attributes'], [ // Valid members
+        if (!$this->api->isValidResource($body, [ // Valid attributes
                 'name',
                 'enabled'
-            ]))
-            || Arr::isMissing($body['data']['attributes'], [ // Required members
+            ], [ // Required attributes
                 'name'
-            ])) {
+            ])
+            || isset($body['data']['id'])) {
 
             abort(400, 'Unable to create role: request body contains invalid members');
             die;
@@ -226,32 +217,23 @@ class Roles extends ApiController
          * Get body
          */
 
-        $body = $this->api->getBody([
-            'data'
-        ]); // Required members
+        $body = $this->api->getBody();
 
-        if (!empty(Arr::except($body, 'data')) // Valid members
-            || !is_array($body['data'])
-            || !empty(Arr::except($body['data'], [ // Valid members
-                'type',
-                'id',
-                'attributes'
-            ]))
-            || $body['data']['id'] != $id
-            || !is_array($body['data']['attributes'])
-            || !empty(Arr::except($body['data']['attributes'], [ // Valid members
-                'name',
-                'enabled'
-            ]))) {
+        if (!$this->api->isValidResource($body, [ // Valid attributes
+            'name',
+            'enabled'
+        ], [] // Required attributes
+        )) {
 
             abort(400, 'Unable to update role: request body contains invalid members');
             die;
 
         }
 
-        if (Arr::get($body, 'data.type') != 'roles') {
+        if (Arr::get($body, 'data.type') != 'roles'
+            || Arr::get($body, 'data.id') != $id) {
 
-            abort(409, 'Unable to update role: invalid resource type');
+            abort(409, 'Unable to update role: invalid resource type and/or ID');
             die;
 
         }
