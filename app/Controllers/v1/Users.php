@@ -2118,7 +2118,7 @@ class Users extends ApiController
         if (Request::isPost()) {
 
             if (isset($params['id'])) {
-                abort(400);
+                abort(405, 'Request method (POST) not allowed');
                 die;
             }
 
@@ -2139,7 +2139,7 @@ class Users extends ApiController
         } else if (Request::isPatch()) {
 
             if (!isset($params['id'])) {
-                abort(400);
+                abort(405, 'Request method (PATCH) not allowed');
                 die;
             }
 
@@ -2148,7 +2148,7 @@ class Users extends ApiController
         } else { // Delete
 
             if (!isset($params['id'])) {
-                abort(400);
+                abort(405, 'Request method (DELETE) not allowed');
                 die;
             }
 
@@ -2323,7 +2323,7 @@ class Users extends ApiController
         } else if (Request::isPatch()) {
 
             if (!isset($params['meta_key'])) {
-                abort(400);
+                abort(405, 'Request method (PATCH) not allowed');
                 die;
             }
 
@@ -2332,7 +2332,7 @@ class Users extends ApiController
         } else { // Delete
 
             if (!isset($params['meta_key'])) {
-                abort(400);
+                abort(405, 'Request method (DELETE) not allowed');
                 die;
             }
 
