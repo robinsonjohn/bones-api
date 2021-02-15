@@ -42,14 +42,6 @@ class PermissionObject implements SchemaInterface
             Arr::set($return, 'attributes.description', $array['description']);
         }
 
-        $return['relationships'] = [
-            'roles' => [
-                'links' => [
-                    'self' => Arr::get($config, 'object_prefix', '') . '/' . $array['id'] . '/roles'
-                ]
-            ],
-        ];
-
         $return ['links'] = [
             'self' => Arr::get($config, 'object_prefix', '') . '/' . $array['id']
         ];

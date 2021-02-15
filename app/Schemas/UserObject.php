@@ -66,24 +66,6 @@ class UserObject implements SchemaInterface
             Arr::set($return, 'attributes.updatedAt', date('c', strtotime($array['updatedAt'])));
         }
 
-        $return['relationships'] = [
-            'groups' => [
-                'links' => [
-                    'self' => Arr::get($config, 'object_prefix', '') . '/' . $array['id'] . '/groups'
-                ]
-            ],
-            'permissions' => [
-                'links' => [
-                    'self' => Arr::get($config, 'object_prefix', '') . '/' . $array['id'] . '/permissions'
-                ]
-            ],
-            'roles' => [
-                'links' => [
-                    'self' => Arr::get($config, 'object_prefix', '') . '/' . $array['id'] . '/roles'
-                ]
-            ],
-        ];
-
         $return['links'] = [
             'self' => Arr::get($config, 'object_prefix', '') . '/' . $array['id']
         ];
