@@ -1,59 +1,71 @@
 <?php
 
+/**
+ * @package bones-api
+ * @link https://github.com/bayfrontmedia/bones-api
+ * @author John Robinson <john@bayfrontmedia.com>
+ * @copyright 2021 Bayfront Media
+ */
+
 namespace App\Controllers\v1;
 
-use Bayfront\Bones\Exceptions\ControllerException;
+use Bayfront\ArraySchema\InvalidSchemaException;
 use Bayfront\Bones\Exceptions\HttpException;
-use Bayfront\Bones\Exceptions\ServiceException;
 use Bayfront\Container\NotFoundException;
-use Bayfront\HttpRequest\Request;
 use Bayfront\HttpResponse\InvalidStatusCodeException;
-use Bayfront\LeakyBucket\AdapterException;
-use Bayfront\LeakyBucket\BucketException;
+use Bayfront\MonologFactory\Exceptions\ChannelNotFoundException;
+use Bayfront\RBAC\Exceptions\InvalidUserException;
 
-/**
- * This controller allows rate limited authenticated access to endpoints.
- */
-class Me extends ApiController
+class Me extends Users
 {
 
     /**
-     * ExampleApiController constructor.
-     *
-     * @throws ControllerException
-     * @throws NotFoundException
-     * @throws ServiceException
-     * @throws HttpException
-     * @throws InvalidStatusCodeException
-     * @throws AdapterException
-     * @throws BucketException
-     */
-
-    public function __construct()
-    {
-        parent::__construct(true); // Requires authentication
-    }
-
-    /**
-     * Router destination.
-     *
-     * @return void
+     * @param $params
      *
      * @throws HttpException
+     * @throws InvalidSchemaException
      * @throws InvalidStatusCodeException
      * @throws NotFoundException
+     * @throws ChannelNotFoundException
+     * @throws InvalidUserException
      */
 
-    public function index(): void
+    public function me($params): void
     {
 
-        $this->api->allowedMethods([
-            'GET'
-        ]);
+        if (!isset($params['resource'])) {
 
-        $this->response->redirect(str_replace('/me', '/users/' . $this->user_id, Request::getUrl(true)), 307);
+            $this->index([
+                'id' => $this->user_id
+            ]);
+
+        } else {
+
+            switch ($params['resource']) {
+
+                case 'permissions':
+
+                    $this->_getUserPermissions($this->user_id);
+                    break;
+
+                case 'roles':
+
+                    $this->_getUserRoles($this->user_id);
+                    break;
+
+                case 'groups':
+
+                    $this->_getUserGroups($this->user_id);
+                    break;
+
+                default:
+
+                    abort(404);
+
+            }
+
+        }
 
     }
 
 }
-
