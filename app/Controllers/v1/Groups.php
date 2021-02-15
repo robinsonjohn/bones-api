@@ -59,6 +59,220 @@ class Groups extends ApiController
     }
 
     /**
+     * Get single group.
+     *
+     * @param string $id
+     *
+     * @return void
+     *
+     * @throws HttpException
+     * @throws InvalidSchemaException
+     * @throws InvalidStatusCodeException
+     * @throws NotFoundException
+     */
+
+    protected function _getGroup(string $id): void
+    {
+
+        /*
+         * Check permissions
+         */
+
+        if (!$this->hasAnyPermissions([
+                'global.groups.read',
+                'self.groups.read'
+            ]) || (!$this->hasPermissions('global.groups.read')
+                && !in_array($id, $this->user_groups))) {
+
+            abort(403, 'Unable to get group: insufficient permissions');
+            die;
+
+        }
+
+        /*
+         * Get request
+         */
+
+        $request = $this->api->parseQuery(
+            Request::getQuery(),
+            Arr::get(Request::getQuery(), 'page.size', get_config('api.default_page_size', 10)),
+            get_config('api.max_page_size', 100)
+        );
+
+        /*
+         * Validate field types and fields
+         *
+         * Valid fields should match what is available to be
+         * returned in the schema.
+         */
+
+        if (!empty(Arr::except($request['fields'], [ // Valid field types
+                'groups'
+            ])) || !empty(Arr::except(array_flip(Arr::get($request['fields'], 'groups', [])), [ // Valid fields
+                'name',
+                'createdAt',
+                'updatedAt'
+            ]))) {
+
+            abort(400, 'Unable to get group: query string contains invalid fields');
+            die;
+
+        }
+
+        /*
+         * Get data
+         */
+
+        try {
+
+            $group = $this->auth->getGroup($id);
+
+        } catch (InvalidGroupException $e) {
+
+            abort(404, 'Unable to get group: group ID does not exist');
+            die;
+
+        }
+
+        /*
+         * Filter fields
+         */
+
+        if (isset($request['fields']['groups'])) {
+
+            $request = $this->requireValues($request, 'fields.groups', 'id');
+
+            $group = Arr::only($group, $request['fields']['groups']);
+
+        }
+
+        /*
+         * Build schema
+         */
+
+        $schema = GroupResource::create($group, [
+            'object_prefix' => $this->base_uri . '/groups'
+        ]);
+
+        /*
+         * Send response
+         */
+
+        $this->response->setHeaders([
+            'Cache-Control' => 'max-age=3600', // 1 hour
+            'Expires' => gmdate('D, d M Y H:i:s T', time() + 3600)
+        ])->sendJson($schema);
+
+    }
+
+    /**
+     * Get groups.
+     *
+     * @return void
+     *
+     * @throws HttpException
+     * @throws InvalidSchemaException
+     * @throws InvalidStatusCodeException
+     * @throws NotFoundException
+     */
+
+    protected function _getGroups(): void
+    {
+
+        /*
+         * Check permissions
+         */
+
+        if (!$this->hasAnyPermissions([
+            'global.groups.read',
+            'self.groups.read'
+        ])) {
+
+            abort(403, 'Unable to get groups: insufficient permissions');
+            die;
+
+        }
+
+        /*
+         * Get request
+         */
+
+        $request = $this->api->parseQuery(
+            Request::getQuery(),
+            Arr::get(Request::getQuery(), 'page.size', get_config('api.default_page_size', 10)),
+            get_config('api.max_page_size', 100)
+        );
+
+        /*
+         * Validate field types and fields
+         *
+         * Valid fields should match what is available to be
+         * returned in the schema.
+         */
+
+        if (!empty(Arr::except($request['fields'], [ // Valid field types
+                'groups'
+            ])) || !empty(Arr::except(array_flip(Arr::get($request['fields'], 'groups', [])), [ // Valid fields
+                'name',
+                'createdAt',
+                'updatedAt'
+            ]))) {
+
+            abort(400, 'Unable to get groups: query string contains invalid fields');
+            die;
+
+        }
+
+        /*
+         * Filter fields
+         */
+
+        $request = $this->requireValues($request, 'fields.groups', 'id');
+
+        /*
+         * Get data
+         */
+
+        try {
+
+            if (!$this->hasPermissions('global.groups.read')) {
+
+                $groups = $this->auth->getGroupsCollection($request, $this->user_groups); // Limit to user's groups
+
+            } else {
+
+                $groups = $this->auth->getGroupsCollection($request); // Get all roles
+
+            }
+
+        } catch (QueryException|PDOException $e) {
+
+            abort(400, 'Unable to get groups: invalid request');
+            die;
+
+        }
+
+        /*
+         * Build schema
+         */
+
+        $schema = GroupCollection::create($groups, [
+            'object_prefix' => $this->base_uri . '/groups',
+            'collection_prefix' => $this->base_uri . '/groups',
+        ]);
+
+        /*
+         * Send response
+         */
+
+        $this->response->setHeaders([
+            'Cache-Control' => 'max-age=3600', // 1 hour
+            'Expires' => gmdate('D, d M Y H:i:s T', time() + 3600)
+        ])->sendJson($schema);
+
+    }
+
+    /**
      * Create new group.
      *
      * @return void
@@ -303,220 +517,6 @@ class Groups extends ApiController
          */
 
         $this->response->sendJson($schema);
-
-    }
-
-    /**
-     * Get single group.
-     *
-     * @param string $id
-     *
-     * @return void
-     *
-     * @throws HttpException
-     * @throws InvalidSchemaException
-     * @throws InvalidStatusCodeException
-     * @throws NotFoundException
-     */
-
-    protected function _getGroup(string $id): void
-    {
-
-        /*
-         * Check permissions
-         */
-
-        if (!$this->hasAnyPermissions([
-                'global.groups.read',
-                'self.groups.read'
-            ]) || (!$this->hasPermissions('global.groups.read')
-                && !in_array($id, $this->user_groups))) {
-
-            abort(403, 'Unable to get group: insufficient permissions');
-            die;
-
-        }
-
-        /*
-         * Get request
-         */
-
-        $request = $this->api->parseQuery(
-            Request::getQuery(),
-            Arr::get(Request::getQuery(), 'page.size', get_config('api.default_page_size', 10)),
-            get_config('api.max_page_size', 100)
-        );
-
-        /*
-         * Validate field types and fields
-         *
-         * Valid fields should match what is available to be
-         * returned in the schema.
-         */
-
-        if (!empty(Arr::except($request['fields'], [ // Valid field types
-                'groups'
-            ])) || !empty(Arr::except(array_flip(Arr::get($request['fields'], 'groups', [])), [ // Valid fields
-                'name',
-                'createdAt',
-                'updatedAt'
-            ]))) {
-
-            abort(400, 'Unable to get group: query string contains invalid fields');
-            die;
-
-        }
-
-        /*
-         * Get data
-         */
-
-        try {
-
-            $group = $this->auth->getGroup($id);
-
-        } catch (InvalidGroupException $e) {
-
-            abort(404, 'Unable to get group: group ID does not exist');
-            die;
-
-        }
-
-        /*
-         * Filter fields
-         */
-
-        if (isset($request['fields']['groups'])) {
-
-            $request = $this->requireValues($request, 'fields.groups', 'id');
-
-            $group = Arr::only($group, $request['fields']['groups']);
-
-        }
-
-        /*
-         * Build schema
-         */
-
-        $schema = GroupResource::create($group, [
-            'object_prefix' => $this->base_uri . '/groups'
-        ]);
-
-        /*
-         * Send response
-         */
-
-        $this->response->setHeaders([
-            'Cache-Control' => 'max-age=3600', // 1 hour
-            'Expires' => gmdate('D, d M Y H:i:s T', time() + 3600)
-        ])->sendJson($schema);
-
-    }
-
-    /**
-     * Get groups.
-     *
-     * @return void
-     *
-     * @throws HttpException
-     * @throws InvalidSchemaException
-     * @throws InvalidStatusCodeException
-     * @throws NotFoundException
-     */
-
-    protected function _getGroups(): void
-    {
-
-        /*
-         * Check permissions
-         */
-
-        if (!$this->hasAnyPermissions([
-            'global.groups.read',
-            'self.groups.read'
-        ])) {
-
-            abort(403, 'Unable to get groups: insufficient permissions');
-            die;
-
-        }
-
-        /*
-         * Get request
-         */
-
-        $request = $this->api->parseQuery(
-            Request::getQuery(),
-            Arr::get(Request::getQuery(), 'page.size', get_config('api.default_page_size', 10)),
-            get_config('api.max_page_size', 100)
-        );
-
-        /*
-         * Validate field types and fields
-         *
-         * Valid fields should match what is available to be
-         * returned in the schema.
-         */
-
-        if (!empty(Arr::except($request['fields'], [ // Valid field types
-                'groups'
-            ])) || !empty(Arr::except(array_flip(Arr::get($request['fields'], 'groups', [])), [ // Valid fields
-                'name',
-                'createdAt',
-                'updatedAt'
-            ]))) {
-
-            abort(400, 'Unable to get groups: query string contains invalid fields');
-            die;
-
-        }
-
-        /*
-         * Filter fields
-         */
-
-        $request = $this->requireValues($request, 'fields.groups', 'id');
-
-        /*
-         * Get data
-         */
-
-        try {
-
-            if (!$this->hasPermissions('global.groups.read')) {
-
-                $groups = $this->auth->getGroupsCollection($request, $this->user_groups); // Limit to user's groups
-
-            } else {
-
-                $groups = $this->auth->getGroupsCollection($request); // Get all roles
-
-            }
-
-        } catch (QueryException|PDOException $e) {
-
-            abort(400, 'Unable to get groups: invalid request');
-            die;
-
-        }
-
-        /*
-         * Build schema
-         */
-
-        $schema = GroupCollection::create($groups, [
-            'object_prefix' => $this->base_uri . '/groups',
-            'collection_prefix' => $this->base_uri . '/groups',
-        ]);
-
-        /*
-         * Send response
-         */
-
-        $this->response->setHeaders([
-            'Cache-Control' => 'max-age=3600', // 1 hour
-            'Expires' => gmdate('D, d M Y H:i:s T', time() + 3600)
-        ])->sendJson($schema);
 
     }
 
@@ -949,22 +949,13 @@ class Groups extends ApiController
     {
 
         $this->api->allowedMethods([
-            'POST',
             'GET',
+            'POST',
             'PATCH',
             'DELETE'
         ]);
 
-        if (Request::isPost()) {
-
-            if (isset($params['id'])) {
-                abort(405, 'Request method (POST) not allowed');
-                die;
-            }
-
-            $this->_createGroup();
-
-        } else if (Request::isGet()) {
+        if (Request::isGet()) {
 
             if (isset($params['id'])) { // Single group
 
@@ -975,6 +966,15 @@ class Groups extends ApiController
                 $this->_getGroups();
 
             }
+
+        } else if (Request::isPost()) {
+
+            if (isset($params['id'])) {
+                abort(405, 'Request method (POST) not allowed');
+                die;
+            }
+
+            $this->_createGroup();
 
         } else if (Request::isPatch()) {
 

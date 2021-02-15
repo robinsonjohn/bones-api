@@ -91,6 +91,226 @@ class Users extends ApiController
     }
 
     /**
+     * Get single user.
+     *
+     * @param string $id
+     *
+     * @return void
+     *
+     * @throws HttpException
+     * @throws InvalidSchemaException
+     * @throws InvalidStatusCodeException
+     * @throws NotFoundException
+     */
+
+    protected function _getUser(string $id): void
+    {
+
+        /*
+         * Check permissions
+         */
+
+        if (!$this->_userCan($id, 'users.read')) {
+
+            abort(403, 'Unable to get user: insufficient permissions');
+            die;
+
+        }
+
+        /*
+         * Get request
+         */
+
+        $request = $this->api->parseQuery(
+            Request::getQuery(),
+            Arr::get(Request::getQuery(), 'page.size', get_config('api.default_page_size', 10)),
+            get_config('api.max_page_size', 100)
+        );
+
+        /*
+         * Validate field types and fields
+         *
+         * Valid fields should match what is available to be
+         * returned in the schema.
+         */
+
+        if (!empty(Arr::except($request['fields'], [ // Valid field types
+                'users'
+            ])) || !empty(Arr::except(array_flip(Arr::get($request['fields'], 'users', [])), [ // Valid fields
+                'login',
+                'firstName',
+                'lastName',
+                'companyName',
+                'email',
+                'enabled',
+                'createdAt',
+                'updatedAt'
+            ]))) {
+
+            abort(400, 'Unable to get user: query string contains invalid fields');
+            die;
+
+        }
+
+        /*
+         * Get data
+         */
+
+        try {
+
+            $user = $this->auth->getUser($id);
+
+        } catch (InvalidUserException $e) {
+
+            abort(404, 'Unable to get user: user ID does not exist');
+            die;
+
+        }
+
+        /*
+         * Filter fields
+         */
+
+        if (isset($request['fields']['users'])) {
+
+            $request = $this->requireValues($request, 'fields.users', 'id');
+
+            $user = Arr::only($user, $request['fields']['users']);
+
+        }
+
+        /*
+         * Build schema
+         */
+
+        $schema = UserResource::create($user, [
+            'object_prefix' => $this->base_uri . '/users'
+        ]);
+
+        /*
+         * Send response
+         */
+
+        $this->response->setHeaders([
+            'Cache-Control' => 'max-age=3600', // 1 hour
+            'Expires' => gmdate('D, d M Y H:i:s T', time() + 3600)
+        ])->sendJson($schema);
+
+    }
+
+    /**
+     * Get users.
+     *
+     * @return void
+     *
+     * @throws HttpException
+     * @throws InvalidSchemaException
+     * @throws InvalidStatusCodeException
+     * @throws NotFoundException
+     */
+
+    protected function _getUsers(): void
+    {
+
+        /*
+         * Check permissions
+         */
+
+        if (!$this->hasAnyPermissions([
+            'global.users.read',
+            'group.users.read'
+        ])) {
+
+            abort(403, 'Unable to get users: insufficient permissions');
+            die;
+
+        }
+
+        /*
+         * Get request
+         */
+
+        $request = $this->api->parseQuery(
+            Request::getQuery(),
+            Arr::get(Request::getQuery(), 'page.size', get_config('api.default_page_size', 10)),
+            get_config('api.max_page_size', 100)
+        );
+
+        /*
+         * Validate field types and fields
+         *
+         * Valid fields should match what is available to be
+         * returned in the schema.
+         */
+
+        if (!empty(Arr::except($request['fields'], [ // Valid field types
+                'users'
+            ])) || !empty(Arr::except(array_flip(Arr::get($request['fields'], 'users', [])), [ // Valid fields
+                'login',
+                'firstName',
+                'lastName',
+                'companyName',
+                'email',
+                'enabled',
+                'createdAt',
+                'updatedAt'
+            ]))) {
+
+            abort(400, 'Unable to get users: query string contains invalid fields');
+            die;
+
+        }
+
+        /*
+         * Filter fields
+         */
+
+        $request = $this->requireValues($request, 'fields.users', 'id');
+
+        /*
+         * Get data
+         */
+
+        try {
+
+            if (!$this->hasPermissions('global.users.read')) {
+
+                $users = $this->auth->getUsersCollection($request, $this->user_groups); // Limit users to user's groups
+
+            } else {
+
+                $users = $this->auth->getUsersCollection($request); // Get all users
+
+            }
+
+        } catch (QueryException|PDOException $e) {
+
+            abort(400, 'Unable to get users: invalid request');
+            die;
+
+        }
+
+        /*
+         * Build schema
+         */
+
+        $schema = UserCollection::create($users, [
+            'object_prefix' => $this->base_uri . '/users',
+            'collection_prefix' => $this->base_uri . '/users'
+        ]);
+
+        /*
+         * Send response
+         */
+
+        $this->response->setHeaders([
+            'Cache-Control' => 'max-age=3600', // 1 hour
+            'Expires' => gmdate('D, d M Y H:i:s T', time() + 3600)
+        ])->sendJson($schema);
+
+    }
+
+    /**
      * Create new user.
      *
      * @return void
@@ -362,226 +582,6 @@ class Users extends ApiController
          */
 
         $this->response->sendJson($schema);
-
-    }
-
-    /**
-     * Get single user.
-     *
-     * @param string $id
-     *
-     * @return void
-     *
-     * @throws HttpException
-     * @throws InvalidSchemaException
-     * @throws InvalidStatusCodeException
-     * @throws NotFoundException
-     */
-
-    protected function _getUser(string $id): void
-    {
-
-        /*
-         * Check permissions
-         */
-
-        if (!$this->_userCan($id, 'users.read')) {
-
-            abort(403, 'Unable to get user: insufficient permissions');
-            die;
-
-        }
-
-        /*
-         * Get request
-         */
-
-        $request = $this->api->parseQuery(
-            Request::getQuery(),
-            Arr::get(Request::getQuery(), 'page.size', get_config('api.default_page_size', 10)),
-            get_config('api.max_page_size', 100)
-        );
-
-        /*
-         * Validate field types and fields
-         *
-         * Valid fields should match what is available to be
-         * returned in the schema.
-         */
-
-        if (!empty(Arr::except($request['fields'], [ // Valid field types
-                'users'
-            ])) || !empty(Arr::except(array_flip(Arr::get($request['fields'], 'users', [])), [ // Valid fields
-                'login',
-                'firstName',
-                'lastName',
-                'companyName',
-                'email',
-                'enabled',
-                'createdAt',
-                'updatedAt'
-            ]))) {
-
-            abort(400, 'Unable to get user: query string contains invalid fields');
-            die;
-
-        }
-
-        /*
-         * Get data
-         */
-
-        try {
-
-            $user = $this->auth->getUser($id);
-
-        } catch (InvalidUserException $e) {
-
-            abort(404, 'Unable to get user: user ID does not exist');
-            die;
-
-        }
-
-        /*
-         * Filter fields
-         */
-
-        if (isset($request['fields']['users'])) {
-
-            $request = $this->requireValues($request, 'fields.users', 'id');
-
-            $user = Arr::only($user, $request['fields']['users']);
-
-        }
-
-        /*
-         * Build schema
-         */
-
-        $schema = UserResource::create($user, [
-            'object_prefix' => $this->base_uri . '/users'
-        ]);
-
-        /*
-         * Send response
-         */
-
-        $this->response->setHeaders([
-            'Cache-Control' => 'max-age=3600', // 1 hour
-            'Expires' => gmdate('D, d M Y H:i:s T', time() + 3600)
-        ])->sendJson($schema);
-
-    }
-
-    /**
-     * Get users.
-     *
-     * @return void
-     *
-     * @throws HttpException
-     * @throws InvalidSchemaException
-     * @throws InvalidStatusCodeException
-     * @throws NotFoundException
-     */
-
-    protected function _getUsers(): void
-    {
-
-        /*
-         * Check permissions
-         */
-
-        if (!$this->hasAnyPermissions([
-            'global.users.read',
-            'group.users.read'
-        ])) {
-
-            abort(403, 'Unable to get users: insufficient permissions');
-            die;
-
-        }
-
-        /*
-         * Get request
-         */
-
-        $request = $this->api->parseQuery(
-            Request::getQuery(),
-            Arr::get(Request::getQuery(), 'page.size', get_config('api.default_page_size', 10)),
-            get_config('api.max_page_size', 100)
-        );
-
-        /*
-         * Validate field types and fields
-         *
-         * Valid fields should match what is available to be
-         * returned in the schema.
-         */
-
-        if (!empty(Arr::except($request['fields'], [ // Valid field types
-                'users'
-            ])) || !empty(Arr::except(array_flip(Arr::get($request['fields'], 'users', [])), [ // Valid fields
-                'login',
-                'firstName',
-                'lastName',
-                'companyName',
-                'email',
-                'enabled',
-                'createdAt',
-                'updatedAt'
-            ]))) {
-
-            abort(400, 'Unable to get users: query string contains invalid fields');
-            die;
-
-        }
-
-        /*
-         * Filter fields
-         */
-
-        $request = $this->requireValues($request, 'fields.users', 'id');
-
-        /*
-         * Get data
-         */
-
-        try {
-
-            if (!$this->hasPermissions('global.users.read')) {
-
-                $users = $this->auth->getUsersCollection($request, $this->user_groups); // Limit users to user's groups
-
-            } else {
-
-                $users = $this->auth->getUsersCollection($request); // Get all users
-
-            }
-
-        } catch (QueryException|PDOException $e) {
-
-            abort(400, 'Unable to get users: invalid request');
-            die;
-
-        }
-
-        /*
-         * Build schema
-         */
-
-        $schema = UserCollection::create($users, [
-            'object_prefix' => $this->base_uri . '/users',
-            'collection_prefix' => $this->base_uri . '/users'
-        ]);
-
-        /*
-         * Send response
-         */
-
-        $this->response->setHeaders([
-            'Cache-Control' => 'max-age=3600', // 1 hour
-            'Expires' => gmdate('D, d M Y H:i:s T', time() + 3600)
-        ])->sendJson($schema);
 
     }
 
@@ -1410,258 +1410,6 @@ class Users extends ApiController
 
     }
 
-
-    /**
-     * Create user meta.
-     *
-     * @param string $id
-     *
-     * @return void
-     *
-     * @throws ChannelNotFoundException
-     * @throws HttpException
-     * @throws InvalidSchemaException
-     * @throws InvalidStatusCodeException
-     * @throws NotFoundException
-     */
-
-    protected function _createUserMeta(string $id): void
-    {
-
-        /*
-         * Check permissions
-         */
-
-        if (!$this->_userCan($id, 'users.meta.create')) {
-
-            abort(403, 'Unable to create user meta: insufficient permissions');
-            die;
-
-        }
-
-        /*
-         * Get body
-         */
-
-        $body = $this->api->getBody();
-
-        if (!$this->api->isValidResource($body, [ // Valid attributes
-                'value'
-            ], [ // Required attributes
-                'value'
-            ])
-            || !isset($body['data']['id'])) {
-
-            abort(400, 'Unable to create user meta: request body contains invalid members');
-            die;
-
-        }
-
-        if (Arr::get($body, 'data.type') != 'userMeta') {
-
-            abort(409, 'Unable to create user meta: invalid resource type');
-            die;
-
-        }
-
-        /*
-         * Validate body
-         *
-         * No validation needed- value can be mixed type
-         */
-
-        /*
-         * Check exists
-         */
-
-        if ($this->auth->userHasMeta($id, $body['data']['id'])) {
-
-            abort(409, 'Unable to create user meta: meta ID already exists');
-            die;
-
-        }
-
-        /*
-         * Perform action
-         */
-
-        try {
-
-            $this->auth->setUserMeta($id, [
-                $body['data']['id'] => $body['data']['attributes']['value']
-            ]);
-
-        } catch (InvalidUserException $e) {
-
-            abort(404, 'Unable to create user meta: user ID does not exist');
-            die;
-
-        }
-
-        /*
-         * Log action
-         */
-
-        log_info('Created user meta', [
-            'id' => $id,
-            'meta_key' => $body['data']['id']
-        ]);
-
-        /*
-         * Do event
-         */
-
-        do_event('user.meta.create', $id, $body['data']['id']);
-
-        /*
-         * Build schema
-         */
-
-        $schema = UserMetaResource::create([
-            'metaKey' => $body['data']['id'],
-            'metaValue' => $body['data']['attributes']['value']
-        ], [
-            'object_prefix' => $this->base_uri . '/users/' . $id . '/meta'
-        ]);
-
-        /*
-         * Send response
-         */
-
-        $this->response->setStatusCode(201)
-            ->setHeaders([
-                'Location' => $this->base_uri . '/users/' . $id . '/meta/' . $body['data']['id']
-            ])
-            ->sendJson($schema);
-
-    }
-
-    /**
-     * Update user meta.
-     *
-     * @param string $id
-     * @param string $meta_key
-     *
-     * @return void
-     *
-     * @throws ChannelNotFoundException
-     * @throws HttpException
-     * @throws InvalidSchemaException
-     * @throws InvalidStatusCodeException
-     * @throws NotFoundException
-     */
-
-    protected function _updateUserMeta(string $id, string $meta_key): void
-    {
-
-        /*
-         * Check permissions
-         */
-
-        if (!$this->_userCan($id, 'users.meta.update')) {
-
-            abort(403, 'Unable to update user meta: insufficient permissions');
-            die;
-
-        }
-
-        /*
-         * Get body
-         */
-
-        $body = $this->api->getBody();
-
-        if (!$this->api->isValidResource($body, [ // Valid attributes
-            'value'
-        ], [] // Required attributes
-        )) {
-
-            abort(400, 'Unable to update user meta: request body contains invalid members');
-            die;
-
-        }
-
-        if (Arr::get($body, 'data.type') != 'userMeta'
-            || Arr::get($body, 'data.id') != $meta_key) {
-
-            abort(409, 'Unable to update user meta: invalid resource type and/or ID');
-            die;
-
-        }
-
-        /*
-         * Validate body
-         *
-         * No validation needed- value can be mixed type
-         */
-
-        /*
-         * Check exists
-         */
-
-        if (!$this->auth->userHasMeta($id, $meta_key)) {
-
-            abort(404, 'Unable to update user meta: user meta does not exist');
-            die;
-
-        }
-
-        /*
-         * Perform action
-         */
-
-        try {
-
-            $this->auth->setUserMeta($id, [
-                $meta_key => $body['data']['attributes']['value']
-            ]);
-
-        } catch (InvalidUserException $e) {
-
-            /*
-             * This should never occur since userHasMeta was already checked,
-             * but the exception will be caught anyway.
-             */
-
-            abort(404, 'Unable to update user meta: user ID does not exist');
-            die;
-
-        }
-
-        /*
-         * Log action
-         */
-
-        log_info('Updated user meat', [
-            'id' => $id,
-            'meta_key' => $meta_key
-        ]);
-
-        /*
-         * Do event
-         */
-
-        do_event('user.meta.update', $id, $meta_key);
-
-        /*
-         * Build schema
-         */
-
-        $schema = UserMetaResource::create([
-            'metaKey' => $meta_key,
-            'metaValue' => $body['data']['attributes']['value']
-        ], [
-            'object_prefix' => $this->base_uri . '/users/' . $id . '/meta'
-        ]);
-
-        /*
-         * Send response
-         */
-
-        $this->response->sendJson($schema);
-
-    }
-
     /**
      * Get single user meta.
      *
@@ -1968,6 +1716,257 @@ class Users extends ApiController
         ])->sendJson($schema);
 
     }
+    
+    /**
+     * Create user meta.
+     *
+     * @param string $id
+     *
+     * @return void
+     *
+     * @throws ChannelNotFoundException
+     * @throws HttpException
+     * @throws InvalidSchemaException
+     * @throws InvalidStatusCodeException
+     * @throws NotFoundException
+     */
+
+    protected function _createUserMeta(string $id): void
+    {
+
+        /*
+         * Check permissions
+         */
+
+        if (!$this->_userCan($id, 'users.meta.create')) {
+
+            abort(403, 'Unable to create user meta: insufficient permissions');
+            die;
+
+        }
+
+        /*
+         * Get body
+         */
+
+        $body = $this->api->getBody();
+
+        if (!$this->api->isValidResource($body, [ // Valid attributes
+                'value'
+            ], [ // Required attributes
+                'value'
+            ])
+            || !isset($body['data']['id'])) {
+
+            abort(400, 'Unable to create user meta: request body contains invalid members');
+            die;
+
+        }
+
+        if (Arr::get($body, 'data.type') != 'userMeta') {
+
+            abort(409, 'Unable to create user meta: invalid resource type');
+            die;
+
+        }
+
+        /*
+         * Validate body
+         *
+         * No validation needed- value can be mixed type
+         */
+
+        /*
+         * Check exists
+         */
+
+        if ($this->auth->userHasMeta($id, $body['data']['id'])) {
+
+            abort(409, 'Unable to create user meta: meta ID already exists');
+            die;
+
+        }
+
+        /*
+         * Perform action
+         */
+
+        try {
+
+            $this->auth->setUserMeta($id, [
+                $body['data']['id'] => $body['data']['attributes']['value']
+            ]);
+
+        } catch (InvalidUserException $e) {
+
+            abort(404, 'Unable to create user meta: user ID does not exist');
+            die;
+
+        }
+
+        /*
+         * Log action
+         */
+
+        log_info('Created user meta', [
+            'id' => $id,
+            'meta_key' => $body['data']['id']
+        ]);
+
+        /*
+         * Do event
+         */
+
+        do_event('user.meta.create', $id, $body['data']['id']);
+
+        /*
+         * Build schema
+         */
+
+        $schema = UserMetaResource::create([
+            'metaKey' => $body['data']['id'],
+            'metaValue' => $body['data']['attributes']['value']
+        ], [
+            'object_prefix' => $this->base_uri . '/users/' . $id . '/meta'
+        ]);
+
+        /*
+         * Send response
+         */
+
+        $this->response->setStatusCode(201)
+            ->setHeaders([
+                'Location' => $this->base_uri . '/users/' . $id . '/meta/' . $body['data']['id']
+            ])
+            ->sendJson($schema);
+
+    }
+
+    /**
+     * Update user meta.
+     *
+     * @param string $id
+     * @param string $meta_key
+     *
+     * @return void
+     *
+     * @throws ChannelNotFoundException
+     * @throws HttpException
+     * @throws InvalidSchemaException
+     * @throws InvalidStatusCodeException
+     * @throws NotFoundException
+     */
+
+    protected function _updateUserMeta(string $id, string $meta_key): void
+    {
+
+        /*
+         * Check permissions
+         */
+
+        if (!$this->_userCan($id, 'users.meta.update')) {
+
+            abort(403, 'Unable to update user meta: insufficient permissions');
+            die;
+
+        }
+
+        /*
+         * Get body
+         */
+
+        $body = $this->api->getBody();
+
+        if (!$this->api->isValidResource($body, [ // Valid attributes
+            'value'
+        ], [] // Required attributes
+        )) {
+
+            abort(400, 'Unable to update user meta: request body contains invalid members');
+            die;
+
+        }
+
+        if (Arr::get($body, 'data.type') != 'userMeta'
+            || Arr::get($body, 'data.id') != $meta_key) {
+
+            abort(409, 'Unable to update user meta: invalid resource type and/or ID');
+            die;
+
+        }
+
+        /*
+         * Validate body
+         *
+         * No validation needed- value can be mixed type
+         */
+
+        /*
+         * Check exists
+         */
+
+        if (!$this->auth->userHasMeta($id, $meta_key)) {
+
+            abort(404, 'Unable to update user meta: user meta does not exist');
+            die;
+
+        }
+
+        /*
+         * Perform action
+         */
+
+        try {
+
+            $this->auth->setUserMeta($id, [
+                $meta_key => $body['data']['attributes']['value']
+            ]);
+
+        } catch (InvalidUserException $e) {
+
+            /*
+             * This should never occur since userHasMeta was already checked,
+             * but the exception will be caught anyway.
+             */
+
+            abort(404, 'Unable to update user meta: user ID does not exist');
+            die;
+
+        }
+
+        /*
+         * Log action
+         */
+
+        log_info('Updated user meat', [
+            'id' => $id,
+            'meta_key' => $meta_key
+        ]);
+
+        /*
+         * Do event
+         */
+
+        do_event('user.meta.update', $id, $meta_key);
+
+        /*
+         * Build schema
+         */
+
+        $schema = UserMetaResource::create([
+            'metaKey' => $meta_key,
+            'metaValue' => $body['data']['attributes']['value']
+        ], [
+            'object_prefix' => $this->base_uri . '/users/' . $id . '/meta'
+        ]);
+
+        /*
+         * Send response
+         */
+
+        $this->response->sendJson($schema);
+
+    }
 
     /**
      * Delete user meta.
@@ -2065,22 +2064,13 @@ class Users extends ApiController
     {
 
         $this->api->allowedMethods([
-            'POST',
             'GET',
+            'POST',
             'PATCH',
             'DELETE'
         ]);
 
-        if (Request::isPost()) {
-
-            if (isset($params['id'])) {
-                abort(405, 'Request method (POST) not allowed');
-                die;
-            }
-
-            $this->_createUser();
-
-        } else if (Request::isGet()) {
+        if (Request::isGet()) {
 
             if (isset($params['id'])) { // Single user
 
@@ -2091,6 +2081,15 @@ class Users extends ApiController
                 $this->_getUsers();
 
             }
+
+        } else if (Request::isPost()) {
+
+            if (isset($params['id'])) {
+                abort(405, 'Request method (POST) not allowed');
+                die;
+            }
+
+            $this->_createUser();
 
         } else if (Request::isPatch()) {
 
@@ -2249,8 +2248,8 @@ class Users extends ApiController
     {
 
         $this->api->allowedMethods([
-            'POST',
             'GET',
+            'POST',
             'PATCH',
             'DELETE'
         ]);
@@ -2260,11 +2259,7 @@ class Users extends ApiController
             die;
         }
 
-        if (Request::isPost()) {
-
-            $this->_createUserMeta($params['id']);
-
-        } else if (Request::isGet()) {
+        if (Request::isGet()) {
 
             if (isset($params['meta_key'])) { // Single meta
 
@@ -2275,6 +2270,10 @@ class Users extends ApiController
                 $this->_getAllUserMeta($params['id']);
 
             }
+
+        } else if (Request::isPost()) {
+
+            $this->_createUserMeta($params['id']);
 
         } else if (Request::isPatch()) {
 

@@ -50,6 +50,218 @@ class Permissions extends ApiController
     {
         parent::__construct(true);
     }
+    
+    /**
+     * Get single permission.
+     *
+     * @param string $id
+     *
+     * @return void
+     *
+     * @throws HttpException
+     * @throws InvalidSchemaException
+     * @throws InvalidStatusCodeException
+     * @throws NotFoundException
+     */
+
+    protected function _getPermission(string $id): void
+    {
+
+        /*
+         * Check permissions
+         */
+
+        if (!$this->hasAnyPermissions([
+                'global.permissions.read',
+                'self.permissions.read'
+            ]) || (!$this->hasPermissions('global.permissions.read')
+                && !in_array($id, Arr::pluck($this->user_permissions, 'id')))) {
+
+            abort(403, 'Unable to get permission: insufficient permissions');
+            die;
+
+        }
+
+        /*
+         * Get request
+         */
+
+        $request = $this->api->parseQuery(
+            Request::getQuery(),
+            Arr::get(Request::getQuery(), 'page.size', get_config('api.default_page_size', 10)),
+            get_config('api.max_page_size', 100)
+        );
+
+        /*
+         * Validate field types and fields
+         *
+         * Valid fields should match what is available to be
+         * returned in the schema.
+         */
+
+        if (!empty(Arr::except($request['fields'], [ // Valid field types
+                'permissions'
+            ])) || !empty(Arr::except(array_flip(Arr::get($request['fields'], 'permissions', [])), [ // Valid fields
+                'name',
+                'description'
+            ]))) {
+
+            abort(400, 'Unable to get permission: query string contains invalid fields');
+            die;
+
+        }
+
+        /*
+         * Get data
+         */
+
+        try {
+
+            $user = $this->auth->getPermission($id);
+
+        } catch (InvalidPermissionException $e) {
+
+            abort(404, 'Unable to get permission: permission ID does not exist');
+            die;
+
+        }
+
+        /*
+         * Filter fields
+         */
+
+        if (isset($request['fields']['permissions'])) {
+
+            $request = $this->requireValues($request, 'fields.permissions', 'id');
+
+            $user = Arr::only($user, $request['fields']['permissions']);
+
+        }
+
+        /*
+         * Build schema
+         */
+
+        $schema = PermissionResource::create($user, [
+            'object_prefix' => $this->base_uri . '/permissions'
+        ]);
+
+        /*
+         * Send response
+         */
+
+        $this->response->setHeaders([
+            'Cache-Control' => 'max-age=3600', // 1 hour
+            'Expires' => gmdate('D, d M Y H:i:s T', time() + 3600)
+        ])->sendJson($schema);
+
+    }
+
+    /**
+     * Get permissions.
+     *
+     * @return void
+     *
+     * @throws HttpException
+     * @throws InvalidSchemaException
+     * @throws InvalidStatusCodeException
+     * @throws NotFoundException
+     */
+
+    protected function _getPermissions(): void
+    {
+
+        /*
+         * Check permissions
+         */
+
+        if (!$this->hasAnyPermissions([
+            'global.permissions.read',
+            'self.permissions.read'
+        ])) {
+
+            abort(403, 'Unable to get permissions: insufficient permissions');
+            die;
+
+        }
+
+        /*
+         * Get request
+         */
+
+        $request = $this->api->parseQuery(
+            Request::getQuery(),
+            Arr::get(Request::getQuery(), 'page.size', get_config('api.default_page_size', 10)),
+            get_config('api.max_page_size', 100)
+        );
+
+        /*
+         * Validate field types and fields
+         *
+         * Valid fields should match what is available to be
+         * returned in the schema.
+         */
+
+        if (!empty(Arr::except($request['fields'], [ // Valid field types
+                'permissions'
+            ])) || !empty(Arr::except(array_flip(Arr::get($request['fields'], 'permissions', [])), [ // Valid fields
+                'name',
+                'description'
+            ]))) {
+
+            abort(400, 'Unable to get permissions: query string contains invalid fields');
+            die;
+
+        }
+
+        /*
+         * Filter fields
+         */
+
+        $request = $this->requireValues($request, 'fields.permissions', 'id');
+
+        /*
+         * Get data
+         */
+
+        try {
+
+            if (!$this->hasPermissions('global.permissions.read')) {
+
+                $permissions = $this->auth->getPermissionsCollection($request, Arr::pluck($this->user_permissions, 'id')); // Limit to user's permissions
+
+            } else {
+
+                $permissions = $this->auth->getPermissionsCollection($request); // Get all permissions
+
+            }
+
+        } catch (QueryException|PDOException $e) {
+
+            abort(400, 'Unable to get permissions: invalid request');
+            die;
+
+        }
+
+        /*
+         * Build schema
+         */
+
+        $schema = PermissionCollection::create($permissions, [
+            'object_prefix' => $this->base_uri . '/permissions',
+            'collection_prefix' => $this->base_uri . '/permissions'
+        ]);
+
+        /*
+         * Send response
+         */
+
+        $this->response->setHeaders([
+            'Cache-Control' => 'max-age=3600', // 1 hour
+            'Expires' => gmdate('D, d M Y H:i:s T', time() + 3600)
+        ])->sendJson($schema);
+
+    }
 
     /**
      * Create new permission.
@@ -300,218 +512,6 @@ class Permissions extends ApiController
          */
 
         $this->response->sendJson($schema);
-
-    }
-
-    /**
-     * Get single permission.
-     *
-     * @param string $id
-     *
-     * @return void
-     *
-     * @throws HttpException
-     * @throws InvalidSchemaException
-     * @throws InvalidStatusCodeException
-     * @throws NotFoundException
-     */
-
-    protected function _getPermission(string $id): void
-    {
-
-        /*
-         * Check permissions
-         */
-
-        if (!$this->hasAnyPermissions([
-                'global.permissions.read',
-                'self.permissions.read'
-            ]) || (!$this->hasPermissions('global.permissions.read')
-                && !in_array($id, Arr::pluck($this->user_permissions, 'id')))) {
-
-            abort(403, 'Unable to get permission: insufficient permissions');
-            die;
-
-        }
-
-        /*
-         * Get request
-         */
-
-        $request = $this->api->parseQuery(
-            Request::getQuery(),
-            Arr::get(Request::getQuery(), 'page.size', get_config('api.default_page_size', 10)),
-            get_config('api.max_page_size', 100)
-        );
-
-        /*
-         * Validate field types and fields
-         *
-         * Valid fields should match what is available to be
-         * returned in the schema.
-         */
-
-        if (!empty(Arr::except($request['fields'], [ // Valid field types
-                'permissions'
-            ])) || !empty(Arr::except(array_flip(Arr::get($request['fields'], 'permissions', [])), [ // Valid fields
-                'name',
-                'description'
-            ]))) {
-
-            abort(400, 'Unable to get permission: query string contains invalid fields');
-            die;
-
-        }
-
-        /*
-         * Get data
-         */
-
-        try {
-
-            $user = $this->auth->getPermission($id);
-
-        } catch (InvalidPermissionException $e) {
-
-            abort(404, 'Unable to get permission: permission ID does not exist');
-            die;
-
-        }
-
-        /*
-         * Filter fields
-         */
-
-        if (isset($request['fields']['permissions'])) {
-
-            $request = $this->requireValues($request, 'fields.permissions', 'id');
-
-            $user = Arr::only($user, $request['fields']['permissions']);
-
-        }
-
-        /*
-         * Build schema
-         */
-
-        $schema = PermissionResource::create($user, [
-            'object_prefix' => $this->base_uri . '/permissions'
-        ]);
-
-        /*
-         * Send response
-         */
-
-        $this->response->setHeaders([
-            'Cache-Control' => 'max-age=3600', // 1 hour
-            'Expires' => gmdate('D, d M Y H:i:s T', time() + 3600)
-        ])->sendJson($schema);
-
-    }
-
-    /**
-     * Get permissions.
-     *
-     * @return void
-     *
-     * @throws HttpException
-     * @throws InvalidSchemaException
-     * @throws InvalidStatusCodeException
-     * @throws NotFoundException
-     */
-
-    protected function _getPermissions(): void
-    {
-
-        /*
-         * Check permissions
-         */
-
-        if (!$this->hasAnyPermissions([
-            'global.permissions.read',
-            'self.permissions.read'
-        ])) {
-
-            abort(403, 'Unable to get permissions: insufficient permissions');
-            die;
-
-        }
-
-        /*
-         * Get request
-         */
-
-        $request = $this->api->parseQuery(
-            Request::getQuery(),
-            Arr::get(Request::getQuery(), 'page.size', get_config('api.default_page_size', 10)),
-            get_config('api.max_page_size', 100)
-        );
-
-        /*
-         * Validate field types and fields
-         *
-         * Valid fields should match what is available to be
-         * returned in the schema.
-         */
-
-        if (!empty(Arr::except($request['fields'], [ // Valid field types
-                'permissions'
-            ])) || !empty(Arr::except(array_flip(Arr::get($request['fields'], 'permissions', [])), [ // Valid fields
-                'name',
-                'description'
-            ]))) {
-
-            abort(400, 'Unable to get permissions: query string contains invalid fields');
-            die;
-
-        }
-
-        /*
-         * Filter fields
-         */
-
-        $request = $this->requireValues($request, 'fields.permissions', 'id');
-
-        /*
-         * Get data
-         */
-
-        try {
-
-            if (!$this->hasPermissions('global.permissions.read')) {
-
-                $permissions = $this->auth->getPermissionsCollection($request, Arr::pluck($this->user_permissions, 'id')); // Limit to user's permissions
-
-            } else {
-
-                $permissions = $this->auth->getPermissionsCollection($request); // Get all permissions
-
-            }
-
-        } catch (QueryException|PDOException $e) {
-
-            abort(400, 'Unable to get permissions: invalid request');
-            die;
-
-        }
-
-        /*
-         * Build schema
-         */
-
-        $schema = PermissionCollection::create($permissions, [
-            'object_prefix' => $this->base_uri . '/permissions',
-            'collection_prefix' => $this->base_uri . '/permissions'
-        ]);
-
-        /*
-         * Send response
-         */
-
-        $this->response->setHeaders([
-            'Cache-Control' => 'max-age=3600', // 1 hour
-            'Expires' => gmdate('D, d M Y H:i:s T', time() + 3600)
-        ])->sendJson($schema);
 
     }
 
@@ -929,22 +929,13 @@ class Permissions extends ApiController
     {
 
         $this->api->allowedMethods([
-            'POST',
             'GET',
+            'POST',
             'PATCH',
             'DELETE'
         ]);
 
-        if (Request::isPost()) {
-
-            if (isset($params['id'])) {
-                abort(405, 'Request method (POST) not allowed');
-                die;
-            }
-
-            $this->_createPermission();
-
-        } else if (Request::isGet()) {
+        if (Request::isGet()) {
 
             if (isset($params['id'])) { // Single permission
 
@@ -955,6 +946,15 @@ class Permissions extends ApiController
                 $this->_getPermissions();
 
             }
+
+        } else if (Request::isPost()) {
+
+            if (isset($params['id'])) {
+                abort(405, 'Request method (POST) not allowed');
+                die;
+            }
+
+            $this->_createPermission();
 
         } else if (Request::isPatch()) {
 

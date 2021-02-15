@@ -60,6 +60,222 @@ class Roles extends ApiController
     }
 
     /**
+     * Get single role.
+     *
+     * @param string $id
+     *
+     * @return void
+     *
+     * @throws HttpException
+     * @throws InvalidSchemaException
+     * @throws InvalidStatusCodeException
+     * @throws NotFoundException
+     */
+
+    protected function _getRole(string $id): void
+    {
+
+        /*
+         * Check permissions
+         */
+
+        if (!$this->hasAnyPermissions([
+                'global.roles.read',
+                'self.roles.read'
+            ]) || (!$this->hasPermissions('global.roles.read')
+                && !in_array($id, Arr::pluck($this->auth->getUserRoles($this->user_id), 'id')))) {
+
+            abort(403, 'Unable to get role: insufficient permissions');
+            die;
+
+        }
+
+        /*
+         * Get request
+         */
+
+        $request = $this->api->parseQuery(
+            Request::getQuery(),
+            Arr::get(Request::getQuery(), 'page.size', get_config('api.default_page_size', 10)),
+            get_config('api.max_page_size', 100)
+        );
+
+        /*
+         * Validate field types and fields
+         *
+         * Valid fields should match what is available to be
+         * returned in the schema.
+         */
+
+        if (!empty(Arr::except($request['fields'], [ // Valid field types
+                'roles'
+            ])) || !empty(Arr::except(array_flip(Arr::get($request['fields'], 'roles', [])), [ // Valid fields
+                'name',
+                'enabled',
+                'createdAt',
+                'updatedAt'
+            ]))) {
+
+            abort(400, 'Unable to get role: query string contains invalid fields');
+            die;
+
+        }
+
+        /*
+         * Get data
+         */
+
+        try {
+
+            $role = $this->auth->getRole($id);
+
+        } catch (InvalidRoleException $e) {
+
+            abort(404, 'Unable to get role: role ID does not exist');
+            die;
+
+        }
+
+        /*
+         * Filter fields
+         */
+
+        if (isset($request['fields']['roles'])) {
+
+            $request = $this->requireValues($request, 'fields.roles', 'id');
+
+            $role = Arr::only($role, $request['fields']['roles']);
+
+        }
+
+        /*
+         * Build schema
+         */
+
+        $schema = RoleResource::create($role, [
+            'object_prefix' => $this->base_uri . '/roles'
+        ]);
+
+        /*
+         * Send response
+         */
+
+        $this->response->setHeaders([
+            'Cache-Control' => 'max-age=3600', // 1 hour
+            'Expires' => gmdate('D, d M Y H:i:s T', time() + 3600)
+        ])->sendJson($schema);
+
+    }
+
+    /**
+     * Get roles.
+     *
+     * @return void
+     *
+     * @throws HttpException
+     * @throws InvalidSchemaException
+     * @throws InvalidStatusCodeException
+     * @throws NotFoundException
+     */
+
+    protected function _getRoles(): void
+    {
+
+        /*
+         * Check permissions
+         */
+
+        if (!$this->hasAnyPermissions([
+            'global.roles.read',
+            'self.roles.read'
+        ])) {
+
+            abort(403, 'Unable to get roles: insufficient permissions');
+            die;
+
+        }
+
+        /*
+         * Get request
+         */
+
+        $request = $this->api->parseQuery(
+            Request::getQuery(),
+            Arr::get(Request::getQuery(), 'page.size', get_config('api.default_page_size', 10)),
+            get_config('api.max_page_size', 100)
+        );
+
+        /*
+         * Validate field types and fields
+         *
+         * Valid fields should match what is available to be
+         * returned in the schema.
+         */
+
+        if (!empty(Arr::except($request['fields'], [ // Valid field types
+                'roles'
+            ])) || !empty(Arr::except(array_flip(Arr::get($request['fields'], 'roles', [])), [ // Valid fields
+                'name',
+                'enabled',
+                'createdAt',
+                'updatedAt'
+            ]))) {
+
+            abort(400, 'Unable to get roles: query string contains invalid fields');
+            die;
+
+        }
+
+        /*
+         * Filter fields
+         */
+
+        $request = $this->requireValues($request, 'fields.roles', 'id');
+
+        /*
+         * Get data
+         */
+
+        try {
+
+            if (!$this->hasPermissions('global.roles.read')) {
+
+                $roles = $this->auth->getRolesCollection($request, Arr::pluck($this->auth->getUserRoles($this->user_id), 'id')); // Limit to user's roles
+
+            } else {
+
+                $roles = $this->auth->getRolesCollection($request); // Get all roles
+
+            }
+
+        } catch (QueryException|PDOException $e) {
+
+            abort(400, 'Unable to get roles: invalid request');
+            die;
+
+        }
+
+        /*
+         * Build schema
+         */
+
+        $schema = RoleCollection::create($roles, [
+            'object_prefix' => $this->base_uri . '/roles',
+            'collection_prefix' => $this->base_uri . '/roles'
+        ]);
+
+        /*
+         * Send response
+         */
+
+        $this->response->setHeaders([
+            'Cache-Control' => 'max-age=3600', // 1 hour
+            'Expires' => gmdate('D, d M Y H:i:s T', time() + 3600)
+        ])->sendJson($schema);
+
+    }
+
+    /**
      * Create new role.
      *
      * @return void
@@ -308,222 +524,6 @@ class Roles extends ApiController
          */
 
         $this->response->sendJson($schema);
-
-    }
-
-    /**
-     * Get single role.
-     *
-     * @param string $id
-     *
-     * @return void
-     *
-     * @throws HttpException
-     * @throws InvalidSchemaException
-     * @throws InvalidStatusCodeException
-     * @throws NotFoundException
-     */
-
-    protected function _getRole(string $id): void
-    {
-
-        /*
-         * Check permissions
-         */
-
-        if (!$this->hasAnyPermissions([
-                'global.roles.read',
-                'self.roles.read'
-            ]) || (!$this->hasPermissions('global.roles.read')
-                && !in_array($id, Arr::pluck($this->auth->getUserRoles($this->user_id), 'id')))) {
-
-            abort(403, 'Unable to get role: insufficient permissions');
-            die;
-
-        }
-
-        /*
-         * Get request
-         */
-
-        $request = $this->api->parseQuery(
-            Request::getQuery(),
-            Arr::get(Request::getQuery(), 'page.size', get_config('api.default_page_size', 10)),
-            get_config('api.max_page_size', 100)
-        );
-
-        /*
-         * Validate field types and fields
-         *
-         * Valid fields should match what is available to be
-         * returned in the schema.
-         */
-
-        if (!empty(Arr::except($request['fields'], [ // Valid field types
-                'roles'
-            ])) || !empty(Arr::except(array_flip(Arr::get($request['fields'], 'roles', [])), [ // Valid fields
-                'name',
-                'enabled',
-                'createdAt',
-                'updatedAt'
-            ]))) {
-
-            abort(400, 'Unable to get role: query string contains invalid fields');
-            die;
-
-        }
-
-        /*
-         * Get data
-         */
-
-        try {
-
-            $role = $this->auth->getRole($id);
-
-        } catch (InvalidRoleException $e) {
-
-            abort(404, 'Unable to get role: role ID does not exist');
-            die;
-
-        }
-
-        /*
-         * Filter fields
-         */
-
-        if (isset($request['fields']['roles'])) {
-
-            $request = $this->requireValues($request, 'fields.roles', 'id');
-
-            $role = Arr::only($role, $request['fields']['roles']);
-
-        }
-
-        /*
-         * Build schema
-         */
-
-        $schema = RoleResource::create($role, [
-            'object_prefix' => $this->base_uri . '/roles'
-        ]);
-
-        /*
-         * Send response
-         */
-
-        $this->response->setHeaders([
-            'Cache-Control' => 'max-age=3600', // 1 hour
-            'Expires' => gmdate('D, d M Y H:i:s T', time() + 3600)
-        ])->sendJson($schema);
-
-    }
-
-    /**
-     * Get roles.
-     *
-     * @return void
-     *
-     * @throws HttpException
-     * @throws InvalidSchemaException
-     * @throws InvalidStatusCodeException
-     * @throws NotFoundException
-     */
-
-    protected function _getRoles(): void
-    {
-
-        /*
-         * Check permissions
-         */
-
-        if (!$this->hasAnyPermissions([
-            'global.roles.read',
-            'self.roles.read'
-        ])) {
-
-            abort(403, 'Unable to get roles: insufficient permissions');
-            die;
-
-        }
-
-        /*
-         * Get request
-         */
-
-        $request = $this->api->parseQuery(
-            Request::getQuery(),
-            Arr::get(Request::getQuery(), 'page.size', get_config('api.default_page_size', 10)),
-            get_config('api.max_page_size', 100)
-        );
-
-        /*
-         * Validate field types and fields
-         *
-         * Valid fields should match what is available to be
-         * returned in the schema.
-         */
-
-        if (!empty(Arr::except($request['fields'], [ // Valid field types
-                'roles'
-            ])) || !empty(Arr::except(array_flip(Arr::get($request['fields'], 'roles', [])), [ // Valid fields
-                'name',
-                'enabled',
-                'createdAt',
-                'updatedAt'
-            ]))) {
-
-            abort(400, 'Unable to get roles: query string contains invalid fields');
-            die;
-
-        }
-
-        /*
-         * Filter fields
-         */
-
-        $request = $this->requireValues($request, 'fields.roles', 'id');
-
-        /*
-         * Get data
-         */
-
-        try {
-
-            if (!$this->hasPermissions('global.roles.read')) {
-
-                $roles = $this->auth->getRolesCollection($request, Arr::pluck($this->auth->getUserRoles($this->user_id), 'id')); // Limit to user's roles
-
-            } else {
-
-                $roles = $this->auth->getRolesCollection($request); // Get all roles
-
-            }
-
-        } catch (QueryException|PDOException $e) {
-
-            abort(400, 'Unable to get roles: invalid request');
-            die;
-
-        }
-
-        /*
-         * Build schema
-         */
-
-        $schema = RoleCollection::create($roles, [
-            'object_prefix' => $this->base_uri . '/roles',
-            'collection_prefix' => $this->base_uri . '/roles'
-        ]);
-
-        /*
-         * Send response
-         */
-
-        $this->response->setHeaders([
-            'Cache-Control' => 'max-age=3600', // 1 hour
-            'Expires' => gmdate('D, d M Y H:i:s T', time() + 3600)
-        ])->sendJson($schema);
 
     }
 
@@ -1271,22 +1271,13 @@ class Roles extends ApiController
     {
 
         $this->api->allowedMethods([
-            'POST',
             'GET',
+            'POST',
             'PATCH',
             'DELETE'
         ]);
 
-        if (Request::isPost()) {
-
-            if (isset($params['id'])) {
-                abort(405, 'Request method (POST) not allowed');
-                die;
-            }
-
-            $this->_createRole();
-
-        } else if (Request::isGet()) {
+        if (Request::isGet()) {
 
             if (isset($params['id'])) { // Single role
 
@@ -1297,6 +1288,15 @@ class Roles extends ApiController
                 $this->_getRoles();
 
             }
+
+        } else if (Request::isPost()) {
+
+            if (isset($params['id'])) {
+                abort(405, 'Request method (POST) not allowed');
+                die;
+            }
+
+            $this->_createRole();
 
         } else if (Request::isPatch()) {
 
