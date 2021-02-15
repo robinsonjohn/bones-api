@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "8d12f77169eca651466ac925a9542251",
+    "content-hash": "81d63437a036d466956faa4cc0b73ffa",
     "packages": [
         {
             "name": "bayfrontmedia/array-schema",
@@ -67,16 +67,16 @@
         },
         {
             "name": "bayfrontmedia/bones",
-            "version": "v1.2.x-dev",
+            "version": "dev-master",
             "source": {
                 "type": "git",
                 "url": "https://github.com/bayfrontmedia/bones.git",
-                "reference": "52d6ed8037b9a397f72e0ddc330304152e95d0d8"
+                "reference": "ec19d0bc908ea321b78213a16edd8b9df550799c"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/bayfrontmedia/bones/zipball/52d6ed8037b9a397f72e0ddc330304152e95d0d8",
-                "reference": "52d6ed8037b9a397f72e0ddc330304152e95d0d8",
+                "url": "https://api.github.com/repos/bayfrontmedia/bones/zipball/ec19d0bc908ea321b78213a16edd8b9df550799c",
+                "reference": "ec19d0bc908ea321b78213a16edd8b9df550799c",
                 "shasum": ""
             },
             "require": {
@@ -101,10 +101,11 @@
                 "ext-json": "*",
                 "ext-pdo": "*",
                 "filp/whoops": "2.*",
-                "league/climate": "^3.6.0",
+                "league/climate": "^3.7.0",
                 "php": ">=7.2.0",
-                "vlucas/phpdotenv": "^5.2"
+                "vlucas/phpdotenv": "^5.3"
             },
+            "default-branch": true,
             "type": "library",
             "autoload": {
                 "psr-4": {
@@ -125,9 +126,9 @@
             ],
             "support": {
                 "issues": "https://github.com/bayfrontmedia/bones/issues",
-                "source": "https://github.com/bayfrontmedia/bones/tree/v1.2"
+                "source": "https://github.com/bayfrontmedia/bones/tree/master"
             },
-            "time": "2021-02-15T17:59:54+00:00"
+            "time": "2021-02-15T20:43:10+00:00"
         },
         {
             "name": "bayfrontmedia/container",
