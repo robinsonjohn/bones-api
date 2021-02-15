@@ -38,6 +38,6 @@ $router->setHost(get_config('router.host'))
     ->any('v1/roles/{*:id}/users', 'v1\\Roles:users')
     ->any('v1/users/{?:id}', 'v1\\Users:index')
     ->any('v1/users/{*:id}/groups', 'v1\\Users:groups')
-    ->any('v1/users/{*:id}/meta/{?:meta_key}', 'v1\\Users:meta')
+    //->any('v1/users/{*:id}/meta/{?:meta_key}', 'v1\\Users:meta')
     ->any('v1/users/{*:id}/permissions', 'v1\\Users:permissions')
     ->any('v1/users/{*:id}/roles', 'v1\\Users:roles');

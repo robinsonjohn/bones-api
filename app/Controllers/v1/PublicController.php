@@ -87,7 +87,7 @@ class PublicController extends Controller
 
         $schema = StatusResource::create([
             'status' => 'OK',
-            'version' => get_config('api.v1_current_version', '1.0.0')
+            'version' => '1.0.0'
         ]);
 
         // Respond

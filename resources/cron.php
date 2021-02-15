@@ -87,17 +87,17 @@ $cron->call('delete_expired_refresh_tokens', function () {
 
     $i = 0;
 
-    $table = $db->select("SHOW TABLES LIKE 'user_meta'");
+    $table = $db->select("SHOW TABLES LIKE 'rbac_user_meta'");
 
     if (!empty($table)) { // Table exists
 
-        $tokens = $db->select("SELECT user_id, meta_value FROM user_meta WHERE meta_key = :key", [
+        $tokens = $db->select("SELECT userId, metaValue FROM rbac_user_meta WHERE metaKey = :key", [
             'key' => '_refresh_token'
         ]);
 
         foreach ($tokens as $token) {
 
-            $refresh_token = json_decode($token['meta_value'], true);
+            $refresh_token = json_decode($token['metaValue'], true);
 
             // Delete if invalid format or expired
 
@@ -106,9 +106,9 @@ $cron->call('delete_expired_refresh_tokens', function () {
                     'created_at'
                 ]) || $refresh_token['created_at'] < time() - get_config('api.refresh_token_lifetime')) {
 
-                $db->delete('user_meta', [
-                    'user_id' => $token['user_id'],
-                    'meta_key' => '_refresh_token'
+                $db->delete('rbac_user_meta', [
+                    'userId' => $token['userId'],
+                    'metaKey' => '_refresh_token'
                 ]);
 
                 $i++;
