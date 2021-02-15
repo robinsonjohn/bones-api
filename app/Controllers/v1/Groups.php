@@ -175,7 +175,7 @@ class Groups extends ApiController
          */
 
         $schema = GroupResource::create($this->auth->getGroup($id), [
-            'object_prefix' => '/groups'
+            'object_prefix' => $this->base_uri . '/groups'
         ]);
 
         /*
@@ -184,7 +184,7 @@ class Groups extends ApiController
 
         $this->response->setStatusCode(201)
         ->setHeaders([
-            'Location' => '/groups/' . $id
+            'Location' => $this->base_uri . '/groups/' . $id
         ])
         ->sendJson($schema);
 
@@ -313,7 +313,7 @@ class Groups extends ApiController
          */
 
         $schema = GroupResource::create($this->auth->getGroup($id), [
-            'object_prefix' => '/groups'
+            'object_prefix' => $this->base_uri . '/groups'
         ]);
 
         /*
@@ -418,7 +418,7 @@ class Groups extends ApiController
          */
 
         $schema = GroupResource::create($group, [
-            'object_prefix' => '/groups'
+            'object_prefix' => $this->base_uri . '/groups'
         ]);
 
         /*
@@ -525,8 +525,8 @@ class Groups extends ApiController
          */
 
         $schema = GroupCollection::create($groups, [
-            'object_prefix' => '/groups',
-            'collection_prefix' => '/groups'
+            'object_prefix' => $this->base_uri . '/groups',
+            'collection_prefix' => $this->base_uri . '/groups',
         ]);
 
         /*
@@ -706,8 +706,8 @@ class Groups extends ApiController
          */
 
         $schema = UserCollection::create($users, [
-            'object_prefix' => '/users',
-            'collection_prefix' => '/groups/' . $id . '/users'
+            'object_prefix' => $this->base_uri . '/users',
+            'collection_prefix' => $this->base_uri . '/groups/' . $id . '/users'
         ]);
 
         /*

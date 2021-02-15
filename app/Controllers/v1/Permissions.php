@@ -170,7 +170,7 @@ class Permissions extends ApiController
          */
 
         $schema = PermissionResource::create($this->auth->getPermission($id), [
-            'object_prefix' => '/permissions'
+            'object_prefix' => $this->base_uri . '/permissions'
         ]);
 
         /*
@@ -179,7 +179,7 @@ class Permissions extends ApiController
 
         $this->response->setStatusCode(201)
             ->setHeaders([
-                'Location' => '/permissions/' . $id
+                'Location' => $this->base_uri . '/permissions/' . $id
             ])
             ->sendJson($schema);
 
@@ -310,7 +310,7 @@ class Permissions extends ApiController
          */
 
         $schema = PermissionResource::create($this->auth->getPermission($id), [
-            'object_prefix' => '/permissions'
+            'object_prefix' => $this->base_uri . '/permissions'
         ]);
 
         /*
@@ -414,7 +414,7 @@ class Permissions extends ApiController
          */
 
         $schema = PermissionResource::create($user, [
-            'object_prefix' => '/permissions'
+            'object_prefix' => $this->base_uri . '/permissions'
         ]);
 
         /*
@@ -520,8 +520,8 @@ class Permissions extends ApiController
          */
 
         $schema = PermissionCollection::create($permissions, [
-            'object_prefix' => '/permissions',
-            'collection_prefix' => '/permissions'
+            'object_prefix' => $this->base_uri . '/permissions',
+            'collection_prefix' => $this->base_uri . '/permissions'
         ]);
 
         /*
@@ -693,8 +693,8 @@ class Permissions extends ApiController
          */
 
         $schema = RoleCollection::create($roles, [
-            'object_prefix' => '/roles',
-            'collection_prefix' => '/permissions/' . $id . '/roles'
+            'object_prefix' => $this->base_uri . '/roles',
+            'collection_prefix' => $this->base_uri . '/permissions/' . $id . '/roles'
         ]);
 
         /*

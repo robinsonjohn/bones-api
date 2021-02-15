@@ -10,6 +10,7 @@ use Bayfront\Bones\Exceptions\ServiceException;
 use Bayfront\Bones\Services\BonesApi;
 use Bayfront\Bones\Services\BonesAuth\BonesAuth;
 use Bayfront\Container\NotFoundException;
+use Bayfront\HttpRequest\Request;
 use Bayfront\HttpResponse\InvalidStatusCodeException;
 use Bayfront\LeakyBucket\AdapterException;
 use Bayfront\LeakyBucket\BucketException;
@@ -27,6 +28,8 @@ abstract class ApiController extends Controller
     /** @var BonesAuth $auth */
 
     protected $auth;
+
+    protected $base_uri; // Absolute/relative base URI
 
     /*
      * The following are defined only if the $requires_authentication
@@ -73,6 +76,16 @@ abstract class ApiController extends Controller
         // Get the BonesAuth service from the container
 
         $this->auth = get_service('BonesAuth\\BonesAuth');
+
+        $this->base_uri = '';
+
+        if (get_config('api.use_absolute_uri', false)) {
+
+            $request = explode('/v1/', Request::getUrl(false), 2);
+
+            $this->base_uri = $request[0] . '/v1';
+
+        }
 
         if (true === $requires_authentication) {
 

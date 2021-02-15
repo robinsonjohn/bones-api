@@ -221,7 +221,7 @@ class Users extends ApiController
          */
 
         $schema = UserResource::create($this->auth->getUser($id), [
-            'object_prefix' => '/users'
+            'object_prefix' => $this->base_uri . '/users'
         ]);
 
         /*
@@ -230,7 +230,7 @@ class Users extends ApiController
 
         $this->response->setStatusCode(201)
             ->setHeaders([
-                'Location' => '/users/' . $id
+                'Location' => $this->base_uri . '/users/' . $id
             ])
             ->sendJson($schema);
 
@@ -372,7 +372,7 @@ class Users extends ApiController
          */
 
         $schema = UserResource::create($this->auth->getUser($id), [
-            'object_prefix' => '/users'
+            'object_prefix' => $this->base_uri . '/users'
         ]);
 
         /*
@@ -478,7 +478,7 @@ class Users extends ApiController
          */
 
         $schema = UserResource::create($user, [
-            'object_prefix' => '/users'
+            'object_prefix' => $this->base_uri . '/users'
         ]);
 
         /*
@@ -590,8 +590,8 @@ class Users extends ApiController
          */
 
         $schema = UserCollection::create($users, [
-            'object_prefix' => '/users',
-            'collection_prefix' => '/users'
+            'object_prefix' => $this->base_uri . '/users',
+            'collection_prefix' => $this->base_uri . '/users'
         ]);
 
         /*
@@ -761,8 +761,8 @@ class Users extends ApiController
          */
 
         $schema = PermissionCollection::create($permissions, [
-            'object_prefix' => '/permissions',
-            'collection_prefix' => '/users/' . $id . '/permissions'
+            'object_prefix' => $this->base_uri . '/permissions',
+            'collection_prefix' => $this->base_uri . '/users/' . $id . '/permissions'
         ]);
 
         /*
@@ -870,8 +870,8 @@ class Users extends ApiController
          */
 
         $schema = RoleCollection::create($roles, [
-            'object_prefix' => '/roles',
-            'collection_prefix' => '/users/' . $id . '/roles'
+            'object_prefix' => $this->base_uri . '/roles',
+            'collection_prefix' => $this->base_uri . '/users/' . $id . '/roles'
         ]);
 
         /*
@@ -1194,8 +1194,8 @@ class Users extends ApiController
          */
 
         $schema = GroupCollection::create($groups, [
-            'object_prefix' => '/groups',
-            'collection_prefix' => '/users/' . $id . '/groups'
+            'object_prefix' => $this->base_uri . '/groups',
+            'collection_prefix' => $this->base_uri . '/users/' . $id . '/groups'
         ]);
 
         /*
@@ -1554,7 +1554,7 @@ class Users extends ApiController
             'metaKey' => $body['data']['id'],
             'metaValue' => $body['data']['attributes']['value']
         ], [
-            'object_prefix' => '/users/' . $id . '/meta'
+            'object_prefix' => $this->base_uri . '/users/' . $id . '/meta'
         ]);
 
         /*
@@ -1563,7 +1563,7 @@ class Users extends ApiController
 
         $this->response->setStatusCode(201)
             ->setHeaders([
-                'Location' => '/users/' . $id . '/meta/' . $body['data']['id']
+                'Location' => $this->base_uri . '/users/' . $id . '/meta/' . $body['data']['id']
             ])
             ->sendJson($schema);
 
@@ -1693,7 +1693,7 @@ class Users extends ApiController
             'metaKey' => $meta_key,
             'metaValue' => $body['data']['attributes']['value']
         ], [
-            'object_prefix' => '/users/' . $id . '/meta'
+            'object_prefix' => $this->base_uri . '/users/' . $id . '/meta'
         ]);
 
         /*
@@ -1822,8 +1822,8 @@ class Users extends ApiController
          */
 
         $schema = UserMetaResource::create($meta, [
-            'object_prefix' => '/users/' . $id . '/meta',
-            'collection_prefix' => '/users/' . $id . '/meta'
+            'object_prefix' => $this->base_uri . '/users/' . $id . '/meta',
+            'collection_prefix' => $this->base_uri . '/users/' . $id . '/meta'
         ]);
 
         /*
@@ -1998,8 +1998,8 @@ class Users extends ApiController
          */
 
         $schema = UserMetaCollection::create($meta, [
-            'object_prefix' => '/users/' . $id . '/meta',
-            'collection_prefix' => '/users/' . $id . '/meta'
+            'object_prefix' => $this->base_uri . '/users/' . $id . '/meta',
+            'collection_prefix' => $this->base_uri . '/users/' . $id . '/meta'
         ]);
 
         /*

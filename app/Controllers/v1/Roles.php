@@ -178,7 +178,7 @@ class Roles extends ApiController
          */
 
         $schema = RoleResource::create($this->auth->getRole($id), [
-            'object_prefix' => '/roles'
+            'object_prefix' => $this->base_uri . '/roles'
         ]);
 
         /*
@@ -187,7 +187,7 @@ class Roles extends ApiController
 
         $this->response->setStatusCode(201)
             ->setHeaders([
-                'Location' => '/roles/' . $id
+                'Location' => $this->base_uri . '/roles/' . $id
             ])
             ->sendJson($schema);
 
@@ -318,7 +318,7 @@ class Roles extends ApiController
          */
 
         $schema = RoleResource::create($this->auth->getRole($id), [
-            'object_prefix' => '/roles'
+            'object_prefix' => $this->base_uri . '/roles'
         ]);
 
         /*
@@ -424,7 +424,7 @@ class Roles extends ApiController
          */
 
         $schema = RoleResource::create($role, [
-            'object_prefix' => '/roles'
+            'object_prefix' => $this->base_uri . '/roles'
         ]);
 
         /*
@@ -532,8 +532,8 @@ class Roles extends ApiController
          */
 
         $schema = RoleCollection::create($roles, [
-            'object_prefix' => '/roles',
-            'collection_prefix' => '/roles'
+            'object_prefix' => $this->base_uri . '/roles',
+            'collection_prefix' => $this->base_uri . '/roles'
         ]);
 
         /*
@@ -708,8 +708,8 @@ class Roles extends ApiController
          */
 
         $schema = PermissionCollection::create($permissions, [
-            'object_prefix' => '/permissions',
-            'collection_prefix' => '/roles/' . $id . '/permissions'
+            'object_prefix' => $this->base_uri . '/permissions',
+            'collection_prefix' => $this->base_uri . '/roles/' . $id . '/permissions'
         ]);
 
         /*
@@ -1037,8 +1037,8 @@ class Roles extends ApiController
          */
 
         $schema = UserCollection::create($users, [
-            'object_prefix' => '/users',
-            'collection_prefix' => '/roles/' . $id . '/users'
+            'object_prefix' => $this->base_uri . '/users',
+            'collection_prefix' => $this->base_uri . '/roles/' . $id . '/users'
         ]);
 
         /*
