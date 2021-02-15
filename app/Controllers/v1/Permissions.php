@@ -372,7 +372,6 @@ class Permissions extends ApiController
         if (!empty(Arr::except($request['fields'], [ // Valid field types
                 'permissions'
             ])) || !empty(Arr::except(array_flip(Arr::get($request['fields'], 'permissions', [])), [ // Valid fields
-                'id',
                 'name',
                 'description'
             ]))) {
@@ -476,7 +475,6 @@ class Permissions extends ApiController
         if (!empty(Arr::except($request['fields'], [ // Valid field types
                 'permissions'
             ])) || !empty(Arr::except(array_flip(Arr::get($request['fields'], 'permissions', [])), [ // Valid fields
-                'id',
                 'name',
                 'description'
             ]))) {
@@ -644,7 +642,6 @@ class Permissions extends ApiController
         if (!empty(Arr::except($request['fields'], [ // Valid field types
                 'roles'
             ])) || !empty(Arr::except(array_flip(Arr::get($request['fields'], 'roles', [])), [ // Valid fields
-                'id',
                 'name',
                 'enabled',
                 'createdAt',

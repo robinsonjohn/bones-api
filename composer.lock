@@ -71,12 +71,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/bayfrontmedia/bones.git",
-                "reference": "9ddf20939bd47e9e1f4a76a6340c792e4b93f7d3"
+                "reference": "3af5800b2457cc477be7f446570ab02b05561f82"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/bayfrontmedia/bones/zipball/9ddf20939bd47e9e1f4a76a6340c792e4b93f7d3",
-                "reference": "9ddf20939bd47e9e1f4a76a6340c792e4b93f7d3",
+                "url": "https://api.github.com/repos/bayfrontmedia/bones/zipball/3af5800b2457cc477be7f446570ab02b05561f82",
+                "reference": "3af5800b2457cc477be7f446570ab02b05561f82",
                 "shasum": ""
             },
             "require": {
@@ -127,7 +127,7 @@
                 "issues": "https://github.com/bayfrontmedia/bones/issues",
                 "source": "https://github.com/bayfrontmedia/bones/tree/v1.2"
             },
-            "time": "2021-02-13T22:27:32+00:00"
+            "time": "2021-02-15T16:05:48+00:00"
         },
         {
             "name": "bayfrontmedia/container",

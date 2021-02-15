@@ -430,7 +430,6 @@ class Users extends ApiController
         if (!empty(Arr::except($request['fields'], [ // Valid field types
                 'users'
             ])) || !empty(Arr::except(array_flip(Arr::get($request['fields'], 'users', [])), [ // Valid fields
-                'id',
                 'login',
                 'firstName',
                 'lastName',
@@ -540,7 +539,6 @@ class Users extends ApiController
         if (!empty(Arr::except($request['fields'], [ // Valid field types
                 'users'
             ])) || !empty(Arr::except(array_flip(Arr::get($request['fields'], 'users', [])), [ // Valid fields
-                'id',
                 'login',
                 'firstName',
                 'lastName',
@@ -714,7 +712,6 @@ class Users extends ApiController
         if (!empty(Arr::except($request['fields'], [ // Valid field types
                 'permissions'
             ])) || !empty(Arr::except(array_flip(Arr::get($request['fields'], 'permissions', [])), [ // Valid fields
-                'id',
                 'name',
                 'description'
             ]))) {
@@ -821,7 +818,6 @@ class Users extends ApiController
         if (!empty(Arr::except($request['fields'], [ // Valid field types
                 'roles'
             ])) || !empty(Arr::except(array_flip(Arr::get($request['fields'], 'roles', [])), [ // Valid fields
-                'id',
                 'name',
                 'enabled',
                 'createdAt',
@@ -1146,7 +1142,6 @@ class Users extends ApiController
         if (!empty(Arr::except($request['fields'], [ // Valid field types
                 'groups'
             ])) || !empty(Arr::except(array_flip(Arr::get($request['fields'], 'groups', [])), [ // Valid fields
-                'id',
                 'name',
                 'createdAt',
                 'updatedAt'
@@ -1752,7 +1747,6 @@ class Users extends ApiController
         if (!empty(Arr::except($request['fields'], [ // Valid field types
                 'meta'
             ])) || !empty(Arr::except(array_flip(Arr::get($request['fields'], 'meta', [])), [ // Valid fields
-                'id',
                 'value'
             ]))) {
 
@@ -1884,7 +1878,6 @@ class Users extends ApiController
         if (!empty(Arr::except($request['fields'], [ // Valid field types
                 'meta'
             ])) || !empty(Arr::except(array_flip(Arr::get($request['fields'], 'meta', [])), [ // Valid fields
-                'id',
                 'value'
             ]))) {
 

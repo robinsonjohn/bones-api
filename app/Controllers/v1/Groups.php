@@ -375,7 +375,6 @@ class Groups extends ApiController
         if (!empty(Arr::except($request['fields'], [ // Valid field types
                 'groups'
             ])) || !empty(Arr::except(array_flip(Arr::get($request['fields'], 'groups', [])), [ // Valid fields
-                'id',
                 'name',
                 'createdAt',
                 'updatedAt'
@@ -480,7 +479,6 @@ class Groups extends ApiController
         if (!empty(Arr::except($request['fields'], [ // Valid field types
                 'groups'
             ])) || !empty(Arr::except(array_flip(Arr::get($request['fields'], 'groups', [])), [ // Valid fields
-                'id',
                 'name',
                 'createdAt',
                 'updatedAt'
@@ -653,7 +651,6 @@ class Groups extends ApiController
         if (!empty(Arr::except($request['fields'], [ // Valid field types
                 'users'
             ])) || !empty(Arr::except(array_flip(Arr::get($request['fields'], 'users', [])), [ // Valid fields
-                'id',
                 'login',
                 'firstName',
                 'lastName',
