@@ -12,6 +12,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Fixed` for any bug fixes.
 - `Security` in case of vulnerabilities
 
+## [1.1.0] - 2021.02.15
+
+### Added
+
+- Added routes, controllers and schemas to be used with the `BonesAuth` service.
+
 ## [1.0.1] - 2021.01.19
 
 ### Changed

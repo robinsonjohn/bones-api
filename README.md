@@ -20,6 +20,7 @@ John Robinson, [Bayfront Media](https://www.bayfrontmedia.com)
 
 * PHP >= 7.2.0
 * JSON PHP extension
+* PDO PHP extension
 
 ## Installation
 

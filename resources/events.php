@@ -1,4 +1,4 @@
-<?php
+<?php /** @noinspection PhpUnhandledExceptionInspection */
 
 /*
  * This file should be used to manage event hooks.
@@ -46,3 +46,39 @@ function log_context()
 }
 
 add_event('app.bootstrap', 'log_context');
+
+/**
+ * Adds user ID to the context of logged events.
+ *
+ * @param array $token
+ *
+ * @throws ChannelNotFoundException
+ * @throws NotFoundException
+ */
+
+function log_user(array $token)
+{
+
+    if (get_container()->has('logs')) {
+
+        $logs = get_logs();
+
+        $channels = $logs->getChannels();
+
+        foreach ($channels as $channel) {
+
+            $logs->getChannel($channel)->pushProcessor(function ($record) use ($token) {
+
+                $record['extra']['user_id'] = $token['user_id'];
+
+                return $record;
+
+            });
+
+        }
+
+    }
+
+}
+
+add_event('jwt.authenticated', 'log_user');

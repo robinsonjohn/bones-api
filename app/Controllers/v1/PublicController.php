@@ -59,7 +59,7 @@ class PublicController extends Controller
 
             // Check rate limit
 
-            $this->api->enforceRateLimit('public-' . Request::getIp(), get_config('api.public_rate_limit', 100));
+            $this->api->enforceRateLimit('public-' . Request::getIp(), get_config('api.rate_limit_public', 100));
 
         }
 
@@ -87,7 +87,7 @@ class PublicController extends Controller
 
         $schema = StatusResource::create([
             'status' => 'OK',
-            'version' => '1.0.0' // Current API version
+            'version' => '1.0.0'
         ]);
 
         // Respond
