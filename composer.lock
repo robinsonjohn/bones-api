@@ -71,12 +71,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/bayfrontmedia/bones.git",
-                "reference": "ec19d0bc908ea321b78213a16edd8b9df550799c"
+                "reference": "68d8d0719f42b2a8848c73c1e3ed07ad7d2db54e"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/bayfrontmedia/bones/zipball/ec19d0bc908ea321b78213a16edd8b9df550799c",
-                "reference": "ec19d0bc908ea321b78213a16edd8b9df550799c",
+                "url": "https://api.github.com/repos/bayfrontmedia/bones/zipball/68d8d0719f42b2a8848c73c1e3ed07ad7d2db54e",
+                "reference": "68d8d0719f42b2a8848c73c1e3ed07ad7d2db54e",
                 "shasum": ""
             },
             "require": {
@@ -87,7 +87,7 @@
                 "bayfrontmedia/monolog-factory": "^1.1.0",
                 "bayfrontmedia/php-array-helpers": "^1.2.0",
                 "bayfrontmedia/php-hooks": "^1.1.0",
-                "bayfrontmedia/php-http-request": "^2.0.0",
+                "bayfrontmedia/php-http-request": "^2.0.1",
                 "bayfrontmedia/php-http-response": "^1.2.0",
                 "bayfrontmedia/php-jwt": "^1.1.0",
                 "bayfrontmedia/php-string-helpers": "^1.2.0",
@@ -128,7 +128,7 @@
                 "issues": "https://github.com/bayfrontmedia/bones/issues",
                 "source": "https://github.com/bayfrontmedia/bones/tree/master"
             },
-            "time": "2021-02-15T20:43:10+00:00"
+            "time": "2021-02-16T00:20:35+00:00"
         },
         {
             "name": "bayfrontmedia/container",
@@ -595,21 +595,21 @@
         },
         {
             "name": "bayfrontmedia/php-http-request",
-            "version": "v2.0.0",
+            "version": "v2.0.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/bayfrontmedia/php-http-request.git",
-                "reference": "08823acbb7632e7f022586d39e665996174e1aa9"
+                "reference": "8103f6fed5ec4cc065c149ef4aeede5c7c55c044"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/bayfrontmedia/php-http-request/zipball/08823acbb7632e7f022586d39e665996174e1aa9",
-                "reference": "08823acbb7632e7f022586d39e665996174e1aa9",
+                "url": "https://api.github.com/repos/bayfrontmedia/php-http-request/zipball/8103f6fed5ec4cc065c149ef4aeede5c7c55c044",
+                "reference": "8103f6fed5ec4cc065c149ef4aeede5c7c55c044",
                 "shasum": ""
             },
             "require": {
-                "bayfrontmedia/php-array-helpers": "^1.0.1",
-                "bayfrontmedia/php-validator": "^1.0.0",
+                "bayfrontmedia/php-array-helpers": "^1.2.0",
+                "bayfrontmedia/php-validator": "^1.3.0",
                 "php": ">=7.1.0"
             },
             "type": "library",
@@ -652,7 +652,7 @@
             ],
             "support": {
                 "issues": "https://github.com/bayfrontmedia/php-http-request/issues",
-                "source": "https://github.com/bayfrontmedia/php-http-request/tree/v2.0.0"
+                "source": "https://github.com/bayfrontmedia/php-http-request/tree/v2.0.1"
             },
             "funding": [
                 {
@@ -660,7 +660,7 @@
                     "type": "patreon"
                 }
             ],
-            "time": "2020-11-06T16:24:50+00:00"
+            "time": "2021-02-16T00:17:53+00:00"
         },
         {
             "name": "bayfrontmedia/php-http-response",
