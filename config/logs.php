@@ -20,7 +20,9 @@ return [
                     'name' => 'LineFormatter',
                     'params' => [
                         'format' => "[%datetime%] %channel%.%level_name%: %message% %context% %extra%\n",
-                        'dateFormat' => 'Y-m-d H:i:s T'
+                        'dateFormat' => 'Y-m-d H:i:s T',
+                        'allowInlineLineBreaks' => false,
+                        'ignoreEmptyContextAndExtra' => false
                     ]
                 ]
             ]
