@@ -1,4 +1,4 @@
-<?php
+<?php /** @noinspection PhpUnhandledExceptionInspection */
 
 /*
  * This file should only be accessed as a cron job. Example crontab entry:

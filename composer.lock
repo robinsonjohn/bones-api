@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "81d63437a036d466956faa4cc0b73ffa",
+    "content-hash": "cf1c0743ee71f4c2cbb41a589faa7798",
     "packages": [
         {
             "name": "bayfrontmedia/array-schema",
@@ -67,7 +67,7 @@
         },
         {
             "name": "bayfrontmedia/bones",
-            "version": "dev-master",
+            "version": "v1.2.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/bayfrontmedia/bones.git",
@@ -105,7 +105,6 @@
                 "php": ">=7.2.0",
                 "vlucas/phpdotenv": "^5.3"
             },
-            "default-branch": true,
             "type": "library",
             "autoload": {
                 "psr-4": {
@@ -126,7 +125,7 @@
             ],
             "support": {
                 "issues": "https://github.com/bayfrontmedia/bones/issues",
-                "source": "https://github.com/bayfrontmedia/bones/tree/master"
+                "source": "https://github.com/bayfrontmedia/bones/tree/v1.2.0"
             },
             "time": "2021-02-16T00:20:35+00:00"
         },
@@ -2686,9 +2685,7 @@
     "packages-dev": [],
     "aliases": [],
     "minimum-stability": "stable",
-    "stability-flags": {
-        "bayfrontmedia/bones": 20
-    },
+    "stability-flags": [],
     "prefer-stable": false,
     "prefer-lowest": false,
     "platform": {
