@@ -27,36 +27,29 @@ class UserObject implements SchemaInterface
             'id' => $array['id']
         ];
 
-        if (array_key_exists('login', $array)) {
-            Arr::set($return, 'attributes.login', $array['login']);
+        $order = [
+            'login',
+            'firstName',
+            'lastName',
+            'companyName',
+            'email',
+            'enabled',
+            'createdAt',
+            'updatedAt'
+        ];
+
+        $attributes = Arr::only(Arr::order($array, $order), $order);
+
+        if (array_key_exists('createdAt', $attributes)) {
+            $attributes['createdAt'] = date('c', strtotime($array['createdAt']));
         }
 
-        if (array_key_exists('firstName', $array)) {
-            Arr::set($return, 'attributes.firstName', $array['firstName']);
+        if (array_key_exists('updatedAt', $attributes)) {
+            $attributes['updatedAt'] = date('c', strtotime($array['updatedAt']));
         }
 
-        if (array_key_exists('lastName', $array)) {
-            Arr::set($return, 'attributes.lastName', $array['lastName']);
-        }
-
-        if (array_key_exists('companyName', $array)) {
-            Arr::set($return, 'attributes.companyName', $array['companyName']);
-        }
-
-        if (array_key_exists('email', $array)) {
-            Arr::set($return, 'attributes.email', $array['email']);
-        }
-
-        if (array_key_exists('enabled', $array)) {
-            Arr::set($return, 'attributes.enabled', (bool)$array['enabled']);
-        }
-
-        if (array_key_exists('createdAt', $array)) {
-            Arr::set($return, 'attributes.createdAt', date('c', strtotime($array['createdAt'])));
-        }
-
-        if (array_key_exists('updatedAt', $array)) {
-            Arr::set($return, 'attributes.updatedAt', date('c', strtotime($array['updatedAt'])));
+        if (!empty($attributes)) {
+            $return['attributes'] = $attributes;
         }
 
         $return['links'] = [

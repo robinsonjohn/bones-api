@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "086bf7ae063b121426b61b94d68e6955",
+    "content-hash": "0172c04636d06f76f48af9adcc6cfbdb",
     "packages": [
         {
             "name": "bayfrontmedia/array-schema",
@@ -427,16 +427,16 @@
         },
         {
             "name": "bayfrontmedia/php-array-helpers",
-            "version": "v1.2.0",
+            "version": "v1.3.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/bayfrontmedia/php-array-helpers.git",
-                "reference": "8e5d6c5a8a6d89c51b2378ae4a067ec8071acea3"
+                "reference": "8e78b154bc30d89db11a1a3e4602c4f860377754"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/bayfrontmedia/php-array-helpers/zipball/8e5d6c5a8a6d89c51b2378ae4a067ec8071acea3",
-                "reference": "8e5d6c5a8a6d89c51b2378ae4a067ec8071acea3",
+                "url": "https://api.github.com/repos/bayfrontmedia/php-array-helpers/zipball/8e78b154bc30d89db11a1a3e4602c4f860377754",
+                "reference": "8e78b154bc30d89db11a1a3e4602c4f860377754",
                 "shasum": ""
             },
             "require": {
@@ -471,7 +471,7 @@
             ],
             "support": {
                 "issues": "https://github.com/bayfrontmedia/php-array-helpers/issues",
-                "source": "https://github.com/bayfrontmedia/php-array-helpers/tree/v1.2.0"
+                "source": "https://github.com/bayfrontmedia/php-array-helpers/tree/v1.3.0"
             },
             "funding": [
                 {
@@ -479,7 +479,7 @@
                     "type": "patreon"
                 }
             ],
-            "time": "2021-02-05T20:06:16+00:00"
+            "time": "2021-02-17T22:07:11+00:00"
         },
         {
             "name": "bayfrontmedia/php-cookies",

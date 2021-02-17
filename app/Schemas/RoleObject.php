@@ -27,20 +27,17 @@ class RoleObject implements SchemaInterface
             'id' => $array['id']
         ];
 
-        if (array_key_exists('name', $array)) {
-            Arr::set($return, 'attributes.name', $array['name']);
-        }
+        $order = [
+            'name',
+            'enabled',
+            'createdAt',
+            'updatedAt'
+        ];
 
-        if (array_key_exists('enabled', $array)) {
-            Arr::set($return, 'attributes.enabled', (bool)$array['enabled']);
-        }
+        $attributes = Arr::only(Arr::order($array, $order), $order);
 
-        if (array_key_exists('createdAt', $array)) {
-            Arr::set($return, 'attributes.createdAt', date('c', strtotime($array['createdAt'])));
-        }
-
-        if (array_key_exists('updatedAt', $array)) {
-            Arr::set($return, 'attributes.updatedAt', date('c', strtotime($array['updatedAt'])));
+        if (!empty($attributes)) {
+            $return['attributes'] = $attributes;
         }
 
         $return ['links'] = [

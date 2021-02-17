@@ -27,12 +27,15 @@ class PermissionObject implements SchemaInterface
             'id' => $array['id']
         ];
 
-        if (array_key_exists('name', $array)) {
-            Arr::set($return, 'attributes.name', $array['name']);
-        }
+        $order = [
+            'name',
+            'description'
+        ];
 
-        if (array_key_exists('description', $array)) {
-            Arr::set($return, 'attributes.description', $array['description']);
+        $attributes = Arr::only(Arr::order($array, $order), $order);
+
+        if (!empty($attributes)) {
+            $return['attributes'] = $attributes;
         }
 
         $return ['links'] = [
