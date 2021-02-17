@@ -193,4 +193,38 @@ abstract class ApiController extends Controller
 
     }
 
+    /**
+     * Check if user has global, group, or self permission
+     * to alter a resource associated with a user ID.
+     *
+     * @param string $user_id
+     * @param string $permission
+     *
+     * @return bool
+     */
+
+    public function userCan(string $user_id, string $permission): bool
+    {
+
+        if (!$this->hasAnyPermissions([ // If no applicable permissions
+                'global.' . $permission,
+                'group.' . $permission,
+                'self.' . $permission
+            ])
+            || (!$this->hasAnyPermissions([ // If only self does not match
+                    'global.' . $permission,
+                    'group.' . $permission,
+                ]) && $user_id != $this->user_id)
+            || (!$this->hasPermissions('global.' . $permission) // If only group and not in group
+                && $this->hasPermissions('group.' . $permission)
+                && !in_array($user_id, $this->getGroupedUserIds()))) {
+
+            return false;
+
+        }
+
+        return true;
+
+    }
+
 }

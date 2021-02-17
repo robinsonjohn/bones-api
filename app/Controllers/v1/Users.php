@@ -57,40 +57,6 @@ class Users extends ApiController
     }
 
     /**
-     * Check if user has global, group, or self permission
-     * based on permission naming structure.
-     *
-     * @param string $user_id
-     * @param string $permission
-     *
-     * @return bool
-     */
-
-    protected function _userCan(string $user_id, string $permission): bool
-    {
-
-        if (!$this->hasAnyPermissions([ // If no applicable permissions
-                'global.' . $permission,
-                'group.' . $permission,
-                'self.' . $permission
-            ])
-            || (!$this->hasAnyPermissions([ // If only self does not match
-                    'global.' . $permission,
-                    'group.' . $permission,
-                ]) && $user_id != $this->user_id)
-            || (!$this->hasPermissions('global.' . $permission) // If only group and not in group
-                && $this->hasPermissions('group.' . $permission)
-                && !in_array($user_id, $this->getGroupedUserIds()))) {
-
-            return false;
-
-        }
-
-        return true;
-
-    }
-
-    /**
      * Get single user.
      *
      * @param string $id
@@ -110,7 +76,7 @@ class Users extends ApiController
          * Check permissions
          */
 
-        if (!$this->_userCan($id, 'users.read')) {
+        if (!$this->userCan($id, 'users.read')) {
 
             abort(403, 'Unable to get user: insufficient permissions');
             die;
@@ -470,7 +436,7 @@ class Users extends ApiController
          * Check permissions
          */
 
-        if (!$this->_userCan($id, 'users.update')) {
+        if (!$this->userCan($id, 'users.update')) {
 
             abort(403, 'Unable to update user: insufficient permissions');
             die;
@@ -605,7 +571,7 @@ class Users extends ApiController
          * Check permissions
          */
 
-        if (!$this->_userCan($id, 'users.delete')) {
+        if (!$this->userCan($id, 'users.delete')) {
 
             abort(403, 'Unable to delete user: insufficient permissions');
             die;
@@ -667,7 +633,7 @@ class Users extends ApiController
          * Check permissions
          */
 
-        if (!$this->_userCan($id, 'users.permissions.read')) {
+        if (!$this->userCan($id, 'users.permissions.read')) {
 
             abort(403, 'Unable to get user permissions: insufficient permissions');
             die;
@@ -773,7 +739,7 @@ class Users extends ApiController
          * Check permissions
          */
 
-        if (!$this->_userCan($id, 'users.roles.read')) {
+        if (!$this->userCan($id, 'users.roles.read')) {
 
             abort(403, 'Unable to get user roles: insufficient permissions');
             die;
@@ -1097,7 +1063,7 @@ class Users extends ApiController
          * Check permissions
          */
 
-        if (!$this->_userCan($id, 'users.groups.read')) {
+        if (!$this->userCan($id, 'users.groups.read')) {
 
             abort(403, 'Unable to get user groups: insufficient permissions');
             die;
@@ -1431,7 +1397,7 @@ class Users extends ApiController
          * Check permissions
          */
 
-        if (!$this->_userCan($id, 'users.meta.read')) {
+        if (!$this->userCan($id, 'users.meta.read')) {
 
             abort(403, 'Unable to get user meta: insufficient permissions');
             die;
@@ -1562,7 +1528,7 @@ class Users extends ApiController
          * Check permissions
          */
 
-        if (!$this->_userCan($id, 'users.meta.read')) {
+        if (!$this->userCan($id, 'users.meta.read')) {
 
             abort(403, 'Unable to get user meta: insufficient permissions');
             die;
@@ -1738,7 +1704,7 @@ class Users extends ApiController
          * Check permissions
          */
 
-        if (!$this->_userCan($id, 'users.meta.create')) {
+        if (!$this->userCan($id, 'users.meta.create')) {
 
             abort(403, 'Unable to create user meta: insufficient permissions');
             die;
@@ -1864,7 +1830,7 @@ class Users extends ApiController
          * Check permissions
          */
 
-        if (!$this->_userCan($id, 'users.meta.update')) {
+        if (!$this->userCan($id, 'users.meta.update')) {
 
             abort(403, 'Unable to update user meta: insufficient permissions');
             die;
@@ -1988,7 +1954,7 @@ class Users extends ApiController
          * Check permissions
          */
 
-        if (!$this->_userCan($id, 'users.meta.delete')) {
+        if (!$this->userCan($id, 'users.meta.delete')) {
 
             abort(403, 'Unable to delete user meta: insufficient permissions');
             die;

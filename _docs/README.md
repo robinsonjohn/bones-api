@@ -39,6 +39,7 @@ In addition, this controller includes the following methods:
 - `hasPermissions`
 - `hasAnyPermissions`
 - `getGroupedUserIds`
+- `userCan`
 
 **Auth**
 
