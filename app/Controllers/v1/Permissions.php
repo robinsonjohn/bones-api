@@ -772,7 +772,7 @@ class Permissions extends ApiController
 
         } catch (InvalidGrantException $e) {
 
-            abort(400, 'Unable to grant permission to roles: role ID does not exist');
+            abort(404, 'Unable to grant permission to roles: role ID does not exist');
             die;
 
         }

@@ -781,7 +781,7 @@ class Groups extends ApiController
 
         } catch (InvalidGrantException $e) {
 
-            abort(400, 'Unable to add users to group: user ID does not exist');
+            abort(404, 'Unable to add users to group: user ID does not exist');
             die;
 
         }

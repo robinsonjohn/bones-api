@@ -779,7 +779,7 @@ class Roles extends ApiController
 
         } catch (InvalidGrantException $e) {
 
-            abort(400, 'Unable to add permissions to role: permission ID does not exist');
+            abort(404, 'Unable to add permissions to role: permission ID does not exist');
             die;
 
         }
@@ -1107,7 +1107,7 @@ class Roles extends ApiController
 
         } catch (InvalidGrantException $e) {
 
-            abort(400, 'Unable to grant role to users: user ID does not exist');
+            abort(404, 'Unable to grant role to users: user ID does not exist');
             die;
 
         }

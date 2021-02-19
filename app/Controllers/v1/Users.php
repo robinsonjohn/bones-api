@@ -913,7 +913,7 @@ class Users extends ApiController
 
         } catch (InvalidGrantException $e) {
 
-            abort(400, 'Unable to grant roles to user: role ID does not exist');
+            abort(404, 'Unable to grant roles to user: role ID does not exist');
             die;
 
         }
@@ -1240,7 +1240,7 @@ class Users extends ApiController
 
         } catch (InvalidGrantException $e) {
 
-            abort(400, 'Unable to add user to groups: group ID does not exist');
+            abort(404, 'Unable to add user to groups: group ID does not exist');
             die;
 
         }
