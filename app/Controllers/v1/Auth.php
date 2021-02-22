@@ -92,7 +92,7 @@ class Auth extends ApiController
         $expiration = $time + get_config('api.access_token_lifetime');
 
         $token = $jwt
-            ->iss(Request::getRequest('protocol') . Request::getRequest('host')) // Issuer
+            ->iss(Request::getRequest('host')) // Issuer
             ->sub($data['login'])
             ->iat($time)
             ->nbf($time)
