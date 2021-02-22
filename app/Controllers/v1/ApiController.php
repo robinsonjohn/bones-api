@@ -48,6 +48,7 @@ abstract class ApiController extends Controller
      * ApiController constructor.
      *
      * @param bool $requires_authentication
+     * @param bool $check_accept
      *
      * @throws ControllerException
      * @throws NotFoundException
@@ -58,7 +59,7 @@ abstract class ApiController extends Controller
      * @throws BucketException
      */
 
-    public function __construct(bool $requires_authentication = true)
+    public function __construct(bool $requires_authentication = true, bool $check_accept = true)
     {
 
         parent::__construct(); // Bones controller
@@ -71,7 +72,7 @@ abstract class ApiController extends Controller
 
         // Start the API environment
 
-        $this->api->start();
+        $this->api->start($check_accept);
 
         // Get the BonesAuth service from the container
 
