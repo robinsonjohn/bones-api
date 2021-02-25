@@ -473,6 +473,13 @@ class Users extends ApiController
 
         }
 
+        if (!$this->hasPermissions('global.users.update') && isset($body['data']['attributes']['enabled'])) {
+
+            abort(403, 'Unable to update user: insufficient permissions (status)');
+            die;
+
+        }
+
         /*
          * Validate body
          */
