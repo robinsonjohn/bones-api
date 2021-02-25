@@ -12,6 +12,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Fixed` for any bug fixes.
 - `Security` in case of vulnerabilities
 
+## [1.1.2] - 2021.02.24
+
+### Changed
+
+- Updated vendor libraries.
+- Updated related resource response from `400` to `404`.
+- Updated `ApiController` constructor to allow/disallow checking of the `Accept` HTTP headers.
+- Removed the host from the JWT iss claim.
+- Updated `Users` controller to require global permissions to update user status.
+
 ## [1.1.1] - 2021.02.16
 
 ### Changed
