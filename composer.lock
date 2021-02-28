@@ -4,26 +4,26 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "bcee4cf0494a111ee6a207b4cca8b1e7",
+    "content-hash": "62062ddd10516a1c5df5fae95149197f",
     "packages": [
         {
             "name": "bayfrontmedia/array-schema",
-            "version": "v1.0.1",
+            "version": "v1.0.2",
             "source": {
                 "type": "git",
                 "url": "https://github.com/bayfrontmedia/array-schema.git",
-                "reference": "745bc7f4b91e1cb5e6de353204655be18695fb91"
+                "reference": "70531a9c8f7e395e7b972a2184943de2e631d510"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/bayfrontmedia/array-schema/zipball/745bc7f4b91e1cb5e6de353204655be18695fb91",
-                "reference": "745bc7f4b91e1cb5e6de353204655be18695fb91",
+                "url": "https://api.github.com/repos/bayfrontmedia/array-schema/zipball/70531a9c8f7e395e7b972a2184943de2e631d510",
+                "reference": "70531a9c8f7e395e7b972a2184943de2e631d510",
                 "shasum": ""
             },
             "require": {
-                "bayfrontmedia/php-array-helpers": "^1.1.0",
-                "bayfrontmedia/php-http-request": "^2.0.0",
-                "bayfrontmedia/php-http-response": "^1.1.1",
+                "bayfrontmedia/php-array-helpers": "^1.3.0",
+                "bayfrontmedia/php-http-request": "^2.0.1",
+                "bayfrontmedia/php-http-response": "^1.2.1",
                 "php": ">=7.2.0"
             },
             "type": "library",
@@ -55,7 +55,7 @@
             ],
             "support": {
                 "issues": "https://github.com/bayfrontmedia/array-schema/issues",
-                "source": "https://github.com/bayfrontmedia/array-schema/tree/v1.0.1"
+                "source": "https://github.com/bayfrontmedia/array-schema/tree/v1.0.2"
             },
             "funding": [
                 {
@@ -63,7 +63,7 @@
                     "type": "patreon"
                 }
             ],
-            "time": "2020-11-24T02:58:03+00:00"
+            "time": "2021-02-28T05:48:08+00:00"
         },
         {
             "name": "bayfrontmedia/bones",
@@ -663,16 +663,16 @@
         },
         {
             "name": "bayfrontmedia/php-http-response",
-            "version": "v1.2.0",
+            "version": "v1.2.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/bayfrontmedia/php-http-response.git",
-                "reference": "173e05fb5104b8218328778cb2fefae684d029fd"
+                "reference": "d12974bd7045e06b482914f9b52ce68d4657fdb4"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/bayfrontmedia/php-http-response/zipball/173e05fb5104b8218328778cb2fefae684d029fd",
-                "reference": "173e05fb5104b8218328778cb2fefae684d029fd",
+                "url": "https://api.github.com/repos/bayfrontmedia/php-http-response/zipball/d12974bd7045e06b482914f9b52ce68d4657fdb4",
+                "reference": "d12974bd7045e06b482914f9b52ce68d4657fdb4",
                 "shasum": ""
             },
             "require": {
@@ -710,7 +710,7 @@
             ],
             "support": {
                 "issues": "https://github.com/bayfrontmedia/php-http-response/issues",
-                "source": "https://github.com/bayfrontmedia/php-http-response/tree/v1.2.0"
+                "source": "https://github.com/bayfrontmedia/php-http-response/tree/v1.2.1"
             },
             "funding": [
                 {
@@ -718,7 +718,7 @@
                     "type": "patreon"
                 }
             ],
-            "time": "2020-11-27T21:37:24+00:00"
+            "time": "2021-02-28T05:39:26+00:00"
         },
         {
             "name": "bayfrontmedia/php-jwt",
@@ -1014,20 +1014,20 @@
         },
         {
             "name": "bayfrontmedia/rbac-auth",
-            "version": "v1.1.0",
+            "version": "v1.2.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/bayfrontmedia/rbac-auth.git",
-                "reference": "0e84eb0d1f5e33502392044aae9989d03167217c"
+                "reference": "0392682f178d08151d2947402ed2172b600b018d"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/bayfrontmedia/rbac-auth/zipball/0e84eb0d1f5e33502392044aae9989d03167217c",
-                "reference": "0e84eb0d1f5e33502392044aae9989d03167217c",
+                "url": "https://api.github.com/repos/bayfrontmedia/rbac-auth/zipball/0392682f178d08151d2947402ed2172b600b018d",
+                "reference": "0392682f178d08151d2947402ed2172b600b018d",
                 "shasum": ""
             },
             "require": {
-                "bayfrontmedia/php-array-helpers": "^1.1.0",
+                "bayfrontmedia/php-array-helpers": "^1.3.0",
                 "bayfrontmedia/php-string-helpers": "^1.2.0",
                 "ext-json": "*",
                 "ext-pdo": "*",
@@ -1065,7 +1065,7 @@
             ],
             "support": {
                 "issues": "https://github.com/bayfrontmedia/rbac-auth/issues",
-                "source": "https://github.com/bayfrontmedia/rbac-auth/tree/v1.1.0"
+                "source": "https://github.com/bayfrontmedia/rbac-auth/tree/v1.2.0"
             },
             "funding": [
                 {
@@ -1073,27 +1073,27 @@
                     "type": "patreon"
                 }
             ],
-            "time": "2021-02-13T17:28:29+00:00"
+            "time": "2021-02-26T19:45:55+00:00"
         },
         {
             "name": "bayfrontmedia/route-it",
-            "version": "v2.0.1",
+            "version": "v2.0.2",
             "source": {
                 "type": "git",
                 "url": "https://github.com/bayfrontmedia/route-it.git",
-                "reference": "2f00fda85c965c56f419639578ccd59301ffb5b8"
+                "reference": "18c1b5bee3fc9a0df95ac42743b942eb5af53780"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/bayfrontmedia/route-it/zipball/2f00fda85c965c56f419639578ccd59301ffb5b8",
-                "reference": "2f00fda85c965c56f419639578ccd59301ffb5b8",
+                "url": "https://api.github.com/repos/bayfrontmedia/route-it/zipball/18c1b5bee3fc9a0df95ac42743b942eb5af53780",
+                "reference": "18c1b5bee3fc9a0df95ac42743b942eb5af53780",
                 "shasum": ""
             },
             "require": {
-                "bayfrontmedia/php-array-helpers": "^1.0.1",
-                "bayfrontmedia/php-http-request": "^2.0.0",
-                "bayfrontmedia/php-http-response": "^1.1.0",
-                "bayfrontmedia/php-string-helpers": "^1.0.0",
+                "bayfrontmedia/php-array-helpers": "^1.3.0",
+                "bayfrontmedia/php-http-request": "^2.0.1",
+                "bayfrontmedia/php-http-response": "^1.2.1",
+                "bayfrontmedia/php-string-helpers": "^1.2.0",
                 "ext-ctype": "*",
                 "php": ">=7.1.0"
             },
@@ -1127,7 +1127,7 @@
             ],
             "support": {
                 "issues": "https://github.com/bayfrontmedia/route-it/issues",
-                "source": "https://github.com/bayfrontmedia/route-it/tree/v2.0.1"
+                "source": "https://github.com/bayfrontmedia/route-it/tree/v2.0.2"
             },
             "funding": [
                 {
@@ -1135,7 +1135,7 @@
                     "type": "patreon"
                 }
             ],
-            "time": "2020-11-20T21:12:39+00:00"
+            "time": "2021-02-28T05:44:18+00:00"
         },
         {
             "name": "bayfrontmedia/session-manager",
