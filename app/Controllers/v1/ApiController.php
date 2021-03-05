@@ -216,9 +216,9 @@ abstract class ApiController extends Controller
                     'global.' . $permission,
                     'group.' . $permission,
                 ]) && $user_id != $this->user_id)
-            || (!$this->hasPermissions('global.' . $permission) // If only group and not in group
+            || (!$this->hasPermissions('global.' . $permission) // If only group and not in group or self
                 && $this->hasPermissions('group.' . $permission)
-                && !in_array($user_id, $this->getGroupedUserIds()))) {
+                && ($user_id != $this->user_id && !in_array($user_id, $this->getGroupedUserIds())))) {
 
             return false;
 
